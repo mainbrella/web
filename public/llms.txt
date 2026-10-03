@@ -1,10 +1,10 @@
 # Mainbrella
 
-> Your clouds. One umbrella.
+> Everything behind your app. One umbrella.
 
-Mainbrella is a product in development that aims to bring AWS and Google Cloud infrastructure into one dashboard, organized around the products it powers. Compute, databases, and object storage share a product view while retaining their provider, service, and region details.
+Mainbrella is a local-first desktop app in development for small software teams to see AWS and Google Cloud resources together, organized by application. The planned first version uses local AWS profiles or SSO and Google Cloud credentials for read-only inventory, with unified search, manual application grouping, and deep links back to provider consoles.
 
-The website’s dashboard is an illustrative example, not a live connection or a released application. There is no public download or signup yet.
+The website’s resource table is illustrative sample data only, not a live connection or a released application. Credentials are planned to stay on the user's machine, with the desktop app talking directly to providers. Cloudflare is planned next, followed later by App Store Connect, Google Play, and GitHub. There is no public download or signup yet.
 
 - [Overview](https://mainbrella.com/): Product concept and illustrative dashboard.
 - [Availability](https://mainbrella.com/download/): Current release status.
