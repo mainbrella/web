@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0d1014" />
+    <meta name="description" content="Your Mainbrella subscription and containers." />
+    <meta name="robots" content="noindex" />
+    <link rel="canonical" href="https://mainbrella.com/dashboard/" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>Dashboard · Mainbrella</title>
+  </head>
+  <body class="info-body sandbox-home dashboard-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header wrap">
+      <a class="brand" href="/" aria-label="Mainbrella home">
+        <img src="/images/logo.png" alt="" width="44" height="44" /><span>mainbrella</span>
+      </a>
+      <nav aria-label="Main navigation"><a class="button button-small" href="/#pricing">Pricing</a></nav>
+    </header>
+    <main id="main" class="dashboard-main" aria-busy="true">
+      <h1>Dashboard</h1>
+      <p id="dashboard-status" class="dashboard-status" role="status">Checking your session…</p>
+      <p id="dashboard-error" class="dashboard-error" role="alert" hidden></p>
+      <button id="dashboard-retry" class="dashboard-retry" type="button" hidden>Retry</button>
+      <div id="dashboard-content" hidden>
+        <section class="dashboard-subscription" aria-labelledby="subscription-title">
+          <h2 id="subscription-title">Subscription</h2>
+          <div class="dashboard-plan-row">
+            <p id="subscription-level" aria-live="polite">Loading…</p>
+            <a class="text-link" href="/#pricing">Manage subscription</a>
+          </div>
+          <p id="subscription-note" class="dashboard-status" hidden></p>
+        </section>
+        <section class="dashboard-containers" aria-labelledby="containers-title">
+          <div class="dashboard-section-heading">
+            <h2 id="containers-title">Running containers</h2>
+            <button class="button button-small" type="button" disabled aria-describedby="containers-status">Create container</button>
+          </div>
+          <p id="containers-status" class="dashboard-status">Container management is not available yet.</p>
+        </section>
+      </div>
+      <noscript><p>Enable JavaScript to view your dashboard.</p></noscript>
+    </main>
+    <script type="module" src="/src/dashboard.js"></script>
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

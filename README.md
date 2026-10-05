@@ -27,6 +27,13 @@ The default client ID is
 in `src/auth.js` and `../backend/wrangler.jsonc`. Optional `VITE_GOOGLE_CLIENT_ID`
 and `VITE_API_URL` overrides support other environments; the backend client ID
 must match. Plan-specific billing login returns to the selected plan after sign-in.
+Other logins default to `/dashboard/`; safe same-site `returnTo` destinations
+take precedence. Profile remains available at `/profile/`, and the account menu
+links to the dashboard. The authenticated dashboard reads `/subscription` and
+shows None, Builder, Pro, or Scale based on active access. Failed status requests
+show an error with retry rather than implying the user has no subscription.
+Container listing and creation await a user-owned container API; the dashboard
+shows an unavailable message and a disabled Create container button for now.
 
 The backend allowlists the plan prices:
 - Builder: `price_1UNAovGSUs8K8zgHwUCsCX16`

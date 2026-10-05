@@ -18,7 +18,8 @@ let signingIn = false;
 let signingOut = false;
 const params = new URLSearchParams(window.location.search);
 const requestedReturn = params.get('returnTo');
-const returnTo = safeReturnTo(requestedReturn);
+const returnTo = safeReturnTo(requestedReturn)
+  || (/^\/login\/?$/.test(window.location.pathname) ? '/dashboard/' : null);
 
 function safeReturnTo(value) {
   if (!value || !value.startsWith('/') || value.startsWith('//')) return null;

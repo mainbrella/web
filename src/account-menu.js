@@ -14,6 +14,7 @@ if (nav) {
     </button>
     <div class="account-panel" id="account-panel" hidden>
       <p class="account-identity"></p>
+      <a href="/dashboard/">Dashboard</a>
       <a href="/profile/">Profile</a>
       <a href="/#pricing">Billing</a>
       <button class="account-sign-out" type="button">Sign out</button>
