@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Mainbrella machine sizes, plan allowances, execution limits, image build limits, and current platform boundaries." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/docs/limits/" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>Limits · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="docs-layout wrap"><aside class="docs-sidebar"><nav aria-label="Documentation"><a href="/docs/">Quickstart</a><a href="/docs/containers/">Containers</a><a href="/docs/execute/">Execute</a><a href="/docs/files/">Files</a><a href="/docs/images/">Images</a><a href="/docs/ssh/">SSH</a><a href="/docs/authentication/">Authentication</a><a href="/docs/limits/" aria-current="page">Limits</a><a href="/docs/errors/">Errors</a><a href="/docs/api-reference/">API reference</a><a href="/docs/agent-setup/">Agent setup</a></nav></aside><article class="docs-article"><h1>Limits</h1>
+
+<p>Every plan currently uses the same <code>lite</code> machine: <strong>1/16 vCPU, 256 MiB RAM, and 2 GB ephemeral disk</strong>. Plans increase concurrency, starts, and session duration. Pro and Scale do not provide a larger individual machine.</p>
+<div class="docs-table-scroll" role="region" aria-label="Plan reference" tabindex="0"><table class="docs-table"><thead><tr><th scope="col">Plan</th><th scope="col">USD/month</th><th scope="col">Concurrent</th><th scope="col">Starts/UTC month</th><th scope="col">Session / idle</th></tr></thead><tbody><tr><th scope="row">Builder</th><td>$5</td><td>5</td><td>10</td><td>1 hour / 10 minutes</td></tr><tr><th scope="row">Pro</th><td>$180</td><td>100</td><td>1,000</td><td>24 hours / 30 minutes</td></tr><tr><th scope="row">Scale</th><td>$999</td><td>500</td><td>10,000</td><td>72 hours / 60 minutes</td></tr></tbody></table></div>
+<h2>Usage and deadlines</h2>
+<p>Starts are shared across the account and reset at the start of each UTC month. Failed starts count. Stopping, changing plans, canceling, or resubscribing does not reset usage. A pending start counts toward concurrency; a request rejected at capacity does not reserve a start.</p>
+<p>Sessions end at the hard deadline or the paid period recognized at creation, whichever comes first. Upgrades and renewals do not lengthen running sessions. Activity extends only the idle deadline; polling and SSH token issuance do not.</p>
+<p>Downgrades and cancellation take effect at renewal. An effective downgrade can stop excess containers and shorten deadlines. Loss of paid access stops containers.</p>
+<h2>Operation limits</h2>
+<div class="docs-table-scroll" role="region" aria-label="Operation reference" tabindex="0"><table class="docs-table"><thead><tr><th scope="col">Operation</th><th scope="col">Limit</th></tr></thead><tbody><tr><th scope="row">HTTP execution</th><td>Four concurrent commands per container; 30-second default, 60-second maximum; 16 KiB command, 32 KiB request; 1 MiB combined output.</td></tr><tr><th scope="row">HTTP file transfer</th><td>1 MiB per upload or download; 30 seconds; shares the command pool.</td></tr><tr><th scope="row">Interactive access</th><td>Four combined browser/SSH connections per container; ten live SSH tokens per account; tokens last at most 15 minutes.</td></tr><tr><th scope="row">API keys</th><td>Twenty per account; key names up to 80 characters.</td></tr><tr><th scope="row">Image builds</th><td>When enabled: default ten per UTC month, three saved images, 300-second deadline, 16 KiB Dockerfile, 512 KiB compressed context. Read returned limits.</td></tr></tbody></table></div>
+<h2>Current platform boundaries</h2>
+<p>Files do not persist after stop. Snapshots, resume after stop, larger or configurable machines, a published SDK, team seats, audit exports, advanced logs, and priority capacity are not currently available. Outbound internet access is enabled; customer-configurable egress restrictions and a guaranteed residency region are not offered.</p>
+<p>Self-service plans have no uptime SLA or automatic service credits. Monthly fees are fixed, with no compute usage billing. See <a href="/terms/">Terms</a> and <a href="/status/">Status</a>.</p>
+</article></main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

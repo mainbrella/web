@@ -146,3 +146,30 @@ To install the skill in Codex, copy `SKILL.md` and `API.md` into
 `~/.codex/skills/mainbrella-containers/` (or the equivalent skills directory for
 your agent), then invoke `$mainbrella-containers`. Provision `MAINBRELLA_API_KEY`
 separately using the instructions in `API.md`.
+
+## Public website
+
+Public pages use shared static navigation and footer markup from
+`scripts/site-chrome-plugin.mjs`, rendered by Vite in development and production.
+Use `<!-- site-header -->` and `<!-- site-footer -->` in public HTML pages.
+Authenticated application screens retain their existing navigation.
+
+The human-facing documentation starts at `/docs/`, with guides for containers,
+execution, files, images, SSH, authentication, limits, errors, API reference, and
+agent setup. `API.md`, `SKILL.md`, OpenAPI, and the onboarding scripts remain the
+technical sources; update the corresponding HTML guides when contracts change.
+New routes must also appear in `vite.config.js` and `public/sitemap.xml`.
+
+`/security/`, `/security/disclosure/`, and `/.well-known/security.txt` publish
+implemented controls and the reporting address. Renew the security.txt expiry
+before October 1, 2027. Company and legal pages identify Andrew Arrow, doing
+business as Mainbrella Co., a sole proprietorship, and the supplied notice address.
+
+`/status/` is a manually maintained, timestamped record. Its first observations
+only checked the public homepage and API health endpoint; they do not establish
+healthy provisioning, SSH, builds, billing, or authentication. Record future
+checks and incidents with their times and scope, keeping the history intact.
+`/changelog/` records dated, source-linked product updates.
+
+All current plans still use lite containers. Larger per-container CPU and memory
+require backend support before changing the public machine specifications.

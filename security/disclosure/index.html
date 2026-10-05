@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Report vulnerabilities to Mainbrella and understand the scope and rules for good-faith security research." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/security/disclosure/" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>Vulnerability disclosure · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap"><h1>Vulnerability disclosure</h1>
+
+<p>Report a suspected vulnerability to <a href="mailto:security@mainbrella.com">security@mainbrella.com</a>. Please report privately before publishing details so we can investigate and coordinate a fix.</p>
+<p class="legal-updated">Effective: <time datetime="2026-10-05">October 5, 2026</time></p>
+<h2>What to include</h2>
+<p>Include the affected URL or feature, a description of the impact, minimal reproduction steps, and a way to contact you. Redact credentials and personal data. Do not send a live API key, SSH token, or another person's information.</p>
+<h2>Scope and permitted testing</h2>
+<p>This policy covers Mainbrella-controlled services at <code>mainbrella.com</code>, <code>api.mainbrella.com</code>, and <code>ssh.mainbrella.com</code>. Use your own accounts and containers, low request rates, and the smallest proof needed to demonstrate an issue. Ask us first if a test would cross an account or isolation boundary.</p>
+<p>Third-party services, including Cloudflare's platform, Google, and Stripe, are outside this authorization. Follow those providers' own reporting policies for issues in their systems.</p>
+<h2>Prohibited testing</h2>
+<p>Do not access or modify other users' data, persist access, deploy malware, exfiltrate secrets, attempt an actual sandbox escape, disrupt service, run denial-of-service or load tests, bypass payments to obtain compute, or use phishing or social engineering. Do not test systems you do not control.</p>
+<p>If you encounter someone else's data unexpectedly, stop immediately, retain only the minimum redacted evidence, and notify us. Do not explore further.</p>
+<h2>Good-faith reports</h2>
+<p>Mainbrella authorizes research that follows this policy and will not treat that research or a good-faith report as abuse, or initiate legal action against you for that authorized activity. This commitment applies to Mainbrella; it cannot authorize access to a third party or waive its rights.</p>
+<p>We will review reports, follow up when more information is needed, and coordinate disclosure with the reporter. No bounty or guaranteed response time is offered. If you need an update, reply to your original report.</p>
+</main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

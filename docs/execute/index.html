@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Run bounded shell commands over Mainbrella HTTP and handle stdout, stderr, exit codes, and timeouts." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/docs/execute/" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>Execute · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="docs-layout wrap"><aside class="docs-sidebar"><nav aria-label="Documentation"><a href="/docs/">Quickstart</a><a href="/docs/containers/">Containers</a><a href="/docs/execute/" aria-current="page">Execute</a><a href="/docs/files/">Files</a><a href="/docs/images/">Images</a><a href="/docs/ssh/">SSH</a><a href="/docs/authentication/">Authentication</a><a href="/docs/limits/">Limits</a><a href="/docs/errors/">Errors</a><a href="/docs/api-reference/">API reference</a><a href="/docs/agent-setup/">Agent setup</a></nav></aside><article class="docs-article"><h1>Execute</h1>
+
+<p>Run a foreground shell command without SSH, a PTY, or a local CLI. Select an owned, running container and its exact generation.</p>
+<pre class="docs-code"><code>POST /containers/exec?id=&lt;id&gt;&amp;createdAt=&lt;URL-encoded-createdAt&gt;
+Authorization: Bearer mb_&lt;your-key&gt;
+Content-Type: application/json
+
+{&quot;command&quot;:&quot;echo hello from mainbrella&quot;,&quot;timeoutMs&quot;:30000}</code></pre>
+<h2>Read the result</h2>
+<pre class="docs-code"><code>{
+  &quot;stdout&quot;: &quot;hello from mainbrella\n&quot;,
+  &quot;stderr&quot;: &quot;&quot;,
+  &quot;exitCode&quot;: 0,
+  &quot;timedOut&quot;: false,
+  &quot;outputTruncated&quot;: false
+}</code></pre>
+<p>HTTP 200 means the execution request completed; check <code>exitCode</code> and both flags to decide whether the command succeeded. A nonzero exit is a command failure. A timeout or output limit returns partial output with <code>exitCode: null</code>.</p>
+<h2>Execution limits</h2>
+<p>Commands run through <code>/bin/sh -lc</code> with closed stdin. Timeout defaults to 30 seconds and accepts 1–60,000 milliseconds, including startup, bounded by the container deadline. Command text is limited to 16 KiB of UTF-8; the JSON body to 32 KiB; combined stdout and stderr to 1 MiB.</p>
+<p>Up to four HTTP commands can run concurrently per container. They have a separate pool from interactive terminals. Background jobs and reconnect are not supported by this endpoint; use <a href="/docs/ssh/">SSH or the browser terminal</a> for interactive sessions.</p>
+<h2>Failures and retries</h2>
+<p>A lost HTTP response can hide a command that already ran. Reconcile its effects before retrying commands that write, send, charge, or otherwise change state. Results are not retained. Stop or generation replacement revokes active commands.</p>
+</article></main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

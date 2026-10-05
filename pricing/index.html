@@ -11,20 +11,18 @@
   </head>
   <body class="info-body sandbox-home">
     <a class="skip-link" href="#main">Skip to content</a>
-    <header class="site-header wrap">
-      <a class="brand" href="/" aria-label="Mainbrella home"><img src="/images/logo.png" alt="" width="44" height="44" /><span>mainbrella</span></a>
-      <nav aria-label="Main navigation"><a class="button button-small" href="/#pricing">All plans</a></nav>
-    </header>
+    <!-- site-header -->
     <main id="main" class="subscription-main wrap">
       <div id="pricing-plans">
         <h1 id="plan-title">Subscribe</h1>
+        <p class="pricing-note">Every plan uses the same 1/16 vCPU, 256 MiB RAM, 2 GB ephemeral-disk machine. Higher tiers provide more concurrent containers, starts, and longer sessions.</p>
         <p id="selected-plan-limits" class="pricing-note" hidden></p>
         <button class="button" data-plan="" type="button" disabled>Continue to checkout</button>
         <details class="plan-rules">
           <summary>Plan rules and included access</summary>
-          <p>All plans use the same container: 1/16 vCPU, 256 MiB RAM and 2 GB ephemeral disk, with Node 24, bash, tmux, outbound internet, SSH and browser terminals. Each container allows four terminal connections; each account allows ten live SSH commands, valid for up to 15 minutes.</p>
+          <p>All plans use the same container: 1/16 vCPU, 256 MiB RAM and 2 GB ephemeral disk, with bash, tmux, outbound internet, SSH and browser terminals. The default image includes Node 24; other runtimes depend on the selected image. Each container allows four terminal connections; each account allows ten live SSH commands, valid for up to 15 minutes.</p>
           <p>Starts are shared across your account and reset at the start of each UTC month. Failed starts count. Stopping a container or changing plans does not reset usage. Sessions end at their hard limit or the end of the paid period at creation, whichever comes first. Files are lost when a container stops.</p>
-          <p>Upgrades require payment through Stripe. Downgrades and cancellation take effect at renewal; lower limits may stop containers. Snapshots, larger machines, team seats, SDKs, advanced logs, audit exports and priority capacity are unavailable on every plan.</p>
+          <p>Upgrades require payment through Stripe. Downgrades and cancellation take effect at renewal; lower limits may stop containers. <a href="/docs/limits/">Read all platform limits</a>.</p>
         </details>
       </div>
       <section class="inline-checkout" id="inline-checkout" aria-labelledby="checkout-title" hidden>

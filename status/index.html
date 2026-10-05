@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Public Mainbrella component status and incident history, with explicit monitoring coverage." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/status/" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>Service status · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap"><h1>Service status</h1>
+
+<p>Public status reporting starts October 5, 2026. Component states below are manually maintained; they are not an automated uptime measurement.</p>
+<p class="legal-updated">Last observation: <time datetime="2026-10-05T21:37:33Z">October 5, 2026 at 21:37 UTC</time></p>
+<div class="docs-table-scroll" role="region" aria-label="Component reference" tabindex="0"><table class="docs-table"><thead><tr><th scope="col">Component</th><th scope="col">State</th><th scope="col">Coverage</th></tr></thead><tbody><tr><th scope="row">Website</th><td>Reachable at last check</td><td>Public homepage returned HTTP 200; asset delivery not checked separately.</td></tr><tr><th scope="row">API</th><td>Reachable at last check</td><td><code>GET /health</code> returned HTTP 200 with <code>{"ok":true}</code>. Workload operations not checked.</td></tr><tr><th scope="row">Container provisioning</th><td>Not yet verified</td><td>Account reservations and container readiness</td></tr><tr><th scope="row">SSH gateway</th><td>Not yet verified</td><td>Interactive SSH connections</td></tr><tr><th scope="row">Image builds</th><td>Not yet verified</td><td>Build queue, publishing, and image readiness</td></tr><tr><th scope="row">Billing / Auth</th><td>Not yet verified</td><td>Google sign-in, checkout, and subscription reconciliation</td></tr></tbody></table></div>
+<p>The observations above are a snapshot at the stated time, not a live check or an uptime guarantee. “Not yet verified” means no current operational check is published for that component. It does not establish either an outage or healthy service. Cloudflare's <a href="https://www.cloudflarestatus.com/">provider status</a> can provide context but does not verify Mainbrella.</p>
+<h2>History</h2>
+<article class="release-entry"><h3><time datetime="2026-10-05">October 5, 2026</time> — Status reporting initialized</h3><p>Component coverage and a public history were added. No historical uptime or incident record is available before this date. At 21:37 UTC, read-only checks confirmed that the public homepage and API health endpoint were reachable. The other components were not checked. Further observations and incidents will be recorded here as they are verified.</p></article>
+<h2>Report a service problem</h2>
+<p>Email <a href="mailto:support@mainbrella.com?subject=Mainbrella%20service%20problem">support@mainbrella.com</a> with the affected feature, time, and error code. For a security issue, use <a href="mailto:security@mainbrella.com">security@mainbrella.com</a>.</p>
+</main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

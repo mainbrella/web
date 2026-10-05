@@ -417,3 +417,104 @@ button:disabled { opacity: .65; cursor: wait; }
   .key-form { align-items: stretch; flex-direction: column; }
   .key-form .button { align-self: flex-start; }
 }
+
+/* Public platform pages use the existing palette and static navigation. */
+.platform-header { gap: 24px; }
+.platform-header nav { gap: 16px; flex-wrap: wrap; justify-content: flex-end; }
+.platform-header nav > a { display: inline-flex; white-space: nowrap; }
+.platform-header nav a[aria-current="page"] { color: var(--ink); text-decoration: underline; text-underline-offset: 6px; }
+.platform-header nav .login-link { margin-left: 8px; }
+.platform-header nav.has-account > .button { display: inline-flex; }
+.platform-footer { align-items: flex-start; gap: 48px; padding-top: 32px; padding-bottom: 40px; border-top: 1px solid var(--line); }
+.footer-intro { flex: 0 1 240px; }
+.footer-intro p + p { margin-top: 12px; }
+.footer-columns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); flex: 1; gap: 24px; }
+.footer-columns h2 { margin: 8px 0; font-size: 14px; line-height: 1.5; letter-spacing: 0; }
+.footer-columns a { display: flex; align-items: center; min-height: 44px; color: var(--muted); font-size: 13px; }
+.footer-columns a:hover { color: var(--blue); }
+.footer-columns a[aria-current="page"] { color: var(--ink); }
+.sandbox-hero .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.sandbox-home .hero h1 { font-size: clamp(36px, 3.8vw, 52px); }
+.sandbox-hero .hero-description { margin-top: 20px; }
+.sandbox-hero .cloudflare-label { margin-top: 16px; margin-bottom: 0; color: var(--muted); font-size: 13px; }
+.sandbox-terminal pre { line-height: 1.6; font-size: 12px; }
+.terminal-foot a { text-decoration: underline; text-underline-offset: 3px; }
+.sandbox-home .benchmarks { padding-top: 48px; padding-bottom: 8px; }
+.sandbox-home .workflow { padding-top: 48px; padding-bottom: 40px; }
+.sandbox-home .workflow-steps { margin-top: 24px; }
+.homepage-security .provider-details { margin-top: 0; }
+.homepage-security .provider-details h2 { font-size: 24px; }
+.sandbox-home .pricing { padding-top: 16px; }
+.pricing-size-note { max-width: 80ch; margin: -8px 0 24px; color: var(--muted); font-size: 14px; }
+.pricing-size-note a, .plan-rules a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.latest-updates { padding-top: 16px; padding-bottom: 24px; }
+.latest-updates .section-heading { margin-bottom: 8px; }
+.latest-updates p { color: var(--muted); font-size: 15px; }
+.latest-updates p a { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
+.availability .button { margin-top: 20px; }
+.agent-instructions summary { min-height: 44px; padding: 8px 0; cursor: pointer; color: var(--ink); }
+.agent-instructions > .button { margin: 12px 0 20px; }
+.docs-layout { flex: 1; display: grid; grid-template-columns: 184px minmax(0, 800px); gap: 48px; padding-top: 32px; padding-bottom: 64px; align-items: start; }
+.docs-sidebar { position: sticky; top: 24px; }
+.docs-sidebar nav { display: flex; flex-direction: column; }
+.docs-sidebar a { display: flex; align-items: center; min-height: 44px; padding: 8px 12px; color: var(--muted); font-size: 14px; border-left: 2px solid transparent; }
+.docs-sidebar a:hover { color: var(--ink); }
+.docs-sidebar a[aria-current="page"] { color: var(--ink); border-left-color: var(--blue); background: var(--surface); }
+.docs-article { min-width: 0; overflow-wrap: anywhere; }
+.docs-article h1 { font-size: 32px; line-height: 1.2; letter-spacing: -.025em; }
+.docs-article h2 { margin-top: 32px; font-size: 20px; line-height: 1.4; letter-spacing: 0; }
+.docs-article p { max-width: 78ch; margin-top: 12px; }
+.docs-article a { color: var(--blue); text-decoration: underline; text-underline-offset: 4px; }
+.docs-code { max-width: 100%; overflow-x: auto; margin: 20px 0; padding: 16px; background: var(--surface); font: 13px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.docs-article code, .legal-content code { font: .88em/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.docs-code code { font: inherit; }
+.docs-table-scroll { max-width: 100%; overflow-x: auto; margin-top: 20px; }
+.docs-table { width: 100%; min-width: 520px; border-collapse: collapse; text-align: left; font-size: 14px; }
+.docs-table th, .docs-table td { padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.docs-table th:first-child, .docs-table td:first-child { padding-left: 0; }
+.docs-table th { font-weight: 500; }
+.docs-table thead th { color: var(--muted); font-size: 13px; }
+.docs-table td { color: var(--muted); }
+.contact-list { margin: 24px 0; }
+.contact-list > div { padding: 16px 0; border-bottom: 1px solid var(--line); }
+.contact-list dt { font-weight: 600; }
+.contact-list dd { margin: 4px 0 0; }
+.contact-list dd p { margin-top: 4px; color: var(--muted); font-size: 14px; }
+.legal-content address { margin-top: 12px; font-style: normal; }
+.release-entry { margin-top: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+.release-entry h2 { margin-top: 0; }
+.release-entry h3 { font-size: 16px; }
+@media (max-width: 1100px) {
+  .platform-header { flex-wrap: wrap; gap: 8px; }
+  .platform-header nav { width: 100%; justify-content: flex-start; gap: 8px 20px; }
+  .platform-header nav .login-link { margin-left: auto; }
+  .docs-layout { gap: 32px; }
+  .platform-footer { gap: 32px; }
+}
+@media (max-width: 800px) {
+  .sandbox-hero .hero { grid-template-columns: 1fr; }
+  .platform-footer { flex-direction: column; gap: 24px; }
+  .footer-intro { flex-basis: auto; }
+  .footer-columns { width: 100%; }
+  .docs-layout { grid-template-columns: 1fr; gap: 24px; }
+  .docs-sidebar { position: static; }
+  .docs-sidebar nav { flex-direction: row; flex-wrap: wrap; gap: 0 8px; }
+  .docs-sidebar a { padding: 8px; border-left: 0; border-bottom: 2px solid transparent; }
+  .docs-sidebar a[aria-current="page"] { border-bottom-color: var(--blue); }
+}
+@media (max-width: 700px) {
+  .platform-header nav > a:not(.button) { display: inline-flex; }
+  .sandbox-home .platform-header nav, .platform-header nav { gap: 4px 16px; }
+  .platform-header nav .login-link { margin-left: 0; }
+  .platform-header nav .button { font-size: 14px; }
+  .sandbox-home .hero h1 { font-size: clamp(36px, 9vw, 48px); }
+  .sandbox-home .benchmarks { padding-top: 32px; }
+  .sandbox-home .workflow { padding-top: 32px; padding-bottom: 32px; }
+  .docs-layout { padding-top: 16px; padding-bottom: 40px; }
+  .footer-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  .platform-footer { padding-bottom: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .button { transition: none; }
+}

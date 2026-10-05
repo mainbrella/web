@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Mainbrella security controls, container isolation, credential handling, data lifecycle, and vulnerability reporting." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/security/" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>Security · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap"><h1>Security</h1>
+
+<p>Mainbrella isolates agent workloads and checks account ownership at the API boundary. This page describes the controls implemented today, along with the limits you should account for.</p>
+<p class="legal-updated">Last reviewed: <time datetime="2026-10-05">October 5, 2026</time></p>
+<h2>Workload isolation</h2>
+<p>Mainbrella runs Linux containers on Cloudflare Containers. Cloudflare documents that each instance runs in a Firecracker microVM with its own kernel and network. See <a href="https://developers.cloudflare.com/containers/concepts/architecture/#container-runtime">Cloudflare's container runtime architecture</a>.</p>
+<p>Mainbrella selects the account's containers, images, resource size, and deadlines on the server. Client-supplied ownership or entitlement overrides are not accepted. Isolation does not prevent code from reading secrets you give it or sending data to external services.</p>
+<h2>Authentication and credentials</h2>
+<p>Website accounts use verified Google sign-in. Sessions use Secure, HttpOnly cookies and hashed tokens. Named API keys are shown once, stored as SHA-256 hashes, and can be revoked. Browser mutations and terminal connections require a trusted Origin.</p>
+<p>API keys authorize workload operations, not credential management or billing. An invalid explicit Bearer credential cannot fall back to a browser cookie. SSH access tokens are hashed, time-limited, and tied to the selected container generation.</p>
+<h2>Generation checks and execution bounds</h2>
+<p>HTTP execution and file operations require the exact container ID and creation timestamp. This prevents a stale request from acting on a replacement instance in the same slot. Include the generation when stopping a container or issuing SSH access too.</p>
+<p>Commands, output, files, concurrent operations, session duration, and idle time are bounded by server policy. These controls limit resource use; they are not an application-level guarantee that an agent's commands are safe. See <a href="/docs/limits/">limits</a>.</p>
+<h2>Data and network access</h2>
+<p>The public website and API use HTTPS. Container files are ephemeral and are lost after stop; there are no persistent workspaces or customer snapshots. Keep independent backups and remove unnecessary secrets from workloads.</p>
+<p>Outbound internet access is enabled for packages and external services. There are no customer-configurable egress policies or guaranteed residency regions today. Your code controls which destinations receive its data. Do not submit regulated data without prior written agreement.</p>
+<h2>Infrastructure providers</h2>
+<p>Cloudflare provides hosting, compute, and database infrastructure; Google provides sign-in; Stripe handles payments. Mainbrella does not receive full payment card details. Account, billing, and support records have a separate lifecycle from temporary container files; see the <a href="/privacy/">Privacy Policy</a>.</p>
+<h2>Assurance and availability</h2>
+<p>Mainbrella does not claim SOC 2 or ISO 27001 certification, an independent penetration-test attestation, or a self-service uptime SLA. Provider certifications and service commitments do not automatically apply to Mainbrella. See <a href="/status/">service status</a> for published observations and incidents.</p>
+<h2>Report a vulnerability</h2>
+<p>Email <a href="mailto:security@mainbrella.com">security@mainbrella.com</a>. Our <a href="/security/disclosure/">vulnerability disclosure policy</a> explains scope, permitted testing, and how we handle good-faith reports.</p>
+</main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

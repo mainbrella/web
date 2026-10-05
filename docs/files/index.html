@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Read and write binary files in a Mainbrella container through authenticated HTTP requests." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/docs/files/" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>Files · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="docs-layout wrap"><aside class="docs-sidebar"><nav aria-label="Documentation"><a href="/docs/">Quickstart</a><a href="/docs/containers/">Containers</a><a href="/docs/execute/">Execute</a><a href="/docs/files/" aria-current="page">Files</a><a href="/docs/images/">Images</a><a href="/docs/ssh/">SSH</a><a href="/docs/authentication/">Authentication</a><a href="/docs/limits/">Limits</a><a href="/docs/errors/">Errors</a><a href="/docs/api-reference/">API reference</a><a href="/docs/agent-setup/">Agent setup</a></nav></aside><article class="docs-article"><h1>Files</h1>
+
+<p>Upload and download raw bytes in an owned, running container. Both directions require the exact <code>id</code> and <code>createdAt</code>, plus a URL-encoded absolute path.</p>
+<pre class="docs-code"><code>// Keep apiKey on your server. sandbox is the validated creation identity.
+const query = new URLSearchParams({
+  id: sandbox.containerId,
+  createdAt: sandbox.createdAt,
+  path: &#x27;/tmp/input.bin&#x27;,
+});
+const url = `https://api.mainbrella.com/containers/files?${query}`;
+const headers = { Authorization: `Bearer ${apiKey}` };
+const upload = await fetch(url, {
+  method: &#x27;PUT&#x27;,
+  headers: { ...headers, &#x27;Content-Type&#x27;: &#x27;application/octet-stream&#x27; },
+  body: new Uint8Array([0, 128, 255]),
+});
+if (!upload.ok) throw new Error(`Upload failed: ${upload.status}`);
+const download = await fetch(url, { headers });
+if (!download.ok) throw new Error(`Download failed: ${download.status}`);
+const bytes = new Uint8Array(await download.arrayBuffer());</code></pre>
+<h2>Paths and writes</h2>
+<p>Paths must be absolute, at most 4,096 UTF-8 bytes, and contain no NUL, empty, <code>.</code>, or <code>..</code> segments. Parent directories must already exist; create them through <a href="/docs/execute/">Execute</a>. Paths refer to the guest filesystem; <code>/workspace</code> is a convention, not a security boundary.</p>
+<p>GET reads regular files and follows guest symlinks. PUT writes a temporary file beside the destination, then replaces it atomically; directories and existing symlinks are rejected. New files use mode <code>0600</code>, while replacements preserve permissions.</p>
+<h2>Limits and persistence</h2>
+<p>Uploads and downloads are each limited to 1 MiB. Operations are bounded by 30 seconds and the hard container deadline, share the four-command pool, and renew idle activity. For larger files, use authorized SSH access.</p>
+<p>A lost write response may hide a completed upload; read to reconcile before retrying. Export needed files before stopping: workspace storage is ephemeral.</p>
+</article></main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

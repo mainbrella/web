@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Browse the Mainbrella HTTP API, OpenAPI schema, authentication, and operation reference." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/docs/api-reference/" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>API reference · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="docs-layout wrap"><aside class="docs-sidebar"><nav aria-label="Documentation"><a href="/docs/">Quickstart</a><a href="/docs/containers/">Containers</a><a href="/docs/execute/">Execute</a><a href="/docs/files/">Files</a><a href="/docs/images/">Images</a><a href="/docs/ssh/">SSH</a><a href="/docs/authentication/">Authentication</a><a href="/docs/limits/">Limits</a><a href="/docs/errors/">Errors</a><a href="/docs/api-reference/" aria-current="page">API reference</a><a href="/docs/agent-setup/">Agent setup</a></nav></aside><article class="docs-article"><h1>API reference</h1>
+
+<p>Base URL: <code>https://api.mainbrella.com</code>. Send <code>Authorization: Bearer mb_…</code> for automation. The backend publishes its request and response schemas directly from route definitions.</p>
+<p><a href="https://api.mainbrella.com/docs">Interactive API reference</a> · <a href="https://api.mainbrella.com/openapi.json">OpenAPI 3.1 schema</a> · <a href="/API.md">Complete Markdown reference</a></p>
+<div class="docs-table-scroll" role="region" aria-label="Resource reference" tabindex="0"><table class="docs-table"><thead><tr><th scope="col">Resource</th><th scope="col">Methods and paths</th><th scope="col">Guide</th></tr></thead><tbody><tr><th scope="row">Containers</th><td><code>GET, POST, DELETE /containers</code></td><td><a href="/docs/containers/">Lifecycle and idempotency</a></td></tr><tr><th scope="row">Execution</th><td><code>POST /containers/exec</code></td><td><a href="/docs/execute/">Commands and results</a></td></tr><tr><th scope="row">Files</th><td><code>GET, PUT /containers/files</code></td><td><a href="/docs/files/">Binary transfer</a></td></tr><tr><th scope="row">Images</th><td><code>GET, POST /images</code><br /><code>GET, DELETE /images/{id}</code><br /><code>GET /images/{id}/logs</code></td><td><a href="/docs/images/">Catalog and builds</a></td></tr><tr><th scope="row">SSH</th><td><code>POST /containers/ssh</code></td><td><a href="/docs/ssh/">Interactive access</a></td></tr><tr><th scope="row">API keys</th><td><code>GET, POST, DELETE /api-keys</code><br />Browser session required</td><td><a href="/docs/authentication/">Credential management</a></td></tr><tr><th scope="row">Billing</th><td><code>GET /subscription/config</code><br />Other billing routes require a browser session</td><td><a href="/API.md#browser-billing-endpoints">Billing endpoints</a></td></tr></tbody></table></div>
+<h2>Client libraries</h2>
+<p>No Mainbrella SDK is published yet. Use your language's HTTP client or generate a client from OpenAPI, while preserving generation checks, idempotency, and cleanup. The <a href="/docs/agent-setup/">agent skill</a> provides integration instructions.</p>
+</article></main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

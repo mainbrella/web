@@ -3,45 +3,31 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Why we started Mainbrella: Cloudflare’s new sandbox infrastructure opened an opportunity to build a better agent sandbox system." />
+    <meta name="description" content="Meet Andrew Arrow, founder of Mainbrella, and learn why we are building cloud computers for AI agents." />
     <meta name="theme-color" content="#0d1014" />
     <link rel="canonical" href="https://mainbrella.com/about/" />
     <link rel="icon" href="/images/favicon.png" type="image/png" />
     <link rel="stylesheet" href="/mainbrella.css" />
-    <title>About · Mainbrella</title>
+    <title>About Mainbrella · Mainbrella</title>
   </head>
   <body class="info-body">
     <a class="skip-link" href="#main">Skip to content</a>
-    <header class="site-header wrap">
-      <a class="brand" href="/" aria-label="Mainbrella home">
-        <img src="/images/logo.png" alt="" width="44" height="44" /><span>mainbrella</span>
-      </a>
-      <nav aria-label="Main navigation"><a class="button button-small" href="/#pricing">Pricing</a></nav>
-    </header>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap"><h1>About Mainbrella</h1>
 
-    <main id="main" class="legal-content wrap">
-      <h1>About Mainbrella</h1>
-      <p>When Cloudflare introduced <a href="https://www.cloudflare.com/products/sandboxes/">Sandboxes</a>, we saw a brand-new foundation for running agent code—and an opportunity to build a better agent sandbox system than the options already out there. That’s why we started Mainbrella.</p>
-
-      <h2>The opportunity</h2>
-      <p>Agents need a place to run commands, install dependencies, and work with files. Cloudflare’s sandbox infrastructure provides isolated environments for that work. Its <a href="https://developers.cloudflare.com/sandbox/">Sandbox documentation</a> shows how those building blocks can support coding agents, code interpreters, and development previews.</p>
-      <p>We saw room to turn that infrastructure into a service developers could use directly: create a sandbox, connect to it, give an agent access, and stop it when the work is done. Mainbrella builds on Cloudflare Containers, the infrastructure behind Cloudflare’s container sandboxes.</p>
-
-      <h2>What better means to us</h2>
-      <p>We want setting up an agent’s workspace to be straightforward. That means a clear way to create and manage containers, access through familiar tools, and pricing you can understand before you run anything.</p>
-      <p>Today, Mainbrella provides managed Linux containers with SSH and browser terminals, an <a href="/API.md">API for automation</a>, and fixed monthly plans with explicit limits. You can connect yourself or let an agent use the same container workflow.</p>
-      <p>We’re early. Our goal is to make the full experience of running an agent in a sandbox easier, from the first connection to cleanup. Cloudflare’s new infrastructure gave us a reason to start building.</p>
-    </main>
-
-    <footer class="site-footer wrap">
-      <a class="footer-brand" href="/">mainbrella</a>
-      <nav class="footer-links" aria-label="Footer navigation">
-        <a href="/about/" aria-current="page">About</a>
-        <a href="/download/">Availability</a>
-        <a href="/privacy/">Privacy</a>
-        <a href="/terms/">Terms</a>
-      </nav>
-    </footer>
+<p>Mainbrella gives AI agents a cloud computer: a Linux workspace for running commands, installing tools, and working with files. The aim is to make that workspace straightforward to create, use, and clean up from the tools developers already have.</p>
+<h2>Built by Andrew Arrow</h2>
+<p>Andrew Arrow is the founder of Mainbrella. He is building Mainbrella Co. as a sole proprietorship based in Culver City, California.</p>
+<p><a href="https://www.linkedin.com/in/andrewarrow/">Andrew on LinkedIn</a> · <a href="mailto:support@mainbrella.com?subject=For%20Andrew%20Arrow">Talk directly to Andrew</a></p>
+<h2>Why this problem</h2>
+<p>An agent needs more than a model response when its task involves code. It needs a place to execute, inspect output, and move files, with explicit ownership and a lifecycle that does not leave machines running indefinitely. Mainbrella brings those operations into one account-owned HTTP workflow.</p>
+<h2>What you can use today</h2>
+<p>Create containers with idempotent requests, execute commands over HTTP, read and write files, choose a deployed runtime image, or build a custom image when builds are enabled. For interactive work, connect through SSH or the browser terminal. Named API keys and an <a href="/docs/agent-setup/">agent skill</a> support automation.</p>
+<p>Mainbrella builds on Cloudflare Containers for workload isolation and compute. Mainbrella provides the account, API, lifecycle controls, and billing experience. Read the <a href="/security/">security overview</a> and <a href="/docs/limits/">current limits</a>.</p>
+<h2>Where it is going</h2>
+<p>Mainbrella is early. The focus is making agent execution dependable and easy to integrate, from the first API call through cleanup. The <a href="/changelog/">changelog</a> records what's shipped; <a href="/contact/">tell Andrew</a> which workloads and capabilities would make it useful for you.</p>
+</main>
+    <!-- site-footer -->
     <script type="module" src="/src/account-menu.js"></script>
   </body>
 </html>

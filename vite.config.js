@@ -3,11 +3,17 @@ import { fileURLToPath } from "node:url";
 import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { plans } from "./src/plans.js";
 import { agentDocsPlugin } from "./scripts/agent-docs-plugin.mjs";
+import { siteChromePlugin } from "./scripts/site-chrome-plugin.mjs";
+
+const publicPages = ['docs', 'docs/containers', 'docs/execute', 'docs/files', 'docs/images',
+  'docs/ssh', 'docs/authentication', 'docs/limits', 'docs/errors', 'docs/api-reference',
+  'docs/agent-setup', 'security', 'security/disclosure', 'contact', 'status', 'changelog'];
 
 export default defineConfig({
   base: "/",
   publicDir: "public",
   plugins: [
+    siteChromePlugin(),
     agentDocsPlugin(),
     {
       name: "pricing-routes",
@@ -36,8 +42,9 @@ export default defineConfig({
       name: "page-redirects",
       configureServer(server) {
         server.middlewares.use((request, response, next) => {
-          const match = request.url?.match(/^\/(about|privacy|terms|download|login|profile|dashboard|api-keys)(\?.*)?$/);
-          if (!match) {
+          const match = request.url?.match(/^\/([^?]*[^/?])(\?.*)?$/);
+          const routes = ['about', 'privacy', 'terms', 'download', 'login', 'profile', 'dashboard', 'api-keys', ...publicPages];
+          if (!match || !routes.includes(match[1])) {
             next();
             return;
           }
@@ -64,6 +71,7 @@ export default defineConfig({
         download: fileURLToPath(new URL("./download/index.html", import.meta.url)),
         privacy: fileURLToPath(new URL("./privacy/index.html", import.meta.url)),
         terms: fileURLToPath(new URL("./terms/index.html", import.meta.url)),
+        ...Object.fromEntries(publicPages.map(page => [page, fileURLToPath(new URL(`./${page}/index.html`, import.meta.url))])),
       },
     },
   },

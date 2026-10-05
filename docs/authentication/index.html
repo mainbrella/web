@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Create and revoke Mainbrella API keys and understand browser session authentication." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/docs/authentication/" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>Authentication · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="docs-layout wrap"><aside class="docs-sidebar"><nav aria-label="Documentation"><a href="/docs/">Quickstart</a><a href="/docs/containers/">Containers</a><a href="/docs/execute/">Execute</a><a href="/docs/files/">Files</a><a href="/docs/images/">Images</a><a href="/docs/ssh/">SSH</a><a href="/docs/authentication/" aria-current="page">Authentication</a><a href="/docs/limits/">Limits</a><a href="/docs/errors/">Errors</a><a href="/docs/api-reference/">API reference</a><a href="/docs/agent-setup/">Agent setup</a></nav></aside><article class="docs-article"><h1>Authentication</h1>
+
+<p>Sign in with Google at <a href="/login/">Sign in</a>, then create a named key in <a href="/api-keys/">API Keys</a>. The secret is shown once. Up to twenty keys can be active per account; names can be 1–80 characters.</p>
+<pre class="docs-code"><code>Authorization: Bearer mb_&lt;your-key&gt;</code></pre>
+<p>Use this header for containers, commands, files, images, and SSH issuance. Keep keys in a secret store or a protected environment on your server. Never embed them in frontend JavaScript, URLs, repositories, transcripts, or logs.</p>
+<h2>Key lifecycle</h2>
+<p>Keys remain valid until revoked, independently of browser sign-out. Revoke a lost or unused key in the account's API Keys page. Key listings expose names, prefixes, creation times, and last-use times, not full secrets. Mainbrella stores credential hashes rather than plaintext API keys.</p>
+<h2>Browser sessions</h2>
+<p>The website uses a Secure, HttpOnly session cookie with a validity of up to 30 days. Browser mutations require an allowlisted Origin. Key creation and revocation, checkout, and billing management require a browser session; API keys cannot manage credentials or purchases.</p>
+<p>Bearer requests may omit Origin. If present, it must be allowlisted. An explicitly invalid Bearer credential returns 401 even if a valid browser cookie is also supplied.</p>
+<h2>Paid access</h2>
+<p>Authentication identifies your account; it does not grant compute by itself. Starting containers also requires an active paid plan or valid coupon trial and available allowance. Read <a href="/docs/errors/">errors</a> to distinguish missing credentials from access or quota problems.</p>
+</article></main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>
