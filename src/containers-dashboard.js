@@ -1,9 +1,11 @@
 import { API_ORIGIN } from './auth.js';
 
-export function canCreateContainer(data) {
+export function canCreateContainer(data, size = 'lite') {
   return Boolean(data && (!data.active || (
     data.containers.length < data.limits.maxContainers
       && data.usage.starts < data.limits.maxStartsPerMonth
+      && (data.usage.availableComputeUnitHours === undefined || data.usage.availableComputeUnitHours > 0)
+      && (data.limits.maxConcurrentComputeUnits === undefined || (data.usage.concurrentComputeUnits ?? 0) + (data.sizes?.find(item => item.id === size)?.computeUnits ?? 1) <= data.limits.maxConcurrentComputeUnits)
   )));
 }
 
@@ -13,6 +15,9 @@ export function imageSelection(value) {
 }
 
 export function createContainersDashboard({ onUnauthenticated }) {
+  const sizeSelect = document.querySelector('#container-size');
+  const sizeRate = document.querySelector('#container-size-rate');
+  let sizeOptionsKey = '';
   const imageSelect = document.querySelector('#container-image');
   const create = document.querySelector('#container-create');
   const refresh = document.querySelector('#containers-refresh');
@@ -82,9 +87,14 @@ export function createContainersDashboard({ onUnauthenticated }) {
   }
 
   function controls() {
-    create.disabled = busy || disposed || !canCreateContainer(data) || (!catalog.length && !customImages.length);
+    create.disabled = busy || disposed || !canCreateContainer(data, sizeSelect?.value ?? 'lite') || (!catalog.length && !customImages.length);
     refresh.disabled = busy || disposed;
     imageSelect.disabled = busy || disposed;
+    if (sizeSelect) sizeSelect.disabled = busy || disposed || !data?.sizes?.length;
+    if (sizeRate) {
+      const size = data?.sizes?.find(item => item.id === sizeSelect.value);
+      sizeRate.textContent = size ? `${size.cpuVcpu} vCPU · ${size.diskGB} GB disk · ${size.computeUnits} compute units/hour` : '';
+    }
     list.querySelectorAll('button').forEach((button) => {
       button.disabled = busy || !data || disposed || (button.dataset.requiresRunning === 'true' && button.dataset.running !== 'true');
     });
@@ -93,7 +103,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
   }
 
   async function request(method, id, createdAt) {
-    const image = imageSelection(imageSelect.value);
+    const image = { ...imageSelection(imageSelect.value), ...(sizeSelect && data?.sizes?.length ? { size: sizeSelect.value } : {}) };
     const url = new URL(`${API_ORIGIN}/containers`);
     if (id) url.searchParams.set('id', id);
     if (createdAt) url.searchParams.set('createdAt', createdAt);
@@ -122,6 +132,20 @@ export function createContainersDashboard({ onUnauthenticated }) {
   }
 
   function render() {
+    if (sizeSelect && Array.isArray(data.sizes)) {
+      const key = JSON.stringify(data.sizes);
+      if (key !== sizeOptionsKey) {
+        const selected = sizeSelect.value;
+        sizeSelect.replaceChildren(...data.sizes.map(size => {
+          const option = document.createElement('option');
+          option.value = size.id;
+          option.textContent = `${size.name} · ${size.memoryMiB < 1024 ? `${size.memoryMiB} MiB` : `${size.memoryMiB / 1024} GiB`} RAM`;
+          return option;
+        }));
+        if (data.sizes.some(size => size.id === selected)) sizeSelect.value = selected;
+        sizeOptionsKey = key;
+      }
+    }
     if (Array.isArray(data.imageCatalog)) {
       catalog = data.imageCatalog.filter(image => typeof image.id === 'string' && typeof image.name === 'string');
       renderImages();
@@ -133,13 +157,13 @@ export function createContainersDashboard({ onUnauthenticated }) {
     range.textContent = `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, data.containers.length)} of ${data.containers.length}`;
     const remaining = Math.max(0, data.limits.maxStartsPerMonth - data.usage.starts);
     status.textContent = data.active
-      ? `${data.containers.length} of ${data.limits.maxContainers} container slots in use · ${remaining} starts remaining this month.`
+      ? `${data.containers.length} of ${data.limits.maxContainers} container slots in use · ${remaining} starts remaining this month.${data.usage.availableComputeUnitHours !== undefined ? ` ${data.usage.computeUnitHours.toFixed(1)} compute-unit hours used; ${data.usage.reservedComputeUnitHours.toFixed(1)} reserved for running sessions; ${data.usage.availableComputeUnitHours.toFixed(1)} available.` : ''}`
       : 'No active plan. Choose a plan to start containers.';
     const hours = Math.round(data.limits.maxSessionMs / 3600000);
     const idleMinutes = Math.round(data.limits.idleTimeoutMs / 60000);
     document.querySelector('#container-limits').textContent = data.active
-      ? `${data.limits.maxContainers} concurrent containers · 256 MiB RAM · 2 GB disk. Sessions last up to ${hours} ${hours === 1 ? 'hour' : 'hours'} and stop after ${idleMinutes} idle minutes. ${data.limits.maxStartsPerMonth} starts per month.`
-      : 'Choose a monthly plan to create containers. All plans include 256 MiB RAM and 2 GB disk, with SSH and browser terminal access.';
+      ? `${data.limits.maxContainers} concurrent containers${data.limits.maxConcurrentComputeUnits ? ` within ${data.limits.maxConcurrentComputeUnits} compute units` : ""} · Choose your machine size. Sessions last up to ${hours} ${hours === 1 ? 'hour' : 'hours'} and stop after ${idleMinutes} idle minutes. ${data.limits.maxStartsPerMonth} starts per month.`
+      : 'Choose a monthly plan to create containers. All plans offer five machine sizes, with SSH and browser terminal access.';
     if (access && (!data.containers.some(c => c.id === access.id && c.createdAt === access.createdAt) || access.expiresAt <= Date.now())) access = null;
     const rows = data.containers.slice(page * pageSize, (page + 1) * pageSize);
     const rowVersion = JSON.stringify({ page, rows, access, today: new Date().toDateString() });
@@ -164,7 +188,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
         ...(expiry.toDateString() !== new Date().toDateString() ? { month: 'short', day: 'numeric' } : {}) };
       const running = container.status === 'running';
       const stateLabel = running ? 'Running' : container.status === 'starting' ? 'Starting…' : 'Stopping…';
-      state.textContent = `${stateLabel} · Stops by ${expiry.toLocaleString([], expiryOptions)}`;
+      state.textContent = `${stateLabel}${container.size ? ` · ${container.size.toUpperCase()}` : ""} · Stops by ${expiry.toLocaleString([], expiryOptions)}`;
       const stop = document.createElement('button');
       stop.type = 'button';
       stop.className = 'dashboard-retry';
@@ -335,7 +359,13 @@ export function createContainersDashboard({ onUnauthenticated }) {
       if (method === 'DELETE') refresh.focus();
     } catch (cause) {
       if (disposed) return;
-      const message = cause.message === 'container_quota_exceeded'
+      const message = cause.message === 'compute_allowance_exhausted'
+        ? 'Your available compute allowance is reserved or used. Stop a session to release unused runtime, or wait for the next UTC month.'
+        : cause.message === 'compute_capacity_exceeded'
+        ? 'This size exceeds your available concurrent compute units. Choose a smaller size or stop a container.'
+        : cause.message === 'invalid_size'
+        ? 'This size is unavailable. Refresh and choose another size.'
+        : cause.message === 'container_quota_exceeded'
         ? `You’ve used all ${data?.limits?.maxStartsPerMonth ?? 'available'} container starts for this month. Your allowance resets next month (UTC).`
         : ['image_not_ready', 'image_not_available'].includes(cause.message)
           ? 'This image is not ready to launch. Refresh images and try again.'
@@ -381,6 +411,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
     controls();
   }
 
+  sizeSelect?.addEventListener('change', controls);
   create.addEventListener('click', () => mutate('POST'));
   refresh.addEventListener('click', () => load());
   function renderImages() {

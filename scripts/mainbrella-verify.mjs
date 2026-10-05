@@ -113,7 +113,9 @@ export async function verify({ request, catalogId = 'node', wait = () => new Pro
     if (!before.active || !Array.isArray(before.containers) || !Array.isArray(before.imageCatalog)
       || !before.imageCatalog.some(image => image.id === catalogId)
       || before.containers.length >= before.limits.maxContainers
-      || before.usage.starts >= before.limits.maxStartsPerMonth) throw new Error('preflight_failed');
+      || before.usage.starts >= before.limits.maxStartsPerMonth
+      || before.usage.availableComputeUnitHours !== undefined && before.usage.availableComputeUnitHours <= 0
+      || before.limits.maxConcurrentComputeUnits !== undefined && (before.usage.concurrentComputeUnits ?? 0) + 1 > before.limits.maxConcurrentComputeUnits) throw new Error('preflight_failed');
     const creationKey = randomUUID();
     let started;
     // Retry the same operation, including polling when the reservation is still starting.

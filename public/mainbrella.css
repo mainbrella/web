@@ -372,8 +372,10 @@ button:disabled { opacity: .65; cursor: wait; }
 .custom-images-content { margin-top: 8px; }
 .custom-images-content > .dashboard-status { margin-top: 8px; font-size: 14px; }
 .container-image-picker { display: flex; align-items: center; gap: 12px; margin: 12px 0; min-width: 0; }
+.container-image-picker { flex-wrap: wrap; }
+.container-image-picker .dashboard-status { flex-basis: 100%; margin: 0; }
 .container-image-picker label { flex-shrink: 0; }
-.container-image-picker select { min-width: 0; max-width: 100%; }
+.container-image-picker select { flex: 1; min-width: 0; max-width: 100%; }
 .image-form-details { margin-top: 16px; }
 .image-form-details summary { cursor: pointer; min-height: 44px; display: list-item; align-content: center; }
 .image-form { display: grid; gap: 8px; max-width: 640px; padding: 8px 0; }

@@ -39,12 +39,11 @@ shows None, Builder, Pro, or Scale based on active access. Failed status request
 show an error with retry rather than implying the user has no subscription.
 Container listing, creation, and stopping use the session-authenticated
 `GET`, `POST`, and `DELETE /containers` backend API. Active paid subscriptions
-grant tier-specific limits: Builder allows 5 concurrent containers, 10 starts
+grant tier-specific limits: Builder allows 5 concurrent containers, 1,000 starts
 per UTC month, one-hour sessions and a 10-minute idle timeout; Pro allows
-100 concurrent containers, 1,000 monthly starts, 24-hour sessions and a
-30-minute idle timeout; Scale allows 500 concurrent containers, 10,000 monthly
-starts, 72-hour sessions and a 60-minute idle timeout. All plans use `lite`
-containers (1/16 vCPU, 256 MiB RAM, 2 GB disk). Each creation reserves a
+100 concurrent containers, 10,000 monthly starts, 24-hour sessions and a
+30-minute idle timeout; Scale allows 500 concurrent containers, 100,000 monthly
+starts, 72-hour sessions and a 60-minute idle timeout. All plans offer five sizes (Lite through XL), with 250 / 9,000 / 50,000 monthly compute-unit hours and 28 / 128 / 640 concurrent units. Each creation reserves a
 start even if stopped early; a pending start counts toward concurrency.
 Creation without an active paid subscription returns 402.
 Containers have outbound internet access for package installation and no persistent filesystem. The dashboard
@@ -171,8 +170,7 @@ healthy provisioning, SSH, builds, billing, or authentication. Record future
 checks and incidents with their times and scope, keeping the history intact.
 `/changelog/` records dated, source-linked product updates.
 
-All current plans still use lite containers. Larger per-container CPU and memory
-require backend support before changing the public machine specifications.
+All plans support five sizes through 4 vCPU and 12 GiB RAM. Runtime is reserved before launch, unused runtime is released on stop, and machine deadlines enforce the account budget. See API.md for the compute contract.
 
 ## P1 public pages and evidence
 
@@ -189,7 +187,7 @@ publish failures and cleanup outcomes. No paid benchmark was run for this change
 `/integrations/` has Codex and Claude Code skill recipes and an OpenAI Agents SDK
 function-tool example using `/integrations/mainbrella-command.mjs`. The command
 adapter binds a trusted container generation and leaves creation and cleanup to
-the application. Agent orchestration runs outside the 256 MiB machine. Local
+the application. Choose a machine size appropriate to agent orchestration and its tool workload. Local
 contract tests and current official framework documentation validate these
 recipes; a live agent/provider run remains a separate account-dependent check.
 No framework or SDK dependencies were added to the website.

@@ -15,12 +15,13 @@
     <main id="main" class="subscription-main wrap">
       <div id="pricing-plans">
         <h1 id="plan-title">Subscribe</h1>
-        <p class="pricing-note">Every plan uses the same 1/16 vCPU, 256 MiB RAM, 2 GB ephemeral-disk machine. Higher tiers provide more concurrent containers, starts, and longer sessions.</p>
+        <p class="pricing-note">All plans offer five machine sizes, from 256 MiB to 12 GiB RAM. Your subscription includes a fixed monthly compute allowance, with no automatic overage charges.</p>
         <p id="selected-plan-limits" class="pricing-note" hidden></p>
         <button class="button" data-plan="" type="button" disabled>Continue to checkout</button>
         <details class="plan-rules">
           <summary>Plan rules and included access</summary>
-          <p>All plans use the same container: 1/16 vCPU, 256 MiB RAM and 2 GB ephemeral disk, with bash, tmux, outbound internet, SSH and browser terminals. The default image includes Node 24; other runtimes depend on the selected image. Each container allows four terminal connections; each account allows ten live SSH commands, valid for up to 15 minutes.</p>
+          <p>Small uses 6 compute units per hour; XL uses 28. Running time, including idle time, uses your allowance. Starting a session reserves its runtime; stopping releases unused runtime. Allowances reset each UTC month without rollover, and sessions end at the month boundary or their earlier deadline. No automatic overage charges.</p>
+          <p>All plans offer five machine sizes, from Lite (256 MiB RAM) to XL (4 vCPU, 12 GiB RAM, 20 GB ephemeral disk), with bash, tmux, outbound internet, SSH and browser terminals. The default image includes Node 24; other runtimes depend on the selected image. Each container allows four terminal connections; each account allows ten live SSH commands, valid for up to 15 minutes.</p>
           <p>Starts are shared across your account and reset at the start of each UTC month. Failed starts count. Stopping a container or changing plans does not reset usage. Sessions end at their hard limit or the end of the paid period at creation, whichever comes first. Files are lost when a container stops.</p>
           <p>Upgrades require payment through Stripe. Downgrades and cancellation take effect at renewal; lower limits may stop containers. <a href="/docs/limits/">Read all platform limits</a>.</p>
         </details>

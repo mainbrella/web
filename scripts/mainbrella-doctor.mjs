@@ -75,6 +75,10 @@ export async function runDoctor({ env = process.env, fetcher = fetch, cwd = proc
           status.containers.length < status.limits.maxContainers ? 'A container slot is available.' : 'No free slots. Reuse only an authorized container; preserve existing work.');
         check('starts', status.usage.starts < status.limits.maxStartsPerMonth,
           status.usage.starts < status.limits.maxStartsPerMonth ? 'Monthly starts are available.' : 'No monthly starts remain. Reuse authorized work or wait for the next UTC month.');
+        if (status.usage.availableComputeUnitHours !== undefined) check('compute_allowance', status.usage.availableComputeUnitHours > 0,
+          status.usage.availableComputeUnitHours > 0 ? 'Monthly compute runtime is available.' : 'Compute runtime is used or reserved. Release unused runtime by stopping only authorized work, or wait for the next UTC month.');
+        if (status.limits.maxConcurrentComputeUnits !== undefined) check('compute_capacity', (status.usage.concurrentComputeUnits ?? 0) + 1 <= status.limits.maxConcurrentComputeUnits,
+          'At least one concurrent compute unit must be available for the default Lite verification machine.');
         check('catalog', status.imageCatalog.length > 0, status.imageCatalog.length ? 'Published catalog images are available.' : 'No catalog images are currently published.');
       }
     }

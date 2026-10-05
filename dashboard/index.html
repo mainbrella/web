@@ -43,6 +43,11 @@
             <label for="container-image">Image</label>
             <select id="container-image"><option value="">Node 24 + TypeScript</option></select>
           </div>
+          <div class="container-image-picker">
+            <label for="container-size">Size</label>
+            <select id="container-size" aria-describedby="container-size-rate"><option value="lite">Lite · 256 MiB RAM</option></select>
+            <span id="container-size-rate" class="dashboard-status"></span>
+          </div>
           <p id="containers-status" class="dashboard-status" role="status">Loading containers…</p>
           <ul id="container-list" class="container-list" aria-label="Containers" hidden></ul>
           <nav id="container-pagination" class="container-pagination" aria-label="Container pages" hidden>

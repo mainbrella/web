@@ -33,3 +33,12 @@ test('image selection sends a catalog ID or owned custom ID, and keeps the defau
   assert.deepEqual(imageSelection('12345678-1234-1234-1234-123456789abc'), { imageId: '12345678-1234-1234-1234-123456789abc' });
   assert.equal(imageSelection(''), null);
 });
+
+test('selected size must fit both the monthly available runtime and weighted concurrency', () => {
+  const sized = data({ limits: { maxContainers: 5, maxStartsPerMonth: 1000, maxConcurrentComputeUnits: 28 },
+    usage: { starts: 1, availableComputeUnitHours: 20, concurrentComputeUnits: 6 },
+    sizes: [{ id: 'lite', computeUnits: 1 }, { id: 'xl', computeUnits: 28 }] });
+  assert.equal(canCreateContainer(sized, 'lite'), true);
+  assert.equal(canCreateContainer(sized, 'xl'), false);
+  assert.equal(canCreateContainer({ ...sized, usage: { ...sized.usage, availableComputeUnitHours: 0 } }, 'lite'), false);
+});

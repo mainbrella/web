@@ -69,7 +69,7 @@ const agent = new Agent({
       <p>The <a href="/integrations/mainbrella-command.mjs">Node command adapter</a> works without an agent framework. It operates on a running generation; creation and cleanup remain your application’s responsibility. See the <a href="/API.md">full HTTP contracts</a>.</p>
       <h2 id="verify">Verify your recipe</h2>
       <p>Follow the <a href="/docs/">Quickstart</a> and run the doctor before verification. A passing verification reports hello output, exit code zero, verified binary bytes, managed streaming, cancellation, and completed cleanup. Verification consumes one start. Then test your agent’s bound command tool with <code>echo hello from mainbrella</code> in a container your application created, confirm those results, and stop it.</p>
-      <p>Current containers have 1/16 vCPU, 256 MiB RAM, and 2 GB ephemeral disk. Choose lightweight workloads and keep agent orchestration outside the container. Check <a href="/docs/limits/">limits</a> before launching concurrent tasks.</p>
+      <p>All plans offer five machine sizes from Lite (256 MiB RAM) through XL (4 vCPU, 12 GiB RAM). Choose a size that fits your workload and monthly compute allowance. Check <a href="/docs/limits/">limits</a> before launching concurrent tasks.</p>
     </main>
     <!-- site-footer -->
     <script type="module" src="/src/account-menu.js"></script>

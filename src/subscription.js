@@ -50,18 +50,17 @@ function renderPolicy() {
     if (!plan) return;
     const key = button.dataset.plan;
     const limits = plan.limits;
-    const machine = plan.machine;
     card.querySelector("h3").textContent = plan.name;
     const price = card.querySelector(".plan-price");
     if (price?.firstChild) price.firstChild.textContent = `$${plan.price}`;
     const hours = limits.maxSessionMs / 3600000;
     const idle = limits.idleTimeoutMs / 60000;
     const rules = [
-      `${limits.maxContainers} concurrent containers`,
+      limits.maxComputeUnitHours ? `${limits.maxComputeUnitHours.toLocaleString()} compute-unit hours/month` : `${limits.maxContainers} concurrent containers`,
       `${limits.maxStartsPerMonth.toLocaleString()} starts per month`,
       `Up to ${hours}-hour sessions · ${idle}-minute idle timeout`,
-      `${machine.memoryMiB} MiB RAM · ${machine.diskGB} GB disk per container`,
-      "SSH, browser terminal, internet access",
+      `All five sizes · Up to 4 vCPU / 12 GiB RAM`,
+      limits.maxConcurrentComputeUnits ? `${limits.maxContainers} containers within ${limits.maxConcurrentComputeUnits} concurrent units` : "SSH, browser terminal, internet access",
     ];
     card.querySelectorAll(".plan-features li").forEach((item, index) => {
       if (!rules[index]) return;
@@ -79,8 +78,10 @@ function renderPolicy() {
     const details = config.plans[selectedPlan];
     document.querySelector("#plan-title").textContent = `${details.name} — $${details.price}/month`;
     const limits = details.limits;
+    const compute = limits.maxComputeUnitHours ? `${limits.maxComputeUnitHours.toLocaleString()} compute-unit hours/month · All five sizes · ` : "";
+    const capacity = limits.maxConcurrentComputeUnits ? ` within ${limits.maxConcurrentComputeUnits} compute units` : "";
     const summary = document.querySelector("#selected-plan-limits");
-    summary.textContent = `${limits.maxContainers} concurrent containers · ${limits.maxStartsPerMonth.toLocaleString()} starts per UTC month · Up to ${limits.maxSessionMs / 3600000}-hour sessions · ${limits.idleTimeoutMs / 60000}-minute idle timeout.`;
+    summary.textContent = `${compute}${limits.maxContainers} concurrent containers${capacity} · ${limits.maxStartsPerMonth.toLocaleString()} starts per UTC month · Up to ${limits.maxSessionMs / 3600000}-hour sessions · ${limits.idleTimeoutMs / 60000}-minute idle timeout.`;
     summary.hidden = false;
   }
 }
