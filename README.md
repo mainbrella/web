@@ -44,9 +44,9 @@ Containers have outbound internet access for package installation and no persist
 refreshes status every 15 seconds while visible; status reads do not renew the
 idle lease. Subscription failures do not prevent container management.
 
-Deploy `../reference` first to provision its private `UserContainer` Durable Object in `mainbrella-containers`,
-then deploy `../backend` (with the `USER_CONTAINER` cross-Worker binding), then
-this website. Container IDs and configuration come from the backend, never the
+Run `npm run deploy` in `../backend` to deploy the private `UserContainer`
+Worker in `mainbrella-containers` and then the API with its `USER_CONTAINER`
+cross-Worker binding. Deploy this website afterward. Container IDs and configuration come from the backend, never the
 browser; the machine test token is not needed for this private binding.
 The benchmark API remains separate. SSH access requires backend migration `005_ssh_access.sql`.
 The ten-start limit conservatively bounds each user's runtime to ten hours:
@@ -104,9 +104,9 @@ ten-minute idle deadline, but the independent alarm and terminal deadline never
 extend the one-hour hard expiration. Closing the panel detaches the tmux client;
 the shell continues only while the container's existing lease allows it.
 
-Deploy the updated `../reference` container Worker and its named Docker image
-(bash, tmux, Node 24) before the backend and website. Docker must be running for
-the image build. Existing containers using the old image must be stopped and
+Run `npm run deploy` in `../backend` to deploy the container Worker and its
+named Docker image (bash, tmux, Node 24), followed by the API. Deploy the website
+afterward. Docker must be running for the image build. Existing containers using the old image must be stopped and
 recreated to gain tmux. No new token table, migration, CLI, or public port is
 required for browser terminals.
 
