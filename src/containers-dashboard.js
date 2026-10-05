@@ -1,4 +1,5 @@
 import { API_ORIGIN } from './auth.js';
+import { openContainerTerminal } from './container-terminal.js';
 
 export function createContainersDashboard({ onUnauthenticated }) {
   const create = document.querySelector('#container-create');
@@ -11,6 +12,23 @@ export function createContainersDashboard({ onUnauthenticated }) {
   let disposed = false;
   let timer;
   let access = null;
+  let terminal = null;
+  const terminalHost = document.querySelector('#container-terminal');
+
+  function closeTerminal() {
+    terminal?.session.dispose();
+    terminal = null;
+  }
+
+  function connectTerminal(container) {
+    if (busy || disposed) return;
+    closeTerminal();
+    terminalHost.hidden = false;
+    terminalHost.querySelector('[role="status"]').textContent = 'Connecting…';
+    terminal = { createdAt: container.createdAt, session: openContainerTerminal(terminalHost, {
+      onClose: () => { terminal = null; list.querySelector('button')?.focus(); },
+    }) };
+  }
 
   function controls() {
     create.disabled = busy || !data || data.containers.length > 0
@@ -39,6 +57,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
   }
 
   function render() {
+    if (terminal && !data.containers.some(c => c.createdAt === terminal.createdAt)) closeTerminal();
     list.replaceChildren();
     list.hidden = data.containers.length === 0;
     const remaining = Math.max(0, data.limits.maxStartsPerMonth - data.usage.starts);
@@ -68,9 +87,14 @@ export function createContainersDashboard({ onUnauthenticated }) {
       const connect = document.createElement('button');
       connect.type = 'button';
       connect.className = 'dashboard-retry';
-      connect.textContent = 'Connect';
+      connect.textContent = 'SSH';
       connect.addEventListener('click', () => connectSSH(container));
-      actions.append(connect, stop);
+      const shell = document.createElement('button');
+      shell.type = 'button';
+      shell.className = 'dashboard-retry';
+      shell.textContent = 'Open terminal';
+      shell.addEventListener('click', () => connectTerminal(container));
+      actions.append(shell, connect, stop);
       row.append(details, actions);
       list.append(row);
       if (access?.createdAt === container.createdAt) {
@@ -175,6 +199,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
 
   async function mutate(method) {
     if (busy || disposed || !data || (method === 'POST' && create.disabled)) return;
+    if (method === 'DELETE') closeTerminal();
     busy = true;
     clearTimeout(timer);
     error.hidden = true;
@@ -205,6 +230,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
   }
 
   function dispose() {
+    closeTerminal();
     disposed = true;
     clearTimeout(timer);
     data = null;

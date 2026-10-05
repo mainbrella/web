@@ -336,3 +336,12 @@ button:disabled { opacity: .65; cursor: wait; }
 .container-ssh textarea { display: block; box-sizing: border-box; width: 100%; margin-top: 8px; padding: 8px; font: 13px/1.5 monospace; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; resize: vertical; }
 .container-ssh a { color: var(--ink); }
 @media (max-width: 480px) { .container-row { flex-wrap: wrap; } }
+
+.container-terminal { margin: 16px 0; min-width: 0; }
+.terminal-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.terminal-heading h3 { margin: 0; font-size: 16px; }
+.terminal-heading .dashboard-retry { margin: 0; }
+.terminal-output { height: clamp(240px, 45vh, 440px); padding: 8px; background: #0d1014; overflow: hidden; }
+.container-actions { flex-wrap: wrap; }
+.container-actions button, .terminal-heading button { min-height: 44px; }
+@media (prefers-reduced-motion: reduce) { .container-terminal .xterm-cursor { animation: none !important; } }
