@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="The limits of Mainbrella’s historical startup figures and how the HTTP benchmark records useful work and cleanup." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/blog/measuring-startup/" />
+    <meta property="og:title" content="What a 100-machine burst measures · Mainbrella" />
+    <meta property="og:description" content="The limits of Mainbrella’s historical startup figures and how the HTTP benchmark records useful work and cleanup." />
+    <meta property="og:url" content="https://mainbrella.com/blog/measuring-startup/" />
+    <meta property="og:type" content="article" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>What a 100-machine burst measures · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap">
+<article>
+<a class="article-back" href="/blog/">← Engineering blog</a>
+<h1>What a 100-machine burst measures</h1>
+<p class="article-meta"><time datetime="2026-10-05">October 5, 2026</time> · Mainbrella Engineering</p>
+
+<p>Mainbrella’s historical burst result reports 100 successful concurrent starts with a P95 of 680 ms. A separate creation test reports 30 successes, a P50 of 381 ms, and a P95 of 528 ms. Those are prototype observations. The original raw samples, harness, test date, region, image, and timing boundaries are missing from this repository.</p>
+<p>That missing context prevents a comparison with another platform’s startup number. It also prevents treating the result as a cold-start measurement or an estimate of today’s API latency. The <a href="/benchmarks/">benchmark record</a> keeps both the observations and those gaps visible.</p>
+<h2>Measure the work the client needs</h2>
+<p>The current HTTP benchmark uses the same verification workflow as agent onboarding. Each sample creates its own container with an idempotency key, waits for a matched running generation, executes a hello command, checks its exit code and output, writes and reads a six-byte binary probe, and attempts cleanup.</p>
+<p>It records creation time from the first launch request through the returned running state, including creation retries. It separately records time through the first command response. File verification and cleanup determine whether the sample passes, but are outside those two timing intervals.</p>
+<p>A reported running machine and a validated command are different milestones. Recording both makes the gap visible. The runner records the number of creation requests, sample outcomes, selected catalog ID, account limits, and client metadata alongside the timings.</p>
+<h2>Keep the failures</h2>
+<p>The runner launches work in batches up to the requested concurrency and waits for each batch’s cleanup. If a sample fails, it halts after that batch. It does not launch replacement reservations to fill out a successful-looking sample count. Its nearest-rank P50 and P95 summaries use successful samples; attempted and successful counts and individual failures remain in the JSON.</p>
+<p>The report labels image cache state as uncontrolled and compute region as unreported. A new creation identity alone cannot prove that a host or image cache was cold. Keep the runner version with the raw report so a future reader can inspect the timing boundaries and percentile calculation.</p>
+<h2>Run within an allowance</h2>
+<p>Read-only preflight checks must establish available starts, slots, and the selected runtime image before launch. Each sample consumes a start, so the sample count needs explicit authorization. A 100-machine test requires enough account concurrency and allowance; it is not a Builder-plan quickstart.</p>
+<p>The reproducible <a href="/mainbrella-benchmark.mjs">HTTP benchmark runner</a> and <a href="/mainbrella-verify.mjs">verification source</a> are public. This article reports no new benchmark run. Follow the <a href="/benchmarks/#code">run instructions</a> when collecting a new record.</p>
+
+</article>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

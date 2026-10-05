@@ -1,0 +1,12 @@
+Mainbrella brand assets — October 5, 2026
+
+Description: Mainbrella provides temporary Linux workspaces for AI agents, with an HTTP API, SSH, and browser terminal access.
+
+logo.png is the existing 256 × 256 transparent umbrella mark. SVG files embed this original raster mark; they are not fully vector artwork. Wordmark PNGs are 1040 × 256 with transparent backgrounds. Use on-light on light backgrounds and on-dark on dark backgrounds.
+
+Keep original proportions and colors. Leave clear space of at least one quarter of the mark's width on all sides. Minimum umbrella width: 32 px; minimum full wordmark width: 160 px. Do not crop, stretch, recolor, add effects, or imply endorsement or partnership. Write Mainbrella in prose; the wordmark is lowercase.
+
+product-overview.png and quickstart.png are public website captures at 1440 × 900 on October 5, 2026. The homepage contains an illustrative API example. Quickstart is documentation. Neither shows a live customer workload. Captured from the local website build without customer or account data.
+
+Current guidance: https://mainbrella.com/brand/
+Contact: support@mainbrella.com

@@ -8,7 +8,10 @@ import { siteChromePlugin } from "./scripts/site-chrome-plugin.mjs";
 const publicPages = ['docs', 'docs/containers', 'docs/execute', 'docs/files', 'docs/images',
   'docs/ssh', 'docs/authentication', 'docs/limits', 'docs/errors', 'docs/api-reference',
   'docs/agent-setup', 'security', 'security/disclosure', 'contact', 'status', 'changelog',
-  'benchmarks', 'integrations', 'trust', 'subprocessors', 'platform'];
+  'benchmarks', 'integrations', 'trust', 'subprocessors', 'platform',
+  'blog', 'blog/account-owned-compute', 'blog/measuring-startup',
+  'blog/safe-container-creation', 'blog/interactive-access', 'blog/custom-images',
+  'compare', 'brand', 'careers'];
 
 export default defineConfig({
   base: "/",

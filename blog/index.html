@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Technical notes on Mainbrella container lifecycle, startup measurements, interactive access, and custom images." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/blog/" />
+    <meta property="og:title" content="Engineering blog · Mainbrella" />
+    <meta property="og:description" content="Technical notes on Mainbrella container lifecycle, startup measurements, interactive access, and custom images." />
+    <meta property="og:url" content="https://mainbrella.com/blog/" />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>Engineering blog · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap">
+<h1>Engineering blog</h1>
+<p>Notes on building and using agent compute, with links to the contracts and code behind it.</p>
+<ul class="article-list">
+<li><article><h2><a href="/blog/account-owned-compute/">Reserving a machine before booting it</a></h2>
+<p>How account ownership, start reservations, and Cloudflare compute fit into Mainbrella’s container lifecycle.</p><p><time datetime="2026-10-05">October 5, 2026</time></p></article></li>
+<li><article><h2><a href="/blog/measuring-startup/">What a 100-machine burst measures</a></h2>
+<p>The limits of Mainbrella’s historical startup figures and how the HTTP benchmark records useful work and cleanup.</p><p><time datetime="2026-10-05">October 5, 2026</time></p></article></li>
+<li><article><h2><a href="/blog/safe-container-creation/">Retry creation without losing the machine</a></h2>
+<p>Why launch retries need a stable idempotency key and every later operation needs the exact container generation.</p><p><time datetime="2026-10-05">October 5, 2026</time></p></article></li>
+<li><article><h2><a href="/blog/interactive-access/">An interactive shell has a different lifetime</a></h2>
+<p>How Mainbrella’s browser terminal and SSH access bind to a running generation while respecting idle and hard deadlines.</p><p><time datetime="2026-10-05">October 5, 2026</time></p></article></li>
+<li><article><h2><a href="/blog/custom-images/">A ready image is a starting point, not a saved workspace</a></h2>
+<p>How runtime selection and asynchronous image builds prepare Mainbrella workspaces without promising filesystem persistence.</p><p><time datetime="2026-10-05">October 5, 2026</time></p></article></li>
+</ul>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

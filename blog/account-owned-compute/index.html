@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="How account ownership, start reservations, and Cloudflare compute fit into Mainbrella’s container lifecycle." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/blog/account-owned-compute/" />
+    <meta property="og:title" content="Reserving a machine before booting it · Mainbrella" />
+    <meta property="og:description" content="How account ownership, start reservations, and Cloudflare compute fit into Mainbrella’s container lifecycle." />
+    <meta property="og:url" content="https://mainbrella.com/blog/account-owned-compute/" />
+    <meta property="og:type" content="article" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>Reserving a machine before booting it · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap">
+<article>
+<a class="article-back" href="/blog/">← Engineering blog</a>
+<h1>Reserving a machine before booting it</h1>
+<p class="article-meta"><time datetime="2026-10-05">October 5, 2026</time> · Mainbrella Engineering</p>
+
+<p>Two agents can request the last available slot at the same time. If each request checks capacity and then starts a machine, both can pass the check. Mainbrella’s documented lifecycle reserves capacity for the account before starting compute. A pending start already occupies a slot.</p>
+<h2>One account, one allowance</h2>
+<p>The dashboard and named API keys share an account’s containers and monthly starts. Creating a second key does not create a second quota. The account serializes reservations so concurrent launch requests cannot exceed its cap, while readiness checks can proceed in parallel. This is the distinction that makes bursts possible without treating the limit as a suggestion.</p>
+<p>A successful reservation consumes a monthly start even if boot fails. Stopping immediately does not refund it. A request rejected because all slots are occupied does not reserve a start. An integration therefore needs to distinguish “no capacity” from “creation is still unresolved.” The <a href="/docs/containers/">container guide</a> describes how the returned creation record resolves that uncertainty.</p>
+<h2>Where Cloudflare fits</h2>
+<p>Mainbrella runs workloads on Cloudflare Containers. Cloudflare describes each instance as a Linux container inside a Firecracker microVM, with a separate kernel and network. That is the infrastructure isolation boundary. Mainbrella supplies the account-facing API and lifecycle policy. See <a href="https://developers.cloudflare.com/containers/concepts/architecture/#container-runtime">Cloudflare’s runtime architecture</a> and the <a href="/security/">Mainbrella security overview</a>.</p>
+<p>Infrastructure capability and product capability are different contracts. Cloudflare’s network footprint does not mean a Mainbrella customer can select a compute region. Every Mainbrella plan currently uses 1/16 vCPU, 256 MiB RAM, and 2 GB of temporary disk. A higher plan raises account capacity and session duration; it does not enlarge an individual machine.</p>
+<h2>A lease with an end</h2>
+<p>Commands and terminal activity renew the idle deadline. Reading status does not. The hard session deadline and paid period recognized at creation still bound the session, even if the agent stays busy. Renewing a subscription does not extend an existing container.</p>
+<p>After stop, the filesystem is lost. The agent should export its result before cleanup and keep durable state elsewhere. That makes the workspace suitable for bounded execution steps; a workflow that needs snapshots or persistent storage needs capabilities Mainbrella does not currently offer.</p>
+<p>Implementation contract: <a href="/API.md">Container automation API</a>. Resource and deadline details: <a href="/docs/limits/">Limits</a> and <a href="/platform/">Platform availability</a>.</p>
+
+</article>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

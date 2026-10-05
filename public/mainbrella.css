@@ -490,6 +490,33 @@ button:disabled { opacity: .65; cursor: wait; }
 .release-entry { margin-top: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
 .release-entry h2 { margin-top: 0; }
 .release-entry h3 { font-size: 16px; }
+.article-list { list-style: none; padding: 0; margin: 24px 0 0; }
+.article-list li { padding: 20px 0; border-bottom: 1px solid var(--line); }
+.article-list h2 { margin-top: 0; }
+.article-list time, .article-meta { color: var(--muted); font-size: 14px; }
+.article-list p { margin-top: 8px; }
+.article-back { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 8px; font-size: 14px; }
+.comparison-content { max-width: 1152px; }
+.comparison-content > p { max-width: 78ch; }
+.comparison-content .docs-table { min-width: 800px; table-layout: fixed; }
+.comparison-content .docs-table th:first-child { width: 19%; }
+.comparison-content .docs-table td { color: var(--ink); }
+.comparison-content .docs-table th[scope="row"] { overflow-wrap: anywhere; }
+.comparison-caption { margin-bottom: 12px; text-align: left; color: var(--muted); }
+.brand-variants { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 24px; }
+.brand-variants figure { margin: 0; min-width: 0; }
+.brand-preview { display: flex; justify-content: center; align-items: center; min-height: 144px; padding: 24px; background: var(--surface); }
+.brand-preview-light { background: #fff; }
+.brand-preview img { width: 100%; height: auto; }
+.brand-variants figcaption { margin-top: 8px; font-size: 14px; }
+.asset-links { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 4px; }
+.asset-links a { display: inline-flex; align-items: center; min-height: 44px; }
+.brand-screenshot { margin: 24px 0 0; }
+.brand-screenshot img { width: 100%; height: auto; }
+.brand-screenshot figcaption { margin-top: 8px; color: var(--muted); font-size: 14px; }
+@media (max-width: 600px) {
+  .brand-variants { grid-template-columns: 1fr; gap: 16px; }
+}
 @media (max-width: 1100px) {
   .platform-header { flex-wrap: wrap; gap: 8px; }
   .platform-header nav { width: 100%; justify-content: flex-start; gap: 8px 20px; }

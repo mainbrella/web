@@ -214,3 +214,30 @@ historical benchmark observations from production metrics: total starts, 30-day
 start success, and API uptime need verified operational data before publication.
 It links to the latest recorded release date and platform placement information.
 A signable DPA requires business readiness and legal review outside this web task.
+
+## P2 public pages
+
+`/blog/` contains five engineering articles on account reservations and Cloudflare
+compute, startup measurement, idempotency and generations, browser/SSH access,
+and custom images. Articles describe the existing web API documentation and
+client code; publication dates do not establish feature release or benchmark dates.
+Keep article claims aligned with the linked guides when contracts change. Add new
+articles to the blog index, `vite.config.js`, and `public/sitemap.xml`.
+
+`/compare/` is a Mainbrella-authored comparison reviewed October 5, 2026, with
+official sources beside competitor claims. Recheck those sources and update the
+review date whenever changing prices or capabilities. Startup observations and
+marketing claims are not a common benchmark. Daytona's archived public core
+repository reports that core development moved private in June 2026; do not
+describe it as the current open-source hosted platform.
+
+`/brand/` exports the existing transparent umbrella PNG and light/dark wordmarks,
+with SVG and PNG downloads, usage guidance, and a ZIP under `public/brand/assets/`.
+The SVGs embed the original raster umbrella; no native vector source exists here.
+Wordmark PNGs are 1040 × 256. The 1440 × 900 screenshots show the public homepage
+and Quickstart, captured locally without account or customer data. The homepage
+API example is illustrative. Refresh the screenshots and ZIP when those assets
+change; keep the capture date and `usage.txt` accurate.
+
+`/careers/` is an expression-of-interest contact page for Andrew, with no advertised
+open roles. Add job listings only when real roles and hiring details are supplied.

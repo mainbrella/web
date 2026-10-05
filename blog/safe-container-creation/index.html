@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Why launch retries need a stable idempotency key and every later operation needs the exact container generation." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/blog/safe-container-creation/" />
+    <meta property="og:title" content="Retry creation without losing the machine · Mainbrella" />
+    <meta property="og:description" content="Why launch retries need a stable idempotency key and every later operation needs the exact container generation." />
+    <meta property="og:url" content="https://mainbrella.com/blog/safe-container-creation/" />
+    <meta property="og:type" content="article" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>Retry creation without losing the machine · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap">
+<article>
+<a class="article-back" href="/blog/">← Engineering blog</a>
+<h1>Retry creation without losing the machine</h1>
+<p class="article-meta"><time datetime="2026-10-05">October 5, 2026</time> · Mainbrella Engineering</p>
+
+<p>A launch request can reach the server even when its response never reaches the client. Starting again with a new operation key can then consume another start and leave the first machine untracked. Mainbrella’s creation API accepts an <code>Idempotency-Key</code> so the client can recover the original reservation.</p>
+<h2>Keep the operation identity</h2>
+<p>Generate one key for each intended launch and retain the exact image selection. Retry the same POST body and key while reconciling an ambiguous response. The documented reservation window is 24 hours. Generating a new UUID on every retry defeats the recovery mechanism.</p>
+<pre class="docs-code"><code>POST /containers
+Authorization: Bearer mb_&lt;your-key&gt;
+Content-Type: application/json
+Idempotency-Key: &lt;one-key-for-this-launch&gt;
+
+{"catalogId":"node"}</code></pre>
+<p>With a key, the response includes a <code>creation</code> record. Wait for its status to become <code>running</code>, then match <code>creation.containerId</code> and <code>creation.createdAt</code> to a running entry in <code>containers</code>. The first machine in the account list might belong to a different task.</p>
+<h2>A slot can be reused</h2>
+<p>The container ID identifies an account slot. After a stop, that slot can hold a new instance. Keep the exact returned <code>createdAt</code> as the generation identifier and send both fields to execution, file transfer, SSH issuance, and deletion.</p>
+<p>Consider a cleanup request delayed until after another agent replaces the machine. Deleting by slot alone can target the replacement. A generation-qualified request allows the server to reject that stale action. Construct query strings with URL utilities so timestamps and paths are encoded correctly.</p>
+<h2>Cleanup needs evidence</h2>
+<p>The public <a href="/mainbrella-verify.mjs">verification script</a> retries creation up to three times using one key, and only proceeds after matching the creation record to a running generation. Its cleanup runs in <code>finally</code> and deletes only the generation it captured.</p>
+<p>If creation remains ambiguous, the report retains the creation key and asks for manual reconciliation. It does not infer ownership from an account list or delete a machine to make the error disappear. A cleanup failure also keeps the known identity so the caller can recover.</p>
+<h2>Creation safety does not make commands repeatable</h2>
+<p>The launch key applies to creation. An HTTP execution response can also be lost after a command has completed, but executing that command again can repeat its side effects. Inspect resulting files or application state before retrying a write, deployment, or other mutation.</p>
+<p>The <a href="/docs/containers/">container guide</a>, <a href="/docs/execute/">execution guide</a>, and <a href="/SKILL.md">agent skill</a> carry these rules into integrations. They let the agent recover an operation without guessing which machine or effect belongs to it.</p>
+
+</article>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

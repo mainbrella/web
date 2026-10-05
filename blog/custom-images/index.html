@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="How runtime selection and asynchronous image builds prepare Mainbrella workspaces without promising filesystem persistence." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/blog/custom-images/" />
+    <meta property="og:title" content="A ready image is a starting point, not a saved workspace · Mainbrella" />
+    <meta property="og:description" content="How runtime selection and asynchronous image builds prepare Mainbrella workspaces without promising filesystem persistence." />
+    <meta property="og:url" content="https://mainbrella.com/blog/custom-images/" />
+    <meta property="og:type" content="article" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>A ready image is a starting point, not a saved workspace · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap">
+<article>
+<a class="article-back" href="/blog/">← Engineering blog</a>
+<h1>A ready image is a starting point, not a saved workspace</h1>
+<p class="article-meta"><time datetime="2026-10-05">October 5, 2026</time> · Mainbrella Engineering</p>
+
+<p>Installing the same tools at the start of every task uses part of a short container session. A custom image can move that setup into a build. It gives future machines a prepared starting environment; it does not save the files or processes from an existing machine.</p>
+<h2>Ask what is available</h2>
+<p><code>GET /containers</code> returns the deployed <code>imageCatalog</code>. Select a returned ID such as <code>node</code> or <code>python</code> when creating a container. A runtime name appearing in documentation does not establish that its image has been published in a particular deployment.</p>
+<p>For custom builds, start with <code>GET /images</code>. It returns <code>buildsEnabled</code>, account limits, usage, and owned images. An integration should use that response to decide whether it can submit a new build rather than showing a build action that the deployment cannot fulfill.</p>
+<h2>Build, then launch</h2>
+<p>The current build contract accepts a multipart name, text Dockerfile, and optional compressed context. The Dockerfile must begin with <code>FROM mainbrella:base</code>, after optional comments, and use one build stage. It is limited to 16 KiB; the optional <code>.tar.gz</code> context is limited to 512 KiB.</p>
+<pre class="docs-code"><code>FROM mainbrella:base
+RUN mkdir -p /workspace
+WORKDIR /workspace</code></pre>
+<p>This minimal example creates a working directory. A useful image adds the tools required by the workload while retaining <code>/bin/sh</code> and GNU coreutils, which the execution and file endpoints depend on.</p>
+<p><code>POST /images</code> returns 202 and an image record. The build can progress through queued, building, publishing, and ready, or end in failed. Read the owned image’s status and logs. An accepted build request is not yet a launchable image.</p>
+<p>Once the status is <code>ready</code>, send its <code>imageId</code> when creating the container, instead of a <code>catalogId</code>. The two selectors are mutually exclusive. The current default allowance is ten builds per UTC month and three saved images, with a 300-second build deadline; the API’s returned limits govern the account.</p>
+<h2>Keep results outside the image lifecycle</h2>
+<p>A custom image does not change the machine’s CPU, memory, disk, or plan deadlines. Files written by a running task still disappear after stop. Deleting an owned image leaves its already-running containers in place, and an active build cannot be deleted.</p>
+<p>Keep the environment definition and durable task results separately. The image describes what a new workspace starts with. The files exported by the agent describe what the task produced.</p>
+<p>Request details: <a href="/docs/images/">Images</a> and <a href="/API.md">API reference</a>. The <a href="/docs/agent-setup/">agent setup workflow</a> selects available runtimes and verifies command execution and binary file transfer before cleanup.</p>
+
+</article>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

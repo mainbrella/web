@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="How Mainbrella’s browser terminal and SSH access bind to a running generation while respecting idle and hard deadlines." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/blog/interactive-access/" />
+    <meta property="og:title" content="An interactive shell has a different lifetime · Mainbrella" />
+    <meta property="og:description" content="How Mainbrella’s browser terminal and SSH access bind to a running generation while respecting idle and hard deadlines." />
+    <meta property="og:url" content="https://mainbrella.com/blog/interactive-access/" />
+    <meta property="og:type" content="article" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>An interactive shell has a different lifetime · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap">
+<article>
+<a class="article-back" href="/blog/">← Engineering blog</a>
+<h1>An interactive shell has a different lifetime</h1>
+<p class="article-meta"><time datetime="2026-10-05">October 5, 2026</time> · Mainbrella Engineering</p>
+
+<p>A command over HTTP has a result and a short timeout. An interactive shell needs a connection, terminal dimensions, and a way to survive a dropped browser tab. Mainbrella exposes both forms of access, but keeps them tied to the same container generation and session limits.</p>
+<h2>Reconnect to the shell</h2>
+<p>The dashboard’s browser terminal uses xterm.js and a WebSocket authenticated with the browser’s HttpOnly session cookie and a trusted Origin. An API key does not authenticate that connection. The request includes the selected container’s creation timestamp and terminal dimensions.</p>
+<p>The shell lives in the fixed tmux session <code>main</code>. Closing the panel detaches the client. A reload can reconnect while that generation is alive, and the browser client retries an abnormal disconnect up to five times with exponential backoff. A clean exit does not reconnect.</p>
+<p>This reconnect behavior does not persist a workspace after stop. If polling shows that the container disappeared or changed generation, the client closes the terminal. The shell’s files remain temporary.</p>
+<h2>Reach it from a local terminal</h2>
+<p>SSH access goes through <code>ssh.mainbrella.com</code> using <code>cloudflared</code> on the user’s computer. The dashboard or <code>POST /containers/ssh</code> returns a command for the selected running container. The container does not need a public IP address, and the user does not need a Mainbrella CLI.</p>
+<p>The returned command contains a credential. It belongs in the user’s terminal, not a repository, shared transcript, or diagnostic log. Its token lasts at most 15 minutes or until the hard container deadline, whichever comes first. Stopping or recreating the container invalidates the token.</p>
+<h2>Activity is not an unlimited extension</h2>
+<p>Terminal input and output renew the idle lease. Requesting an SSH token and reading container status do not. Neither activity nor reconnection extends the independent hard deadline. An agent cannot keep a one-hour Builder session alive indefinitely by sending periodic commands.</p>
+<p>There are four combined browser and SSH terminal connections per container and ten live SSH tokens per account. HTTP commands have their own concurrent-operation pool. These are distinct limits, so a client should report which operation failed rather than treating every capacity error as a full account.</p>
+<p>Use <a href="/docs/execute/">HTTP execution</a> for bounded foreground commands and structured stdout, stderr, and exit status. Use <a href="/docs/ssh/">SSH or the browser terminal</a> when the work needs interaction. Both still require exporting any result that must outlive the container.</p>
+<p>Client implementation: <a href="https://github.com/mainbrella/web/blob/main/src/container-terminal.js">browser terminal source</a>. Current connection and session bounds: <a href="/docs/limits/">Limits</a>.</p>
+
+</article>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

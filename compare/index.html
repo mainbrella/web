@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="A dated, source-linked comparison of Mainbrella, E2B, and Daytona: billing, machine sizes, persistence, SDKs, source availability, and deployment." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/compare/" />
+    <meta property="og:title" content="Mainbrella vs E2B vs Daytona · Mainbrella" />
+    <meta property="og:description" content="A dated, source-linked comparison of Mainbrella, E2B, and Daytona: billing, machine sizes, persistence, SDKs, source availability, and deployment." />
+    <meta property="og:url" content="https://mainbrella.com/compare/" />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>Mainbrella vs E2B vs Daytona · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content comparison-content wrap">
+
+<h1>Mainbrella vs E2B vs Daytona</h1>
+<p>Mainbrella offers small, temporary Linux workspaces with fixed monthly allowances. E2B and Daytona offer broader machine configurations and persistence options with usage billing. The differences below help you check whether your workload fits.</p>
+<p class="legal-updated">Reviewed <time datetime="2026-10-05">October 5, 2026</time>. Published by Mainbrella; competitor details come from their official pages, not independent runtime tests.</p>
+<div class="docs-table-scroll" role="region" aria-label="Platform comparison; scroll horizontally on small screens" tabindex="0">
+<table class="docs-table"><caption class="comparison-caption">Published capabilities as of October 5, 2026. Prices in USD; verify current terms with each provider.</caption>
+<thead><tr><th scope="col">Capability</th><th scope="col">Mainbrella</th><th scope="col">E2B</th><th scope="col">Daytona</th></tr></thead>
+<tbody><tr><th scope="row">Billing model</th><td><a href="/docs/limits/">Fixed monthly plans</a>: $5 Builder, $180 Pro, $999 Scale. Starts and session limits included; no compute usage charges.</td><td><a href="https://e2b.dev/pricing">Hobby: $0 base; Pro: $150/month base</a>, both plus usage. One-time $100 Hobby credit.</td><td><a href="https://www.daytona.io/pricing">Per-second usage billing</a> for compute, memory, and storage; $200 initial compute credit advertised.</td></tr>
+<tr><th scope="row">Machine sizes</th><td><a href="/platform/">All plans</a>: 1/16 vCPU, 256 MiB RAM, 2 GB ephemeral disk. No configurable resources.</td><td><a href="https://docs.e2b.dev/billing">Template CPU/RAM configuration</a>; published Hobby ceiling of 8 vCPUs and 8 GiB RAM. Availability depends on plan and template.</td><td><a href="https://www.daytona.io/docs/en/sandboxes/#resources">Default: 1 vCPU, 1 GiB RAM, 3 GiB disk</a>. Configurable within organization limits.</td></tr>
+<tr><th scope="row">Infrastructure</th><td><a href="/security/">Cloudflare Containers</a>; provider documents a Firecracker microVM per instance.</td><td><a href="https://e2b.dev/">Firecracker-based microVM runtime</a> with dedicated kernels.</td><td><a href="https://github.com/daytonaio/daytona#readme">Dedicated-kernel sandbox model</a> described in the public project; OCI/Docker compatible.</td></tr>
+<tr><th scope="row">Storage and persistence</th><td><a href="/docs/containers/">Files lost after stop</a>. No snapshots, pause/resume, or persistent volumes.</td><td><a href="https://docs.e2b.dev/sandbox/persistence">Pause/resume preserves disk and memory</a>; paused sandboxes retained until explicitly killed.</td><td><a href="https://www.daytona.io/docs/en/volumes/">Persistent volumes</a> survive individual sandbox deletion. Snapshots are also <a href="https://www.daytona.io/docs/en/">documented</a>.</td></tr>
+<tr><th scope="row">SDKs and integration</th><td><a href="/integrations/">HTTP API and agent skill</a>; no published SDK.</td><td><a href="https://docs.e2b.dev/sandbox">JavaScript/TypeScript and Python SDK examples</a>.</td><td><a href="https://www.daytona.io/docs/en/">TypeScript, Python, Ruby, Go, and Java examples</a>; API and CLI.</td></tr>
+<tr><th scope="row">Source availability</th><td><a href="https://github.com/mainbrella/web">Website and client tools source</a> available. This does not establish a self-hostable compute platform.</td><td><a href="https://e2b.dev/open-source">Runtime and platform repositories published under Apache-2.0</a>.</td><td><a href="https://github.com/daytonaio/daytona">Former core repository archived October 3, 2026</a>; its notice says core development moved private in June 2026.</td></tr>
+<tr><th scope="row">Deployment options</th><td><a href="/platform/">Hosted on Cloudflare</a>. No offered BYOC, self-hosted deployment, or customer-selected compute region.</td><td><a href="https://e2b.dev/open-source">Managed cloud, BYOC, and self-hosted stack</a> advertised; check commercial terms.</td><td><a href="https://www.daytona.io/docs/en/regions/">Managed US/EU regions</a>; <a href="https://www.daytona.io/pricing">enterprise BYOC</a> advertised.</td></tr>
+<tr><th scope="row">Startup evidence</th><td><a href="/benchmarks/">Historical prototype</a>: 381 ms P50 / 528 ms P95 (30 creates); 680 ms P95 (100-machine burst). Original methodology incomplete.</td><td>No comparable timed test reviewed for this page. Use the <a href="https://docs.e2b.dev/quickstart">Quickstart</a> to measure your own workload.</td><td><a href="https://www.daytona.io/pricing">Millisecond startup claim</a>; no comparable timed test reviewed for this page.</td></tr></tbody></table></div>
+<h2>Compare the workload, not just the monthly price</h2>
+<p>A plan fee is not a total-cost estimate for a usage-billed service. Compare the machine resources, runtime, concurrency, starts, and stored data your application needs. Mainbrella’s Pro and Scale plans still use the same 256 MiB machine as Builder. If your task needs more memory, persistent volumes, snapshots, or a published SDK, that is a material capability gap.</p>
+<h2>Measure startup on equal terms</h2>
+<p>The startup row is not a speed ranking. Mainbrella’s historical percentiles and a provider’s marketing claim do not share a test harness or known cache state. Measure creation through a validated first command with the same workload, client location, resource size, concurrency, and failure accounting. Retain raw samples and cleanup outcomes. Mainbrella’s <a href="/benchmarks/">benchmark methodology</a> describes those boundaries.</p>
+<h2>Check the current contract</h2>
+<p>Rows marked unavailable describe Mainbrella today, not roadmap commitments. Competitor capabilities can depend on plan, region, or a sales agreement. Links beside each claim let you inspect the provider’s own documentation. For Mainbrella, the <a href="/docs/limits/">limits</a>, <a href="/platform/">platform page</a>, and <a href="/trust/">trust center</a> describe current access and commitments.</p>
+<p>Found an outdated detail? <a href="mailto:support@mainbrella.com?subject=Platform%20comparison%20correction">Send a correction</a> with the relevant source.</p>
+
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>
