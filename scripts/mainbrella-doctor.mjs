@@ -69,9 +69,15 @@ export async function runDoctor({ env = process.env, fetcher = fetch, cwd = proc
     if (images) check('images', Array.isArray(images.images) && typeof images.buildsEnabled === 'boolean',
       typeof images.buildsEnabled === 'boolean' ? (images.buildsEnabled ? 'Custom image builds are enabled.' : 'Custom image builds are disabled; use a published catalog image.') : 'Unexpected image response.');
     const schema = await get('/openapi.json');
-    if (schema) check('http_execution', schema.paths?.['/containers/exec']?.post?.operationId === 'executeContainerCommand',
-      schema.paths?.['/containers/exec']?.post?.operationId === 'executeContainerCommand'
-        ? 'HTTP command execution is advertised.' : 'This API deployment does not advertise HTTP execution. Update the backend before verification.');
+    if (schema) {
+      check('http_execution', schema.paths?.['/containers/exec']?.post?.operationId === 'executeContainerCommand',
+        schema.paths?.['/containers/exec']?.post?.operationId === 'executeContainerCommand'
+          ? 'HTTP command execution is advertised.' : 'This API deployment does not advertise HTTP execution. Update the backend before verification.');
+      const files = schema.paths?.['/containers/files'];
+      const filesAvailable = files?.get?.operationId === 'readContainerFile' && files?.put?.operationId === 'writeContainerFile';
+      check('http_files', filesAvailable, filesAvailable ? 'HTTP file read/write is advertised.'
+        : 'This API deployment does not advertise HTTP files. Update the backend before verification.');
+    }
   }
   return { ok: checks.every(item => item.ok), readOnly: true, project, packageManager, checks };
 }

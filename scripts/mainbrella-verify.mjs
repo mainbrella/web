@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { runDoctor } from './mainbrella-doctor.mjs';
 
 const hello = 'hello from mainbrella';
+const fileProbe = new Uint8Array([0, 1, 127, 128, 255, 10]);
 
 // Requests are injectable to verify ownership and cleanup without paid starts.
 export async function verify({ request, catalogId = 'node', wait = () => new Promise(resolve => setTimeout(resolve, 1000)) }) {
@@ -44,8 +45,16 @@ export async function verify({ request, catalogId = 'node', wait = () => new Pro
     if (result.stdout?.trim() !== hello || result.exitCode !== 0
       || result.timedOut !== false || result.outputTruncated !== false) throw new Error('execution_failed');
     report.stdout = hello;
+    const filePath = `/containers/files?${new URLSearchParams({ ...owned, path: `/tmp/mainbrella-verify-${creationKey}.bin` })}`;
+    try {
+      const written = await request(filePath, 'PUT', fileProbe, { 'Content-Type': 'application/octet-stream' });
+      const read = await request(filePath);
+      if (written.size !== fileProbe.byteLength || !(read instanceof Uint8Array)
+        || read.byteLength !== fileProbe.byteLength || read.some((byte, i) => byte !== fileProbe[i])) throw new Error();
+      report.files = 'verified';
+    } catch { throw new Error('file_verification_failed'); }
   } catch (error) {
-    report.error = ['preflight_failed', 'creation_ambiguous', 'execution_failed'].includes(error.message)
+    report.error = ['preflight_failed', 'creation_ambiguous', 'execution_failed', 'file_verification_failed'].includes(error.message)
       ? error.message : 'verification_failed';
   } finally {
     if (owned) {
@@ -69,11 +78,14 @@ async function main() {
   return verify({
     catalogId: process.env.MAINBRELLA_CATALOG_ID || 'node',
     async request(path, method = 'GET', body, headers = {}) {
+      const binary = body instanceof Uint8Array;
       const response = await fetch(new URL(path, base), {
-        method, headers: { Authorization: `Bearer ${process.env.MAINBRELLA_API_KEY}`, ...headers, ...(body ? { 'Content-Type': 'application/json' } : {}) },
-        body: body ? JSON.stringify(body) : undefined, redirect: 'error', signal: AbortSignal.timeout(90_000),
+        method, headers: { Authorization: `Bearer ${process.env.MAINBRELLA_API_KEY}`,
+          ...(body !== undefined ? { 'Content-Type': binary ? 'application/octet-stream' : 'application/json' } : {}), ...headers },
+        body: binary ? body : body !== undefined ? JSON.stringify(body) : undefined, redirect: 'error', signal: AbortSignal.timeout(90_000),
       });
       if (!response.ok) throw new Error('request_failed');
+      if (method === 'GET' && path.startsWith('/containers/files?')) return new Uint8Array(await response.arrayBuffer());
       return response.json();
     },
 

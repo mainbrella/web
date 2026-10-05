@@ -20,7 +20,10 @@ test('doctor checks prerequisites and account access using only GETs without lea
       assert.equal(options.redirect, 'error');
       assert.equal(options.headers.Authorization, `Bearer ${key}`);
       return Response.json(url.pathname === '/containers' ? state([existing])
-        : url.pathname === '/openapi.json' ? { paths: { '/containers/exec': { post: { operationId: 'executeContainerCommand' } } } }
+        : url.pathname === '/openapi.json' ? { paths: {
+          '/containers/exec': { post: { operationId: 'executeContainerCommand' } },
+          '/containers/files': { get: { operationId: 'readContainerFile' }, put: { operationId: 'writeContainerFile' } },
+        } }
           : { images: [], buildsEnabled: false });
     } });
   assert.equal(report.ok, true);
@@ -53,10 +56,26 @@ test('doctor rejects missing keys, unsafe origins, malformed responses, and exha
 });
 
 function scenario({ execute = async () => ({ stdout: 'hello from mainbrella\n', exitCode: 0, timedOut: false, outputTruncated: false }),
+  readBytes, fileFailure = false,
   launch = { ...state([existing, created]), creation: { id: 'operation-one', containerId: created.id, createdAt: created.createdAt, status: 'running' } }, cleanupFails = false } = {}) {
   const calls = [];
+  let uploaded;
   return { calls, options: { wait: async () => {}, request: async (path, method = 'GET', body, headers) => {
     calls.push({ path, method, body, headers });
+    if (path.startsWith('/containers/files?')) {
+      const params = new URL(path, 'https://api.example').searchParams;
+      assert.equal(params.get('id'), created.id);
+      assert.equal(params.get('createdAt'), created.createdAt);
+      assert.match(params.get('path'), /^\/tmp\/mainbrella-verify-[\w-]+\.bin$/);
+      if (fileFailure) throw new Error(key);
+      if (method === 'PUT') {
+        assert.ok(body instanceof Uint8Array);
+        assert.equal(headers['Content-Type'], 'application/octet-stream');
+        uploaded = body.slice();
+        return { path: params.get('path'), size: body.byteLength };
+      }
+      return readBytes ?? uploaded;
+    }
     if (method === 'DELETE') {
       const query = new URL(path, 'https://api.example').searchParams;
       assert.equal(query.get('id'), created.id);
@@ -86,7 +105,27 @@ test('verification checks stdout/exit and deletes only the created generation', 
   assert.equal(report.stdout, 'hello from mainbrella');
   assert.equal(report.exitCode, 0);
   assert.equal(report.cleanup, 'completed');
+  assert.equal(report.files, 'verified');
   assert.equal(calls.filter(call => call.method === 'POST' && call.path === '/containers').length, 1);
+});
+
+test('verification rejects corrupted binary files and file failures, cleans up, and hides diagnostics', async () => {
+  for (const options of [{ readBytes: new Uint8Array([0, 1, 127, 128, 254, 10]) },
+    { readBytes: new Uint8Array() }, { fileFailure: true }]) {
+    const report = await verify(scenario(options).options);
+    assert.equal(report.ok, false);
+    assert.equal(report.error, 'file_verification_failed');
+    assert.equal(report.cleanup, 'completed');
+    assert.equal(JSON.stringify(report).includes(key), false);
+  }
+});
+
+test('doctor detects deployments missing file APIs before paid verification', async () => {
+  const report = await runDoctor({ env: { MAINBRELLA_API_KEY: key }, fetcher: async url => Response.json(
+    url.pathname === '/containers' ? state([]) : url.pathname === '/images' ? { images: [], buildsEnabled: false }
+      : { paths: { '/containers/exec': { post: { operationId: 'executeContainerCommand' } } } }) });
+  assert.equal(report.ok, false);
+  assert.equal(report.checks.find(item => item.name === 'http_files').ok, false);
 });
 
 test('verification cleans up after HTTP execution failures and never prints unexpected output', async () => {
