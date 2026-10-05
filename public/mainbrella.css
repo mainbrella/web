@@ -247,3 +247,5 @@ button:disabled { opacity: .65; cursor: wait; }
 #pro-status[data-state="error"] { color: #ffb4ab; }
 #pro-account { overflow-wrap: anywhere; }
 .billing-link { padding: 0; border: 0; background: none; font-family: inherit; cursor: pointer; }
+#pro-login { display: block; margin-top: 8px; min-height: 44px; text-align: left; }
+#pro-login[hidden] { display: none; }

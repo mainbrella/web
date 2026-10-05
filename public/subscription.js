@@ -5,6 +5,7 @@ const status = document.querySelector("#pro-status");
 const account = document.querySelector("#pro-account");
 const logout = document.querySelector("#pro-logout");
 const signin = document.querySelector("#pro-signin");
+const login = document.querySelector("#pro-login");
 let user = null;
 let config = null;
 let subscription = null;
@@ -30,6 +31,7 @@ function render() {
   account.hidden = !user;
   account.textContent = user ? `Signed in as ${user.email || user.name}` : "";
   logout.hidden = !user;
+  login.hidden = Boolean(user) || !config?.google_client_id;
   subscribe.textContent = subscription ? "Manage subscription" : "Subscribe for $180/month";
   subscribe.disabled = false;
 }
@@ -47,7 +49,7 @@ async function refresh() {
 async function initialize() {
   subscribe.disabled = true;
   try {
-    const [configuration, session] = await Promise.all([api("/subscription/config"), api("/auth/me")]);
+    const [configuration, session] = await Promise.all([api("/subscription/config"), api("/auth/me").catch(() => ({ user: null }))]);
     config = configuration;
     user = session.user;
     if (!config.configured) throw new Error("billing_unavailable");
@@ -62,7 +64,12 @@ async function initialize() {
       history.replaceState(null, "", `${location.pathname}${params.size ? `?${params}` : ""}${location.hash}`);
     }
     if (user) await refresh();
-    else message("Sign in to subscribe to Pro.");
+    else message("Subscribe securely through Stripe. No sign-in required.");
+    if (params.get("subscription_return") === "1" && !params.get("session_id")) {
+      message("You’ve returned from Stripe. For help with your subscription, contact support@mainbrella.com.");
+      params.delete("subscription_return");
+      history.replaceState(null, "", `${location.pathname}${params.size ? `?${params}` : ""}${location.hash}`);
+    }
     if (params.get("subscription_cancelled") === "1") {
       message("Checkout canceled. You can subscribe whenever you’re ready.");
       params.delete("subscription_cancelled");
@@ -115,8 +122,10 @@ function loadGoogle() {
 }
 subscribe.addEventListener("click", async () => {
   if (!ready) return initialize();
-  if (user) return openBilling();
-  subscribe.disabled = true;
+  return openBilling();
+});
+login.addEventListener("click", async () => {
+  login.disabled = true;
   try {
     if (!config.google_client_id) throw new Error("signin_unavailable");
     await loadGoogle();
@@ -129,21 +138,20 @@ subscribe.addEventListener("click", async () => {
           user = (await api("/auth/google", { credential })).user;
           await refresh();
           render();
-          await openBilling();
         } catch {
           message("Unable to sign in. Please try again.", true);
-          subscribe.disabled = false;
+          render();
         }
       },
     });
     signin.hidden = false;
     signin.replaceChildren();
     window.google.accounts.id.renderButton(signin, { theme: "outline", size: "large", text: "signin_with", width: 260 });
-    message("Sign in with Google to continue to checkout.");
+    message("Sign in with Google to manage an account-linked subscription.");
   } catch {
     message("Google sign-in is unavailable. Please try again.", true);
   } finally {
-    subscribe.disabled = false;
+    login.disabled = false;
   }
 });
 logout.addEventListener("click", async () => {

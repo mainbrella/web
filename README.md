@@ -8,7 +8,11 @@ npm run preview   # Preview the built site with Wrangler
 npm run deploy    # Build, then deploy dist/ with Wrangler
 ```
 
-Pro subscriptions use Stripe-hosted Checkout and the billing portal. The backend
+Pro subscriptions use Stripe-hosted Checkout without requiring sign-in. Stripe
+collects the guest’s email and creates their billing customer during checkout.
+Guest purchases are not linked automatically to Mainbrella accounts; contact
+support@mainbrella.com for guest billing changes or cancellation. Existing
+account-linked subscriptions still use Google sign-in and the billing portal. The backend
 hard-codes `price_1UNAWSGSUs8K8zgHXfnoTiJE` for the $180/month plan; the frontend
 cannot select a different price. Only the monthly plan is charged by this flow;
 compute usage metering and billing are not implemented here.
