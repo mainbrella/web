@@ -103,6 +103,13 @@ h3 { font-size: 18px; line-height: 1.4; letter-spacing: -.015em; }
 .info-content h1 { max-width: 22ch; font-size: 40px; }
 .info-content p { max-width: 65ch; margin-top: 20px; color: var(--muted); }
 .info-content .text-link { margin-top: 24px; }
+.info-content p a { color: var(--blue); text-decoration: underline; text-underline-offset: 4px; }
+.legal-content { flex: 1; max-width: 800px; padding-top: 32px; padding-bottom: 48px; overflow-wrap: anywhere; }
+.legal-content h1 { font-size: 32px; line-height: 1.2; letter-spacing: -.025em; }
+.legal-content .legal-updated { margin-top: 8px; color: var(--muted); font-size: 14px; }
+.legal-content h2 { margin-top: 32px; font-size: 20px; line-height: 1.4; letter-spacing: 0; }
+.legal-content p { margin-top: 12px; }
+.legal-content a { color: var(--blue); text-decoration: underline; text-underline-offset: 4px; }
 @media (max-width: 1000px) {
   .wrap { padding-right: 32px; padding-left: 32px; }
   .hero { gap: 32px; padding-top: 48px; padding-bottom: 48px; }
