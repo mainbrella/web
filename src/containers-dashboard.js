@@ -15,17 +15,25 @@ export function createContainersDashboard({ onUnauthenticated }) {
   let terminal = null;
   const terminalHost = document.querySelector('#container-terminal');
 
-  function closeTerminal() {
+  function closeTerminal(stopped = false) {
     terminal?.session.dispose();
     terminal = null;
+    terminalHost.hidden = !stopped;
+    if (stopped) {
+      terminalHost.querySelector('[role="status"]').textContent = 'Container stopped.';
+      terminalHost.querySelector('.terminal-output').replaceChildren();
+      terminalHost.querySelector('button').onclick = () => { terminalHost.hidden = true; refresh.focus(); };
+    }
   }
 
   function connectTerminal(container) {
     if (busy || disposed) return;
     closeTerminal();
+    terminalHost.querySelector('button').onclick = null;
     terminalHost.hidden = false;
     terminalHost.querySelector('[role="status"]').textContent = 'Connecting…';
     terminal = { createdAt: container.createdAt, session: openContainerTerminal(terminalHost, {
+      createdAt: container.createdAt,
       onClose: () => { terminal = null; list.querySelector('button')?.focus(); },
     }) };
   }
@@ -57,7 +65,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
   }
 
   function render() {
-    if (terminal && !data.containers.some(c => c.createdAt === terminal.createdAt)) closeTerminal();
+    if (terminal && !data.containers.some(c => c.createdAt === terminal.createdAt)) closeTerminal(true);
     list.replaceChildren();
     list.hidden = data.containers.length === 0;
     const remaining = Math.max(0, data.limits.maxStartsPerMonth - data.usage.starts);
@@ -199,7 +207,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
 
   async function mutate(method) {
     if (busy || disposed || !data || (method === 'POST' && create.disabled)) return;
-    if (method === 'DELETE') closeTerminal();
+    if (method === 'DELETE') closeTerminal(true);
     busy = true;
     clearTimeout(timer);
     error.hidden = true;
