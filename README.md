@@ -3,6 +3,7 @@
 ```sh
 npm ci
 npm run dev       # Vite development server
+npm test          # Terminal client tests (Node 22.15+)
 npm run build     # Build the static site into dist/
 npm run preview   # Preview the built site with Wrangler
 npm run deploy    # Build, then deploy dist/ with Wrangler
@@ -39,7 +40,7 @@ one `lite` container (1/16 vCPU, 256 MiB RAM, 2 GB disk), one-hour maximum
 sessions, ten-minute inactivity timeout, and ten starts per UTC calendar month.
 Each start reserves a full session from the allowance, even if stopped early;
 repeat creation while already running does not consume another start.
-Containers have no internet access or persistent filesystem. The dashboard
+Containers have outbound internet access for package installation and no persistent filesystem. The dashboard
 refreshes status every 15 seconds while visible; status reads do not renew the
 idle lease. Subscription failures do not prevent container management.
 
@@ -85,8 +86,32 @@ accounts in the background. Guest purchases remain in Stripe without a local
 account billing record.
 
 
-Dashboard Connect prepares a private SSH command using a 15-minute access token.
-Install `cloudflared` on the user's computer, then paste the command into their
+The dashboard's primary **Open terminal** action opens an in-page xterm.js terminal.
+It connects to the configured API origin over `/containers/terminal` using the
+existing HttpOnly session cookie, with the expected `createdAt` generation and
+initial `cols`/`rows`. The API validates Origin and session ownership before
+forwarding a sanitized request to that account's private UserContainer. Neither
+the browser nor this route can start a container or consume a monthly start.
+
+The shell lives in the fixed tmux session `main`, so reloads and dropped
+connections can reattach within the same container generation. The client
+retries abnormal disconnects up to five times with 1–16 second exponential
+backoff; clean exits do not reconnect. Keystrokes are binary UTF-8, resizes are
+JSON `{cols, rows}`, and output is binary with JSON acknowledgements after
+rendering for backpressure. Container disappearance or generation changes in
+the existing status poll close the terminal. Input/output activity renews the
+ten-minute idle deadline, but the independent alarm and terminal deadline never
+extend the one-hour hard expiration. Closing the panel detaches the tmux client;
+the shell continues only while the container's existing lease allows it.
+
+Deploy the updated `../reference` container Worker and its named Docker image
+(bash, tmux, Node 24) before the backend and website. Docker must be running for
+the image build. Existing containers using the old image must be stopped and
+recreated to gain tmux. No new token table, migration, CLI, or public port is
+required for browser terminals.
+
+The secondary **SSH** action still prepares a private command using a 15-minute
+access token. Install `cloudflared` on the user's computer, then paste the command into their
 terminal. The connection goes through `ssh.mainbrella.com` to the Cloudflare
 SSH gateway in `../ssh-gateway`, then to that user's running container. No
 Mainbrella CLI or public IPv4 address is required. Tokens stop working when the

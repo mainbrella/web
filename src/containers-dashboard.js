@@ -1,5 +1,4 @@
 import { API_ORIGIN } from './auth.js';
-import { openContainerTerminal } from './container-terminal.js';
 
 export function createContainersDashboard({ onUnauthenticated }) {
   const create = document.querySelector('#container-create');
@@ -22,14 +21,30 @@ export function createContainersDashboard({ onUnauthenticated }) {
     if (stopped) {
       terminalHost.querySelector('[role="status"]').textContent = 'Container stopped.';
       terminalHost.querySelector('.terminal-output').replaceChildren();
+      terminalHost.querySelector('.terminal-output').hidden = true;
       terminalHost.querySelector('button').onclick = () => { terminalHost.hidden = true; refresh.focus(); };
     }
   }
 
-  function connectTerminal(container) {
+  async function connectTerminal(container) {
     if (busy || disposed) return;
+    busy = true;
+    controls();
+    let openContainerTerminal;
+    try {
+      ({ openContainerTerminal } = await import('./container-terminal.js'));
+    } catch {
+      error.textContent = 'Could not load the terminal. Try again.';
+      error.hidden = false;
+      return;
+    } finally {
+      busy = false;
+      controls();
+    }
+    if (disposed || !data?.containers.some(c => c.createdAt === container.createdAt)) return;
     closeTerminal();
     terminalHost.querySelector('button').onclick = null;
+    terminalHost.querySelector('.terminal-output').hidden = false;
     terminalHost.hidden = false;
     terminalHost.querySelector('[role="status"]').textContent = 'Connecting…';
     terminal = { createdAt: container.createdAt, session: openContainerTerminal(terminalHost, {
@@ -99,7 +114,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
       connect.addEventListener('click', () => connectSSH(container));
       const shell = document.createElement('button');
       shell.type = 'button';
-      shell.className = 'dashboard-retry';
+      shell.className = 'button button-small';
       shell.textContent = 'Open terminal';
       shell.addEventListener('click', () => connectTerminal(container));
       actions.append(shell, connect, stop);
