@@ -10,11 +10,12 @@ npm run deploy    # Build, then deploy dist/ with Wrangler
 
 Builder ($5/month), Pro ($180/month), and Scale ($999/month) use Stripe's
 inline Payment Element, adapted from Cubacadabra's checkout helper. Customers
-enter email and payment details on Mainbrella without signing in. Stripe collects
-card details directly; Mainbrella never receives them. Guest purchases are not
-linked automatically to accounts; contact support@mainbrella.com for guest billing
-changes or cancellation. Account-linked subscriptions use Google sign-in and the
-Stripe billing portal.
+sign in with Google before entering email and payment details on Mainbrella.
+Signed-out customers selecting a plan are redirected to `/login` and returned to
+pricing after sign-in. Stripe collects card details directly; Mainbrella never
+receives them. Account-linked subscriptions use the Stripe billing portal.
+For existing guest purchases, contact support@mainbrella.com for billing changes
+or cancellation.
 
 Google login is available at `/login` (redirecting to `/login/`), using the same
 credentialed `/auth/me`, `/auth/google`, and `/auth/logout` flow as AHP Tour.

@@ -90,7 +90,7 @@ async function initialize() {
       history.replaceState(null, "", `${location.pathname}${params.size ? `?${params}` : ""}${location.hash}`);
     }
     if (user) await refresh();
-    else message("Subscribe securely below. No sign-in required.");
+    else message("Sign in to subscribe.");
     if (params.get("subscription_return") === "1" && !user) {
       message("You’ve returned from Stripe. For help with your subscription, contact support@mainbrella.com.");
       params.delete("subscription_return");
@@ -110,6 +110,10 @@ async function initialize() {
   }
 }
 async function openCheckout(plan) {
+  if (!user) {
+    location.assign("/login?returnTo=%2F%23pricing");
+    return;
+  }
   closeCheckout();
   const version = checkoutVersion;
   busy = true;
