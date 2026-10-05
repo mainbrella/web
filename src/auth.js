@@ -43,6 +43,7 @@ export function createAuthClient() {
       const { response, result } = await request("/auth/logout", { method: "POST" });
       if (!response.ok || result?.ok !== true) throw new Error("Could not sign you out. Please try again.");
       window.google?.accounts?.id?.disableAutoSelect();
+      window.dispatchEvent(new CustomEvent('auth-change', { detail: { user: null } }));
     },
   };
 }

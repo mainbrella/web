@@ -1,5 +1,5 @@
 import { mountStripeEmbeddedCheckout } from "./payments/stripeEmbeddedCheckout.js";
-import { API_ORIGIN } from "./auth.js";
+import { API_ORIGIN, createAuthClient } from "./auth.js";
 import { plans } from "./plans.js";
 const apiOrigin = API_ORIGIN;
 const planButtons = [...document.querySelectorAll("[data-plan]")];
@@ -156,7 +156,11 @@ async function openCheckout(plan) {
       emailInput: checkoutEmail, totalElement: document.querySelector("#checkout-total"),
       clientSecret: data.client_secret, publishableKey: data.publishable_key,
       submitLabel: submit.textContent,
-      onProcessing: (processing) => { checkoutBack.disabled = processing; logout.disabled = processing; },
+      onProcessing: (processing) => {
+        checkoutBack.disabled = processing;
+        logout.disabled = processing;
+        window.dispatchEvent(new CustomEvent('checkout-processing', { detail: { processing } }));
+      },
       onComplete: async (session) => {
         if (!session?.id) throw new Error("Unable to confirm your subscription. Please contact support@mainbrella.com.");
         let result;
@@ -234,7 +238,7 @@ logout.addEventListener("click", async () => {
   logout.disabled = true;
   try {
     closeCheckout();
-    await api("/auth/logout", {});
+    await createAuthClient().signOut();
     user = null;
     subscription = null;
     message("Signed out.");
@@ -244,5 +248,13 @@ logout.addEventListener("click", async () => {
   } finally {
     logout.disabled = false;
   }
+});
+window.addEventListener("auth-change", (event) => {
+  if (event.detail?.user !== null) return;
+  closeCheckout();
+  user = null;
+  subscription = null;
+  message("Signed out.");
+  render();
 });
 initialize();

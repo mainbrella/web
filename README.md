@@ -36,7 +36,7 @@ The backend allowlists the plan prices:
 Only the monthly plan is charged by checkout; compute usage billing and public
 sandbox access are not implemented here. Published features describe planned tiers.
 
-Before deploying, apply `../backend/migrations/003_pro_billing.sql` with
+Before deploying, apply all backend migrations (including `004_subscription_details.sql`) with
 `npm run db:migrate:remote` from the backend, and configure its Stripe account key
 with `npx wrangler secret put STRIPE_SECRET_KEY`. Enable the Stripe customer portal
 with payment updates and cancellation. Add `https://mainbrella.com` (and
@@ -49,5 +49,12 @@ hosted URL.
 For local development, run the backend on port 8787 and this site on port 5173.
 Use matching Stripe test secret/publishable keys and test recurring prices in a local branch; the supplied
 production price belongs to its Stripe account and mode. Subscription status is
-read directly from Stripe on every billing request, including renewals and
-cancellations; this flow does not depend on a webhook or the checkout redirect.
+read directly from Stripe. Account checkout completion and subscription status
+requests save the verified plan, subscription ID, status, cancellation flag, billing
+period end (Unix seconds), and sync timestamp in `pro_billing`. Existing account
+subscriptions are backfilled on their next status request. A saved plan alone
+does not indicate paid access: only `active` and `trialing` statuses grant access.
+Ended subscriptions clear these fields on the next status request. Stripe changes
+sync when the account next requests billing status; there is no webhook syncing
+accounts in the background. Guest purchases remain in Stripe without a local
+account billing record.

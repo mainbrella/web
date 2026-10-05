@@ -282,8 +282,23 @@ button:disabled { opacity: .65; cursor: wait; }
 .google-retry, .login-sign-out { display: block; min-height: 44px; margin-top: 12px; padding: 8px 16px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: transparent; font: inherit; cursor: pointer; }
 .google-retry:hover, .login-sign-out:hover { background: var(--surface); }
 .login-identity { overflow-wrap: anywhere; }
+.site-header nav .login-link[hidden], .account-menu[hidden], .account-panel[hidden] { display: none; }
+.account-menu { position: relative; flex-shrink: 0; }
+.account-toggle { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px; border: 0; border-radius: 6px; background: transparent; color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+.account-toggle:hover, .account-toggle[aria-expanded="true"] { background: var(--surface); }
+.account-panel { position: absolute; z-index: 20; top: calc(100% + 8px); right: 0; width: 248px; max-width: calc(100vw - 32px); padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); box-shadow: 0 8px 24px #0004; }
+.account-identity { padding: 8px 12px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.site-header nav .account-panel a, .account-sign-out { display: flex; align-items: center; width: 100%; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 4px; background: transparent; color: var(--ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.site-header nav .account-panel a:hover, .account-sign-out:hover { background: var(--paper); color: var(--ink); }
+.account-error { padding: 8px 12px; color: #ffb4ab; font-size: 13px; }
+.profile-details { margin: 0 0 16px; }
+.profile-details dt { color: var(--muted); font-size: 14px; }
+.profile-details dd { margin: 0 0 16px; overflow-wrap: anywhere; }
 @media (max-width: 700px) {
-  .site-header nav > .login-link { display: inline-flex; }
+  .site-header nav > a.login-link { display: inline-flex; }
   .sandbox-home .site-header nav { gap: 12px; }
   .login-main { padding-top: 24px; }
+}
+@media (max-width: 480px) {
+  .site-header nav.has-account > .button { display: none; }
 }

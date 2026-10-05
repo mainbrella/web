@@ -11,6 +11,7 @@ const googleRetry = document.querySelector('.google-retry');
 const signedIn = document.querySelector('.login-signed-in');
 const identity = document.querySelector('.login-identity');
 const signOutButton = document.querySelector('.login-sign-out');
+const profileEmail = document.querySelector('.profile-email');
 
 let user = null;
 let signingIn = false;
@@ -51,12 +52,13 @@ async function start() {
 
 async function showCurrentState() {
   clearError();
-  window.dispatchEvent?.(new Event('auth-change'));
+  window.dispatchEvent(new CustomEvent('auth-change', { detail: { user } }));
   signedIn.hidden = !user;
   provider.hidden = Boolean(user);
   status.textContent = user ? 'You’re signed in.' : 'Use your Google account to continue.';
   if (user) {
     identity.textContent = user.name || user.email || 'Google account';
+    if (profileEmail) profileEmail.textContent = user.email || 'Not provided';
     if (returnTo) window.location.replace(returnTo);
   } else {
     loadGoogleButton();
@@ -141,6 +143,12 @@ signOutButton.addEventListener('click', async () => {
 googleRetry.addEventListener('click', () => {
   clearError();
   loadGoogleButton();
+});
+
+window.addEventListener('auth-change', (event) => {
+  if (event.detail?.user !== null || !user) return;
+  user = null;
+  showCurrentState();
 });
 
 function showError(cause) {
