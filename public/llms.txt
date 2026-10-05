@@ -1,12 +1,14 @@
 # Mainbrella
 
-> Everything behind your app. One umbrella.
+> Agent sandboxes. Powered by Cloudflare.
 
-Mainbrella is a local-first desktop app in development for small software teams to see AWS and Google Cloud resources together, organized by application. The planned first version uses local AWS profiles or SSO and Google Cloud credentials for read-only inventory, with unified search, manual application grouping, and deep links back to provider consoles.
+Mainbrella is a sandbox service in development for AI agents, built on Cloudflare Sandboxes and Containers. Its focus is isolated Linux workspaces for code execution, file operations, workspace restoration, and parallel tasks. Public access and signup are not available yet.
 
-The website’s resource table is illustrative sample data only, not a live connection or a released application. Credentials are planned to stay on the user's machine, with the desktop app talking directly to providers. Cloudflare is planned next, followed later by App Store Connect, Google Play, and GitHub. There is no public download or signup yet.
+User-reported prototype benchmarks: create P50 381 ms / P95 528 ms, 30/30 successful; resume P50 473 ms / P95 788 ms, 30/30 successful with restored files verified; 100 simultaneous starts, 100/100 successful, P95 680 ms, with 100 distinct machines confirmed running at once. These are prototype observations, not service guarantees.
 
-- [Overview](https://mainbrella.com/): Product concept and illustrative dashboard.
-- [Availability](https://mainbrella.com/download/): Current release status.
+Proposed pricing: Pro $180/month plus $0.0000168/vCPU-second and $0.0000054/GiB-second. Plan and compute rates are 20% above E2B published Pro pricing checked October 5, 2026. 1,000 ten-minute sessions at 2 vCPUs and 4 GiB cost an estimated $33.12 in compute, or $213.12 including one month of Pro, excluding storage, snapshots, network, and taxes. Measured workload cost is pending.
+
+- [Overview](https://mainbrella.com/): Product, benchmarks, and proposed pricing.
+- [Availability](https://mainbrella.com/download/): Public access status.
 - [Privacy](https://mainbrella.com/privacy/): Privacy policy availability.
-- [Terms](https://mainbrella.com/terms/): App terms availability.
+- [Terms](https://mainbrella.com/terms/): Terms availability.
