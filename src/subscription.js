@@ -1,9 +1,17 @@
 import { mountStripeEmbeddedCheckout } from "./payments/stripeEmbeddedCheckout.js";
 import { API_ORIGIN } from "./auth.js";
+import { plans } from "./plans.js";
 const apiOrigin = API_ORIGIN;
 const planButtons = [...document.querySelectorAll("[data-plan]")];
 const manage = document.querySelector("#billing-manage");
-const plans = { builder: { name: "Builder", price: 5 }, pro: { name: "Pro", price: 180 }, scale: { name: "Scale", price: 999 } };
+const routeSlug = location.pathname.match(/^\/pricing\/([^/]+)\/?$/)?.[1];
+const selectedPlan = Object.hasOwn(plans, routeSlug) ? routeSlug : null;
+const planPath = (plan) => `/pricing/${plan}`;
+if (selectedPlan) {
+  document.title = `${plans[selectedPlan].name} subscription · Mainbrella`;
+  document.querySelector("#plan-title").textContent = `${plans[selectedPlan].name} — $${plans[selectedPlan].price}/month`;
+  planButtons.forEach((button) => { button.dataset.plan = selectedPlan; });
+}
 const checkoutView = document.querySelector("#inline-checkout");
 const checkoutForm = document.querySelector("#checkout-form");
 const checkoutEmail = document.querySelector("#checkout-email");
@@ -29,6 +37,7 @@ const status = document.querySelector("#pro-status");
 const account = document.querySelector("#pro-account");
 const logout = document.querySelector("#pro-logout");
 const login = document.querySelector("#pro-login");
+if (selectedPlan) login.href = `/login?returnTo=${encodeURIComponent(planPath(selectedPlan))}`;
 let user = null;
 let config = null;
 let subscription = null;
@@ -81,7 +90,12 @@ async function initialize() {
     if (!config.configured) throw new Error("billing_unavailable");
     ready = true;
     render();
+    if (selectedPlan && !user) {
+      location.assign(`/login?returnTo=${encodeURIComponent(planPath(selectedPlan))}`);
+      return;
+    }
     const params = new URLSearchParams(location.search);
+    const returningFromCheckout = params.has("subscription_return") || params.has("subscription_cancelled");
     if (user && params.get("subscription_return") === "1" && params.get("session_id")) {
       message("Confirming your subscription…");
       await api("/subscription/complete", { session_id: params.get("session_id") });
@@ -103,6 +117,7 @@ async function initialize() {
       history.replaceState(null, "", `${location.pathname}${params.size ? `?${params}` : ""}${location.hash}`);
     }
     render();
+    if (selectedPlan && user && !subscription && !returningFromCheckout) await openCheckout(selectedPlan);
   } catch {
     ready = false;
     message("Subscriptions are temporarily unavailable. Please try again.", true);
@@ -111,7 +126,7 @@ async function initialize() {
 }
 async function openCheckout(plan) {
   if (!user) {
-    location.assign("/login?returnTo=%2F%23pricing");
+    location.assign(`/login?returnTo=${encodeURIComponent(planPath(plan))}`);
     return;
   }
   closeCheckout();
@@ -169,6 +184,10 @@ async function openCheckout(plan) {
   }
 }
 checkoutBack.addEventListener("click", () => {
+  if (selectedPlan) {
+    location.assign("/#pricing");
+    return;
+  }
   closeCheckout();
   render();
   planButtons.find((button) => !button.hidden)?.focus();
@@ -204,6 +223,10 @@ async function openBilling() {
 }
 planButtons.forEach((button) => button.addEventListener("click", async () => {
   if (!ready) { await initialize(); if (!ready) return; }
+  if (!selectedPlan) {
+    location.assign(planPath(button.dataset.plan));
+    return;
+  }
   return openCheckout(button.dataset.plan);
 }));
 manage.addEventListener("click", openBilling);

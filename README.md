@@ -11,8 +11,11 @@ npm run deploy    # Build, then deploy dist/ with Wrangler
 Builder ($5/month), Pro ($180/month), and Scale ($999/month) use Stripe's
 inline Payment Element, adapted from Cubacadabra's checkout helper. Customers
 sign in with Google before entering email and payment details on Mainbrella.
-Signed-out customers selecting a plan are redirected to `/login` and returned to
-pricing after sign-in. Stripe collects card details directly; Mainbrella never
+The homepage pricing buttons open `/pricing/builder`, `/pricing/pro`, or
+`/pricing/scale`. Signed-out customers are redirected to `/login` with the selected
+plan route as `returnTo`; after sign-in that route opens checkout automatically.
+Existing subscribers see their subscription status and billing management instead.
+Pricing remains available at `/#pricing`. Stripe collects card details directly; Mainbrella never
 receives them. Account-linked subscriptions use the Stripe billing portal.
 For existing guest purchases, contact support@mainbrella.com for billing changes
 or cancellation.
@@ -23,7 +26,7 @@ The default client ID is
 `854186419005-l0u2olqlqe40qmgin0q8tjpvftooi6ac.apps.googleusercontent.com`
 in `src/auth.js` and `../backend/wrangler.jsonc`. Optional `VITE_GOOGLE_CLIENT_ID`
 and `VITE_API_URL` overrides support other environments; the backend client ID
-must match. Billing login returns to pricing after sign-in.
+must match. Plan-specific billing login returns to the selected plan after sign-in.
 
 The backend allowlists the plan prices:
 - Builder: `price_1UNAovGSUs8K8zgHwUCsCX16`
