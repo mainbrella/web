@@ -6,6 +6,7 @@ const assets = {
   'API.md': new URL('../API.md', import.meta.url),
   'mainbrella-doctor.mjs': new URL('./mainbrella-doctor.mjs', import.meta.url),
   'mainbrella-verify.mjs': new URL('./mainbrella-verify.mjs', import.meta.url),
+  'mainbrella-benchmark.mjs': new URL('./mainbrella-benchmark.mjs', import.meta.url),
 };
 
 export function agentDocsPlugin() {

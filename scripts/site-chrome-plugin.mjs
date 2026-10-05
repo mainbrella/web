@@ -18,10 +18,10 @@ export function siteChrome(path) {
     </nav>
   </header>`;
   const groups = [
-    ['Product', [['Containers', '/docs/containers/'], ['Images', '/docs/images/'], ['Pricing', '/#pricing'], ['Benchmarks', '/#benchmarks']]],
-    ['Developers', [['Docs', '/docs/'], ['API reference', '/docs/api-reference/'], ['OpenAPI', 'https://api.mainbrella.com/openapi.json'], ['Agent setup', '/docs/agent-setup/'], ['GitHub', 'https://github.com/mainbrella'], ['Changelog', '/changelog/']]],
-    ['Company', [['About', '/about/'], ['Contact', '/contact/'], ['Security', '/security/'], ['Status', '/status/']]],
-    ['Legal', [['Privacy', '/privacy/'], ['Terms', '/terms/'], ['Acceptable use', '/terms/#acceptable-use'], ['Vulnerability disclosure', '/security/disclosure/']]],
+    ['Product', [['Containers', '/docs/containers/'], ['Images', '/docs/images/'], ['Pricing', '/#pricing'], ['Benchmarks', '/benchmarks/'], ['Platform', '/platform/']]],
+    ['Developers', [['Docs', '/docs/'], ['API reference', '/docs/api-reference/'], ['OpenAPI', 'https://api.mainbrella.com/docs'], ['Agent setup', '/docs/agent-setup/'], ['Integrations', '/integrations/'], ['GitHub', 'https://github.com/mainbrella'], ['Changelog', '/changelog/']]],
+    ['Company', [['About', '/about/'], ['Contact', '/contact/'], ['Security', '/security/'], ['Trust center', '/trust/'], ['Status', '/status/']]],
+    ['Legal', [['Privacy', '/privacy/'], ['Terms', '/terms/'], ['Acceptable use', '/terms/#acceptable-use'], ['Subprocessors', '/subprocessors/'], ['DPA availability', '/trust/#dpa'], ['Vulnerability disclosure', '/security/disclosure/']]],
   ];
   const footer = `<footer class="site-footer platform-footer wrap">
     <div class="footer-intro"><a class="footer-brand" href="/">mainbrella</a><p>Cloud computers for AI agents.</p><p>Mainbrella Co. · Sole proprietorship<br />Andrew Arrow · Culver City, California</p></div>

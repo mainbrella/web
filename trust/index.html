@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Mainbrella security, infrastructure providers, data handling, business continuity, and DPA availability." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/trust/" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>Trust center · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap">
+      <h1>Trust center</h1>
+      <p>Current security and data handling information for evaluating Mainbrella.</p>
+      <p class="legal-updated">Last reviewed: <time datetime="2026-10-05">October 5, 2026</time></p>
+      <h2>Security overview</h2>
+      <p>Linux workloads run on Cloudflare Containers. Mainbrella checks account ownership and exact container generations, bounds execution, and uses revocable hashed API keys and secure browser sessions. See the <a href="/security/">security overview</a> for implemented controls and isolation details.</p>
+      <p>Mainbrella does not currently claim SOC 2 or ISO 27001 certification or an independent penetration-test attestation. Infrastructure provider certifications are not Mainbrella certifications.</p>
+      <h2>Infrastructure providers and subprocessors</h2>
+      <p>Cloudflare provides website, API, compute, and database infrastructure. Google provides sign-in; Stripe provides billing. The <a href="/subprocessors/">provider and subprocessor list</a> describes purposes, data categories, and processing locations.</p>
+      <h2>Data handling and encryption</h2>
+      <p>The public website and API use HTTPS. Session tokens, API keys, and SSH access tokens are stored as hashes; full card details are handled by Stripe. No customer-managed encryption keys or Mainbrella-specific encryption-at-rest attestation is offered.</p>
+      <p>Container files are ephemeral and lost after stop. Account and billing records, owned image records, and build logs have separate retention needs. Keep independent backups and avoid unnecessary personal data and secrets. Outbound internet access is enabled; you control the services your workload contacts.</p>
+      <p>Mainbrella does not guarantee a data residency region. See the <a href="/privacy/">Privacy Policy</a> for retention, deletion requests, and international processing.</p>
+      <h2>Vulnerability reporting</h2>
+      <p>Report security issues to <a href="mailto:security@mainbrella.com">security@mainbrella.com</a>. Read the <a href="/security/disclosure/">vulnerability disclosure policy</a> for scope and permitted testing.</p>
+      <h2>Business continuity and service commitments</h2>
+      <p>Mainbrella depends on Cloudflare for infrastructure and on Google and Stripe for sign-in and billing. No recovery-time or recovery-point objective is committed, and stopped containers cannot be restored. Export needed outputs and keep workload inputs outside the container.</p>
+      <p><a href="/status/">Service status</a> publishes dated manual observations and incident history. Self-service plans have no uptime SLA, guaranteed support response time, or automatic service credits; see the <a href="/terms/#availability">availability terms</a>. Benchmarks describe observations, not service commitments.</p>
+      <h2 id="dpa">DPA availability</h2>
+      <p>No standard Mainbrella Data Processing Agreement is currently published or offered through self-service checkout. Contact <a href="mailto:support@mainbrella.com?subject=Mainbrella%20data%20processing%20requirements">support@mainbrella.com</a> before submitting personal data that requires a DPA or special safeguards. An inquiry does not establish that Mainbrella can meet those requirements; any supported use requires prior written agreement.</p>
+      <p>Provider DPAs do not create an agreement between you and Mainbrella. The <a href="/privacy/">Privacy Policy</a> and <a href="/terms/">Terms of Service</a> describe the current service.</p>
+      <h2>Security and procurement questions</h2>
+      <p>Email <a href="mailto:security@mainbrella.com?subject=Mainbrella%20security%20question">security@mainbrella.com</a> for security questions, or use <a href="/contact/">Contact</a> for deployment, privacy, and contract inquiries.</p>
+
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

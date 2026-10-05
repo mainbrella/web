@@ -14,7 +14,7 @@ Prototype startup benchmarks are observations, not service guarantees: 30/30 cre
 - [About](https://mainbrella.com/about/): Andrew Arrow, founder of Mainbrella Co., and why we are building cloud computers for agents.
 - [Agent setup skill](https://mainbrella.com/SKILL.md): API key handoff, project detection, integration, verification, and troubleshooting.
 - [API reference](https://mainbrella.com/API.md): Authentication, container lifecycle, image selection, SSH, limits, and error handling.
-- [OpenAPI schema](https://api.mainbrella.com/openapi.json): Machine-readable API contracts.
+- [OpenAPI schema](https://api.mainbrella.com/docs): Machine-readable API contracts.
 - [Dashboard](https://mainbrella.com/dashboard/): Manage containers and subscriptions.
 - [Availability](https://mainbrella.com/download/): Access instructions.
 - [Privacy](https://mainbrella.com/privacy/): Privacy policy.

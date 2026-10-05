@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Historical Mainbrella startup results, evidence gaps, and reproducible HTTP benchmark methodology." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/benchmarks/" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>Startup benchmarks · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap">
+      <h1>Startup benchmarks</h1>
+      <p>Historical prototype observations: 381 ms P50 and 528 ms P95 for creation, and 680 ms P95 for a 100-machine burst. These results are not a latency or availability guarantee.</p>
+<div class="docs-table-scroll" role="region" aria-label="Historical prototype results" tabindex="0"><table class="docs-table"><thead><tr><th scope="col">Test</th><th scope="col">Samples / successful</th><th scope="col">P50</th><th scope="col">P95</th></tr></thead><tbody><tr><th scope="row">Create</th><td>30 / 30</td><td>381 ms</td><td>528 ms</td></tr><tr><th scope="row">100 concurrent starts</th><td>100 / 100</td><td>Not recorded</td><td>680 ms</td></tr></tbody></table></div>
+      <h2>Original test record</h2>
+      <p>These figures were published on the homepage before this page was added on October 5, 2026. The original harness and raw samples are not available in this repository, so the percentile calculation and timing boundaries cannot be independently audited.</p>
+<div class="docs-table-scroll" role="region" aria-label="Original benchmark metadata" tabindex="0"><table class="docs-table"><thead><tr><th scope="col">Field</th><th scope="col">Recorded evidence</th></tr></thead><tbody><tr><th scope="row">Test date</th><td>Not recorded; page publication date is not the test date.</td></tr><tr><th scope="row">Environment / region</th><td>Cloudflare-backed prototype; deployment configuration, client location, and compute region not recorded.</td></tr><tr><th scope="row">Instance size / image</th><td>Not recorded for the original tests. Current plans use 1/16 vCPU, 256 MiB RAM, and 2 GB ephemeral disk; that does not establish the prototype configuration.</td></tr><tr><th scope="row">Cold / warm semantics</th><td>Not recorded. A new container identity does not establish a cold host or an uncached image.</td></tr><tr><th scope="row">Concurrency</th><td>Create test: not recorded. Burst test: reported as 100 distinct machines running simultaneously.</td></tr><tr><th scope="row">Raw samples / source</th><td>Only aggregate results remain in the <a href="https://github.com/mainbrella/web/commit/39572aa">website source</a>.</td></tr></tbody></table></div>
+      <h2 id="methodology">Reproducible HTTP methodology</h2>
+      <p>The runner below measures the current authenticated API, using the same lifecycle, execution, binary file check, and generation-qualified cleanup as the <a href="/docs/">Quickstart</a>. It is a new protocol, not a reconstruction of the original prototype test.</p>
+      <dl class="contact-list">
+        <div><dt>Create latency</dt><dd>Client wall-clock time from the first creation POST to a confirmed running response, including response decoding, retries, and polling with the same idempotency key.</dd></div>
+        <div><dt>First-command latency</dt><dd>Time from that first POST to a validated hello command response. Includes creation and the HTTP execution round trip; excludes preflight, file verification, and cleanup.</dd></div>
+        <div><dt>Samples and percentiles</dt><dd>All attempted samples remain in the JSON report, including errors and cleanup failures. P50 and P95 use nearest rank over fully successful samples only. Requested and attempted counts are separate; unsuccessful samples never become zero-millisecond results.</dd></div>
+        <div><dt>Concurrency and cache state</dt><dd>Runs in batches of up to the chosen concurrency, with new reservations and no prewarming by the runner. Request arrival, host reuse, and image caches are uncontrolled. A concurrent HTTP batch does not prove all machines overlapped in their running state.</dd></div>
+        <div><dt>Environment</dt><dd>The report includes UTC run times, Node version, API origin, selected catalog image, plan, returned limits, and a client location you supply. Compute region and provider cache state remain unknown because the API does not report them.</dd></div>
+      </dl>
+      <h2 id="code">Run and retain the evidence</h2>
+      <p>Use Node 22+, an active account, and <code>MAINBRELLA_API_KEY</code> from your secret manager. Each attempted reservation consumes one monthly start, including failures. The runner checks allowance for the entire requested run and free slots for a batch. Avoid other launches during the test. Resolve any ambiguous creation or failed cleanup before running again.</p>
+      <pre class="docs-code"><code>curl --fail --silent --show-error https://mainbrella.com/mainbrella-doctor.mjs -o mainbrella-doctor.mjs
+curl --fail --silent --show-error https://mainbrella.com/mainbrella-verify.mjs -o mainbrella-verify.mjs
+curl --fail --silent --show-error https://mainbrella.com/mainbrella-benchmark.mjs -o mainbrella-benchmark.mjs
+# Inspect all three scripts before running.
+node mainbrella-doctor.mjs
+MAINBRELLA_CLIENT_LOCATION='your city / cloud region' \
+  node mainbrella-benchmark.mjs --samples 30 --concurrency 1 &gt; benchmark.json
+# For an account with at least 100 free slots and starts:
+# node mainbrella-benchmark.mjs --samples 100 --concurrency 100 &gt; burst.json</code></pre>
+      <p><a href="/mainbrella-benchmark.mjs">Download the runner</a> · <a href="https://github.com/mainbrella/web/blob/main/scripts/mainbrella-benchmark.mjs">Source code</a>. Preserve the runner version with the JSON report. Review container identifiers before sharing reports. Publish raw samples, client location, runtime image, failures, and cleanup outcomes alongside any new performance claim.</p>
+
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

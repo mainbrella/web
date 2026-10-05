@@ -7,7 +7,8 @@ import { siteChromePlugin } from "./scripts/site-chrome-plugin.mjs";
 
 const publicPages = ['docs', 'docs/containers', 'docs/execute', 'docs/files', 'docs/images',
   'docs/ssh', 'docs/authentication', 'docs/limits', 'docs/errors', 'docs/api-reference',
-  'docs/agent-setup', 'security', 'security/disclosure', 'contact', 'status', 'changelog'];
+  'docs/agent-setup', 'security', 'security/disclosure', 'contact', 'status', 'changelog',
+  'benchmarks', 'integrations', 'trust', 'subprocessors', 'platform'];
 
 export default defineConfig({
   base: "/",
@@ -42,8 +43,14 @@ export default defineConfig({
       name: "page-redirects",
       configureServer(server) {
         server.middlewares.use((request, response, next) => {
+          if (/^\/download(?:\/|\/index\.html)?(?:\?|$)/.test(request.url || '')) {
+            const query = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
+            response.writeHead(301, { Location: `/platform/${query}` });
+            response.end();
+            return;
+          }
           const match = request.url?.match(/^\/([^?]*[^/?])(\?.*)?$/);
-          const routes = ['about', 'privacy', 'terms', 'download', 'login', 'profile', 'dashboard', 'api-keys', ...publicPages];
+          const routes = ['about', 'privacy', 'terms', 'login', 'profile', 'dashboard', 'api-keys', ...publicPages];
           if (!match || !routes.includes(match[1])) {
             next();
             return;
@@ -68,7 +75,6 @@ export default defineConfig({
         profile: fileURLToPath(new URL("./profile/index.html", import.meta.url)),
         apiKeys: fileURLToPath(new URL("./api-keys/index.html", import.meta.url)),
         dashboard: fileURLToPath(new URL("./dashboard/index.html", import.meta.url)),
-        download: fileURLToPath(new URL("./download/index.html", import.meta.url)),
         privacy: fileURLToPath(new URL("./privacy/index.html", import.meta.url)),
         terms: fileURLToPath(new URL("./terms/index.html", import.meta.url)),
         ...Object.fromEntries(publicPages.map(page => [page, fileURLToPath(new URL(`./${page}/index.html`, import.meta.url))])),
