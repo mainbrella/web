@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runBenchmark } from './mainbrella-benchmark.mjs';
 
+import { capabilities, managedResponse } from './managed-fixture.mjs';
+
 function fixture({ allowance = 10, slots = 5, ambiguous = false, cleanupFailure = false,
   executionFailure = false, lostResponse = false } = {}) {
   const existing = { id: 'existing', createdAt: '2026-10-05T12:00:00Z', status: 'running' };
@@ -12,6 +14,8 @@ function fixture({ allowance = 10, slots = 5, ambiguous = false, cleanupFailure 
     imageCatalog: [{ id: 'node' }] });
   return { deleted, operations, options: { now: () => time++, wait: async () => {},
     request: async (path, method = 'GET', body, headers) => {
+      if (path === '/capabilities') return capabilities;
+      if (path.startsWith('/containers/executions')) return managedResponse(path, method, body);
       if (path === '/containers' && method === 'GET') return state();
       if (path === '/containers' && method === 'POST') {
         const key = headers['Idempotency-Key'];

@@ -31,11 +31,11 @@ export async function runDoctor({ env = process.env, fetcher = fetch, cwd = proc
     check('api_url', true, 'API URL is valid.');
   } catch { check('api_url', false, 'Use an HTTPS API origin, or HTTP localhost for local development.'); }
 
-  if (checks.find(item => item.name === 'credential').ok && checks.find(item => item.name === 'api_url').ok) {
-    async function get(path) {
+  if (checks.find(item => item.name === 'api_url').ok) {
+    async function get(path, authenticated = true) {
       try {
         const response = await fetcher(new URL(path, base), {
-          headers: { Authorization: `Bearer ${key}` }, redirect: 'error', signal: AbortSignal.timeout(15_000),
+          headers: authenticated ? { Authorization: `Bearer ${key}` } : {}, redirect: 'error', signal: AbortSignal.timeout(15_000),
         });
         if (!response.ok) {
           check(path, false, `HTTP ${response.status}. ${remedies[response.status] || 'Check the documented API route and environment.'}`);
@@ -48,6 +48,19 @@ export async function runDoctor({ env = process.env, fetcher = fetch, cwd = proc
         check(path, false, 'Could not read an API response. Check connectivity and retry this read-only check.');
         return null;
       }
+    }
+    const capabilities = await get('/capabilities', false);
+    if (capabilities) {
+      const execution = capabilities.execution;
+      check('capabilities', typeof capabilities.apiVersion === 'string', 'Deployment capability contract must include an API version.');
+      check('foreground', execution?.foreground === true, 'Foreground execution must be supported.');
+      check('binary_files', capabilities.files?.read === true && capabilities.files?.write === true
+        && capabilities.files?.binary === true, 'Binary file read/write must be supported.');
+      check('managed_execution', ['background', 'streaming', 'reconnect', 'cancellation'].every(feature => execution?.[feature] === true),
+        'Managed execution, streaming, reconnect and cancellation must be supported. Capabilities describe deployment support, not health or account access.');
+    }
+    if (!checks.find(item => item.name === 'credential').ok) {
+      return { ok: false, readOnly: true, project, packageManager, checks };
     }
     const status = await get('/containers');
     if (status) {

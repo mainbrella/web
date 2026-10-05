@@ -13,14 +13,20 @@
   <body class="info-body">
     <a class="skip-link" href="#main">Skip to content</a>
     <!-- site-header -->
-    <main id="main" class="legal-content wrap"><h1>Service status</h1>
+    <main id="main" class="legal-content wrap status-content"><h1>Service status</h1>
 
-<p>Public status reporting starts October 5, 2026. Component states below are manually maintained; they are not an automated uptime measurement.</p>
-<p class="legal-updated">Last observation: <time datetime="2026-10-05T21:37:33Z">October 5, 2026 at 21:37 UTC</time></p>
-<div class="docs-table-scroll" role="region" aria-label="Component reference" tabindex="0"><table class="docs-table"><thead><tr><th scope="col">Component</th><th scope="col">State</th><th scope="col">Coverage</th></tr></thead><tbody><tr><th scope="row">Website</th><td>Reachable at last check</td><td>Public homepage returned HTTP 200; asset delivery not checked separately.</td></tr><tr><th scope="row">API</th><td>Reachable at last check</td><td><code>GET /health</code> returned HTTP 200 with <code>{"ok":true}</code>. Workload operations not checked.</td></tr><tr><th scope="row">Container provisioning</th><td>Not yet verified</td><td>Account reservations and container readiness</td></tr><tr><th scope="row">SSH gateway</th><td>Not yet verified</td><td>Interactive SSH connections</td></tr><tr><th scope="row">Image builds</th><td>Not yet verified</td><td>Build queue, publishing, and image readiness</td></tr><tr><th scope="row">Billing / Auth</th><td>Not yet verified</td><td>Google sign-in, checkout, and subscription reconciliation</td></tr></tbody></table></div>
-<p>The observations above are a snapshot at the stated time, not a live check or an uptime guarantee. “Not yet verified” means no current operational check is published for that component. It does not establish either an outage or healthy service. Cloudflare's <a href="https://www.cloudflarestatus.com/">provider status</a> can provide context but does not verify Mainbrella.</p>
-<h2>History</h2>
-<article class="release-entry"><h3><time datetime="2026-10-05">October 5, 2026</time> — Status reporting initialized</h3><p>Component coverage and a public history were added. No historical uptime or incident record is available before this date. At 21:37 UTC, read-only checks confirmed that the public homepage and API health endpoint were reachable. The other components were not checked. Further observations and incidents will be recorded here as they are verified.</p></article>
+<p id="status-summary" role="status">Loading current observations…</p>
+<noscript><p>JavaScript is required to load current status. Read the public <a href="https://api.mainbrella.com/status">status report</a> and <a href="https://api.mainbrella.com/status/history">observation history</a>.</p></noscript>
+<div class="docs-table-scroll" role="region" aria-label="Current component status" tabindex="0"><table class="docs-table"><thead><tr><th scope="col">Component</th><th scope="col">State</th><th scope="col">Observed</th><th scope="col">Scope</th></tr></thead><tbody id="status-components"></tbody></table></div>
+<p>Missing observations and observations older than 15 minutes are unknown. Reachability checks do not verify workloads. Authentication with control plane scope checks database access; it does not verify sign-in. Synthetic scope reports a workflow probe. Cloudflare's <a href="https://www.cloudflarestatus.com/">provider status</a> provides context but does not verify Mainbrella.</p>
+<h2>Incidents</h2>
+<div id="status-incidents">Loading incident report…</div>
+<h2>Observation history</h2>
+<div class="docs-table-scroll" role="region" aria-label="Observation history" tabindex="0"><table class="docs-table"><thead><tr><th scope="col">Component</th><th scope="col">Recorded state</th><th scope="col">Observed</th><th scope="col">Scope</th></tr></thead><tbody id="status-history"></tbody></table></div>
+<p id="history-feedback" role="status">Loading observations…</p>
+<button id="history-more" type="button" class="button" disabled>Load older observations</button>
+<h2>Historical manual observations</h2>
+<article class="release-entry"><h3><time datetime="2026-10-05">October 5, 2026</time> — Status reporting initialized</h3><p>At <time datetime="2026-10-05T21:37:33Z">21:37 UTC</time>, manual read-only checks confirmed that the public homepage returned HTTP 200 and the API health endpoint returned HTTP 200 with <code>{"ok":true}</code>. Asset delivery and workload operations were not checked. Provisioning, SSH, image builds, billing and sign-in were not verified. These historical observations do not establish current health or rolling uptime. No historical uptime or incident record is available before this date.</p></article>
 <h2>Published measurements</h2>
 <p>The <a href="/benchmarks/">startup benchmark record</a> preserves historical prototype latency and success counts with their evidence gaps. These are not rolling operational metrics. Total production starts, 30-day successful starts, and measured API uptime are not currently published.</p>
 <p>Latest recorded product update: <a href="/changelog/"><time datetime="2026-10-05">October 5, 2026</time></a>. See <a href="/platform/">Platform and availability</a> for runtime and region information. Self-service plans have no uptime SLA; see the <a href="/terms/#availability">availability terms</a>.</p>
@@ -29,5 +35,6 @@
 </main>
     <!-- site-footer -->
     <script type="module" src="/src/account-menu.js"></script>
+    <script type="module" src="/src/status.js"></script>
   </body>
 </html>

@@ -7,11 +7,108 @@ import { runDoctor } from './mainbrella-doctor.mjs';
 const hello = 'hello from mainbrella';
 const fileProbe = new Uint8Array([0, 1, 127, 128, 255, 10]);
 
+const terminalStates = new Set(['succeeded', 'failed', 'canceled', 'timed_out', 'output_limit', 'interrupted']);
+
+// Decode bounded SSE frames across arbitrary network chunks. Never print server data.
+export async function* executionEvents(response) {
+  if (!response.headers.get('content-type')?.startsWith('text/event-stream') || !response.body) throw new Error('managed_verification_failed');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += done ? decoder.decode() : decoder.decode(value, { stream: true });
+      let boundary;
+      while ((boundary = buffer.indexOf('\n\n')) >= 0) {
+        if (boundary > 64 * 1024) throw new Error('managed_verification_failed');
+        const frame = buffer.slice(0, boundary); buffer = buffer.slice(boundary + 2);
+        const lines = frame.split('\n');
+        const type = lines.find(line => line.startsWith('event: '))?.slice(7);
+        const data = lines.find(line => line.startsWith('data: '))?.slice(6);
+        if (data) yield { type, data: JSON.parse(data) };
+      }
+      if (buffer.length > 64 * 1024 || done && buffer.trim()) throw new Error('managed_verification_failed');
+      if (done) return;
+    }
+  } finally { await reader.cancel().catch(() => {}); }
+}
+
+export async function verifyManaged({ request, owned, wait, report }) {
+  const query = new URLSearchParams(owned);
+  const startPath = `/containers/executions?${query}`;
+  const executionKey = randomUUID();
+  report.executionKey = executionKey;
+  const started = await request(startPath, 'POST', { command: 'printf mainbrella-managed', timeoutMs: 30_000 }, { 'Idempotency-Key': executionKey });
+  if (!/^[a-f0-9-]{36}$/.test(started?.id ?? '')) throw new Error('managed_verification_failed');
+  report.executionId = started.id;
+  const path = `/containers/executions/${started.id}`;
+  let cursor = 0, output = '', terminal;
+  for (let attempt = 0; attempt < 4 && !terminal; attempt++) {
+    const response = await request(`${path}/events?${query}&cursor=${cursor}`);
+    let sawStatus = false;
+    for await (const event of executionEvents(response)) {
+      if (event.type === 'status') {
+        sawStatus = true;
+        if (terminalStates.has(event.data.status)) terminal = event.data;
+      } else if (['stdout', 'stderr'].includes(event.type)) {
+        if (!Number.isSafeInteger(event.data.sequence) || event.data.sequence <= 0 || typeof event.data.data !== 'string') throw new Error('managed_verification_failed');
+        if (event.data.sequence > cursor) {
+          cursor = event.data.sequence;
+          output += event.data.data;
+          if (output.length > 1024) throw new Error('managed_verification_failed');
+        }
+      }
+    }
+    if (!sawStatus) throw new Error('managed_verification_failed');
+    if (!terminal) await wait();
+  }
+  const result = await request(`${path}?${query}`);
+  if (output !== 'mainbrella-managed' || terminal?.status !== 'succeeded'
+    || result.status !== 'succeeded' || result.stdout !== output || result.stderr !== ''
+    || result.exitCode !== 0 || result.timedOut || result.outputTruncated) throw new Error('managed_verification_failed');
+  report.managed = 'verified';
+
+  const cancellationKey = randomUUID();
+  report.cancellationKey = cancellationKey;
+  const pending = await request(startPath, 'POST', { command: 'sleep 30', timeoutMs: 30_000 }, { 'Idempotency-Key': cancellationKey });
+  if (!/^[a-f0-9-]{36}$/.test(pending?.id ?? '')) throw new Error('managed_verification_failed');
+  report.cancellationId = pending.id;
+  const cancelPath = `/containers/executions/${pending.id}?${query}`;
+  await request(cancelPath, 'DELETE');
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const result = await request(cancelPath);
+    if (result.status === 'canceled') { report.cancellation = 'verified'; return; }
+    if (terminalStates.has(result.status)) break;
+    await wait();
+  }
+  throw new Error('managed_verification_failed');
+}
+
+export function createRequester({ base, key, fetcher = fetch }) {
+  return async (path, method = 'GET', body, headers = {}) => {
+    const binary = body instanceof Uint8Array;
+    const response = await fetcher(new URL(path, base), {
+      method, headers: { ...(path === '/capabilities' ? {} : { Authorization: `Bearer ${key}` }),
+        ...(body !== undefined ? { 'Content-Type': binary ? 'application/octet-stream' : 'application/json' } : {}), ...headers },
+      body: binary ? body : body !== undefined ? JSON.stringify(body) : undefined,
+      redirect: 'error', signal: AbortSignal.timeout(90_000),
+    });
+    if (!response.ok) throw new Error('request_failed');
+    if (method === 'GET' && path.includes('/events?')) return response;
+    if (method === 'GET' && path.startsWith('/containers/files?')) return new Uint8Array(await response.arrayBuffer());
+    return response.json();
+  };
+}
+
 // Requests are injectable to verify ownership and cleanup without paid starts.
 export async function verify({ request, catalogId = 'node', wait = () => new Promise(resolve => setTimeout(resolve, 1000)) }) {
   let owned;
   const report = { ok: false, stdout: null, exitCode: null, cleanup: 'not_needed' };
   try {
+    const capabilities = await request('/capabilities');
+    if (!['foreground', 'background', 'streaming', 'reconnect', 'cancellation'].every(feature => capabilities?.execution?.[feature] === true)
+      || !['read', 'write', 'binary'].every(feature => capabilities?.files?.[feature] === true)) throw new Error('preflight_failed');
     const before = await request('/containers');
     if (!before.active || !Array.isArray(before.containers) || !Array.isArray(before.imageCatalog)
       || !before.imageCatalog.some(image => image.id === catalogId)
@@ -53,8 +150,9 @@ export async function verify({ request, catalogId = 'node', wait = () => new Pro
         || read.byteLength !== fileProbe.byteLength || read.some((byte, i) => byte !== fileProbe[i])) throw new Error();
       report.files = 'verified';
     } catch { throw new Error('file_verification_failed'); }
+    try { await verifyManaged({ request, owned, wait, report }); } catch { throw new Error('managed_verification_failed'); }
   } catch (error) {
-    report.error = ['preflight_failed', 'creation_ambiguous', 'execution_failed', 'file_verification_failed'].includes(error.message)
+    report.error = ['preflight_failed', 'creation_ambiguous', 'execution_failed', 'file_verification_failed', 'managed_verification_failed'].includes(error.message)
       ? error.message : 'verification_failed';
   } finally {
     if (owned) {
@@ -77,17 +175,7 @@ async function main() {
   const base = process.env.MAINBRELLA_API_URL || 'https://api.mainbrella.com';
   return verify({
     catalogId: process.env.MAINBRELLA_CATALOG_ID || 'node',
-    async request(path, method = 'GET', body, headers = {}) {
-      const binary = body instanceof Uint8Array;
-      const response = await fetch(new URL(path, base), {
-        method, headers: { Authorization: `Bearer ${process.env.MAINBRELLA_API_KEY}`,
-          ...(body !== undefined ? { 'Content-Type': binary ? 'application/octet-stream' : 'application/json' } : {}), ...headers },
-        body: binary ? body : body !== undefined ? JSON.stringify(body) : undefined, redirect: 'error', signal: AbortSignal.timeout(90_000),
-      });
-      if (!response.ok) throw new Error('request_failed');
-      if (method === 'GET' && path.startsWith('/containers/files?')) return new Uint8Array(await response.arrayBuffer());
-      return response.json();
-    },
+    request: createRequester({ base, key: process.env.MAINBRELLA_API_KEY }),
 
   });
 }

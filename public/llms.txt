@@ -13,7 +13,7 @@ Historical prototype startup benchmarks have incomplete original metadata and ra
 - [Overview and plans](https://mainbrella.com/): Product details, benchmarks, and pricing.
 - [About](https://mainbrella.com/about/): Andrew Arrow, founder of Mainbrella Co., and why we are building cloud computers for agents.
 - [Agent setup skill](https://mainbrella.com/SKILL.md): API key handoff, project detection, integration, verification, and troubleshooting.
-- [API reference](https://mainbrella.com/API.md): Authentication, container lifecycle, image selection, SSH, limits, and error handling.
+- [API reference](https://mainbrella.com/API.md): Capabilities, container lifecycle, foreground and managed execution, streaming, binary files, operational status, SSH, limits, and errors.
 - [OpenAPI schema](https://api.mainbrella.com/docs): Machine-readable API contracts.
 - [Dashboard](https://mainbrella.com/dashboard/): Manage containers and subscriptions.
 - [Platform and availability](https://mainbrella.com/platform/): Compute placement, runtime availability, access, and current limits.
@@ -24,7 +24,7 @@ Historical prototype startup benchmarks have incomplete original metadata and ra
 - [Security](https://mainbrella.com/security/): Implemented controls and current assurance boundaries.
 - [Vulnerability disclosure](https://mainbrella.com/security/disclosure/): Scope and good-faith reporting to security@mainbrella.com.
 - [Contact](https://mainbrella.com/contact/): Support, deployments, security, founder contact, and legal notices.
-- [Status](https://mainbrella.com/status/): Manually maintained component observations and reporting history; no inferred uptime.
+- [Status](https://mainbrella.com/status/): Live backend component observations, freshness, incidents and paginated history, plus labeled historical manual records; no inferred uptime.
 - [Changelog](https://mainbrella.com/changelog/): Dated updates from source history.
 
 - [Benchmarks](https://mainbrella.com/benchmarks/): Historical results, metadata gaps, HTTP methodology, and reproducible runner.
@@ -36,3 +36,7 @@ Historical prototype startup benchmarks have incomplete original metadata and ra
 - [Mainbrella vs E2B vs Daytona](https://mainbrella.com/compare/): Dated comparison with official sources and explicit capability gaps.
 - [Brand assets](https://mainbrella.com/brand/): Logo, wordmarks, public website screenshots, and usage guidance.
 - [Careers](https://mainbrella.com/careers/): Founder contact for interest in building agent infrastructure; no advertised open roles.
+
+- [Deployment capabilities](https://api.mainbrella.com/capabilities): Public feature flags and limits; account allowances are authenticated.
+- [JavaScript SDK reference](https://mainbrella.com/sdk/javascript.md): Local unpublished SDK; installation requires a backend checkout.
+- [Python SDK reference](https://mainbrella.com/sdk/python.md): Local unpublished SDK; installation requires a backend checkout.

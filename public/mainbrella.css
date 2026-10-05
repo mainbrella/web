@@ -551,3 +551,10 @@ button:disabled { opacity: .65; cursor: wait; }
   html { scroll-behavior: auto; }
   .button { transition: none; }
 }
+
+#history-more[hidden] { display: none; }
+#history-more { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+#history-more:disabled { color: var(--muted); cursor: wait; }
+
+.status-content .docs-table { min-width: 640px; }
+.status-content .docs-table td:nth-child(2), .status-content .docs-table td:nth-child(3) { white-space: nowrap; }

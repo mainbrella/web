@@ -2,7 +2,7 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { runDoctor } from './mainbrella-doctor.mjs';
-import { verify } from './mainbrella-verify.mjs';
+import { verify, createRequester } from './mainbrella-verify.mjs';
 
 function percentiles(values) {
   if (!values.length) return { count: 0, p50Ms: null, p95Ms: null };
@@ -92,18 +92,7 @@ async function main() {
     catalogId: process.env.MAINBRELLA_CATALOG_ID || 'node',
     metadata: { apiOrigin: new URL(base).origin, nodeVersion: process.versions.node,
       clientLocation: process.env.MAINBRELLA_CLIENT_LOCATION || 'not supplied' },
-    async request(path, method = 'GET', body, headers = {}) {
-      const binary = body instanceof Uint8Array;
-      const response = await fetch(new URL(path, base), {
-        method, headers: { Authorization: `Bearer ${process.env.MAINBRELLA_API_KEY}`,
-          ...(body !== undefined ? { 'Content-Type': binary ? 'application/octet-stream' : 'application/json' } : {}), ...headers },
-        body: binary ? body : body !== undefined ? JSON.stringify(body) : undefined,
-        redirect: 'error', signal: AbortSignal.timeout(90_000),
-      });
-      if (!response.ok) throw new Error('request_failed');
-      if (method === 'GET' && path.startsWith('/containers/files?')) return new Uint8Array(await response.arrayBuffer());
-      return response.json();
-    },
+    request: createRequester({ base, key: process.env.MAINBRELLA_API_KEY }),
   });
 }
 
