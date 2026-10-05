@@ -1,6 +1,7 @@
 import { API_ORIGIN } from './auth.js';
 
 export function createContainersDashboard({ onUnauthenticated }) {
+  const imageSelect = document.querySelector('#container-image');
   const create = document.querySelector('#container-create');
   const refresh = document.querySelector('#containers-refresh');
   const list = document.querySelector('#container-list');
@@ -57,19 +58,25 @@ export function createContainersDashboard({ onUnauthenticated }) {
     create.disabled = busy || !data || data.containers.length > 0
       || data.usage.starts >= data.limits.maxStartsPerMonth;
     refresh.disabled = busy || disposed;
+    imageSelect.disabled = busy || disposed;
     list.querySelectorAll('button').forEach((button) => { button.disabled = busy; });
   }
 
   async function request(method) {
     const response = await fetch(`${API_ORIGIN}/containers`, {
-      method, credentials: 'include', headers: { accept: 'application/json' },
+      method, credentials: 'include',
+      headers: { accept: 'application/json', ...(method === 'POST' && imageSelect.value ? { 'content-type': 'application/json' } : {}) },
+      ...(method === 'POST' && imageSelect.value ? { body: JSON.stringify({ imageId: imageSelect.value }) } : {}),
     });
     if (response.status === 401) {
       dispose();
       onUnauthenticated();
       throw new Error('not_authenticated');
     }
-    if (response.status === 409) throw new Error('container_limit_exceeded');
+    if (response.status === 409) {
+      const failure = await response.json().catch(() => null);
+      throw new Error(failure?.error || 'container_limit_exceeded');
+    }
     if (response.status === 429) throw new Error('container_quota_exceeded');
     const result = await response.json();
     if (!response.ok || !Array.isArray(result?.containers)
@@ -94,7 +101,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
       row.className = 'container-row';
       const details = document.createElement('div');
       const name = document.createElement('strong');
-      name.textContent = container.name;
+      name.textContent = container.imageName || container.name;
       const state = document.createElement('p');
       state.className = 'dashboard-status';
       const expiry = new Date(container.expiresAt);
@@ -240,6 +247,10 @@ export function createContainersDashboard({ onUnauthenticated }) {
       if (disposed) return;
       error.textContent = cause.message === 'container_quota_exceeded'
         ? 'You’ve used all 10 container starts for this month. Your allowance resets next month (UTC).'
+        : ['image_not_ready', 'image_not_available'].includes(cause.message)
+          ? 'This image is not ready to launch. Refresh images and try again.'
+        : cause.message === 'image_not_found'
+          ? 'This image is no longer available. Choose another image.'
         : cause.message === 'container_limit_exceeded'
           ? 'Your Builder plan allows one running container. Refresh to use or stop it.'
           : `Could not ${method === 'POST' ? 'create' : 'stop'} your container. Refresh to check its status.`;
@@ -267,5 +278,12 @@ export function createContainersDashboard({ onUnauthenticated }) {
 
   create.addEventListener('click', () => mutate('POST'));
   refresh.addEventListener('click', () => load());
-  return { load, dispose };
+  function setImages(images) {
+    const selected = imageSelect.value;
+    imageSelect.replaceChildren(new Option('Default · Node 24, bash, tmux', ''));
+    for (const image of images) imageSelect.add(new Option(image.name, image.id));
+    imageSelect.value = images.some(image => image.id === selected) ? selected : '';
+  }
+  function selectImage(id) { imageSelect.value = id; imageSelect.focus(); }
+  return { load, dispose, setImages, selectImage };
 }

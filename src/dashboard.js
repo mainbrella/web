@@ -1,5 +1,6 @@
 import { API_ORIGIN, createAuthClient } from './auth.js';
 import { plans } from './plans.js';
+import { createImagesDashboard } from './images-dashboard.js';
 import { createContainersDashboard } from './containers-dashboard.js';
 
 const auth = createAuthClient();
@@ -12,6 +13,9 @@ const level = document.querySelector('#subscription-level');
 const note = document.querySelector('#subscription-note');
 let version = 0;
 const containers = createContainersDashboard({ onUnauthenticated: goToLogin });
+
+const images = createImagesDashboard({ onUnauthenticated: goToLogin,
+  onImagesChanged: containers.setImages, onSelectImage: containers.selectImage });
 
 function goToLogin() {
   window.location.replace(`/login/?returnTo=${encodeURIComponent(location.pathname + location.search + location.hash)}`);
@@ -40,6 +44,7 @@ async function loadDashboard() {
     content.hidden = false;
     status.hidden = true;
     containers.load();
+    images.load();
     const response = await fetch(`${API_ORIGIN}/subscription`, {
       credentials: 'include',
       headers: { accept: 'application/json' },
@@ -86,6 +91,7 @@ window.addEventListener('auth-change', (event) => {
   if (event.detail?.user !== null) return;
   version++;
   containers.dispose();
+  images.dispose();
   content.hidden = true;
   goToLogin();
 });
