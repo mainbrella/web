@@ -313,6 +313,11 @@ button:disabled { opacity: .65; cursor: wait; }
 .dashboard-main .button:disabled { background: var(--line); color: var(--muted); }
 .dashboard-retry { min-height: 44px; margin-top: 8px; padding: 8px 16px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--ink); font: inherit; }
 .dashboard-retry:hover { background: var(--surface); }
+.container-list { margin: 16px 0 0; padding: 0; list-style: none; }
+.container-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; border-top: 1px solid var(--line); }
+.container-row > div { min-width: 0; overflow-wrap: anywhere; }
+.container-row .dashboard-retry { flex-shrink: 0; margin-top: 0; }
+#container-limits { margin-bottom: 12px; font-size: 14px; }
 @media (max-width: 700px) {
   .dashboard-main { padding-top: 24px; }
 }

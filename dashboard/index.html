@@ -36,9 +36,13 @@
         <section class="dashboard-containers" aria-labelledby="containers-title">
           <div class="dashboard-section-heading">
             <h2 id="containers-title">Running containers</h2>
-            <button class="button button-small" type="button" disabled aria-describedby="containers-status">Create container</button>
+            <button id="container-create" class="button button-small" type="button" disabled aria-describedby="container-limits containers-status">Create container</button>
           </div>
-          <p id="containers-status" class="dashboard-status">Container management is not available yet.</p>
+          <p id="container-limits" class="dashboard-status">1 small container · 256 MiB RAM · 2 GB disk. Sessions last up to 1 hour and stop after 10 idle minutes. 10 starts per month.</p>
+          <p id="containers-status" class="dashboard-status" role="status">Loading containers…</p>
+          <ul id="container-list" class="container-list" aria-label="Running containers" hidden></ul>
+          <p id="containers-error" class="dashboard-error" role="alert" hidden></p>
+          <button id="containers-refresh" class="dashboard-retry" type="button" disabled>Refresh containers</button>
         </section>
       </div>
       <noscript><p>Enable JavaScript to view your dashboard.</p></noscript>

@@ -32,8 +32,27 @@ take precedence. Profile remains available at `/profile/`, and the account menu
 links to the dashboard. The authenticated dashboard reads `/subscription` and
 shows None, Builder, Pro, or Scale based on active access. Failed status requests
 show an error with retry rather than implying the user has no subscription.
-Container listing and creation await a user-owned container API; the dashboard
-shows an unavailable message and a disabled Create container button for now.
+Container listing, creation, and stopping use the cookie-authenticated
+`GET`, `POST`, and `DELETE /containers` backend API. During development all
+signed-in users receive the same fixed limits, regardless of subscription:
+one `lite` container (1/16 vCPU, 256 MiB RAM, 2 GB disk), one-hour maximum
+sessions, ten-minute inactivity timeout, and ten starts per UTC calendar month.
+Each start reserves a full session from the allowance, even if stopped early;
+repeat creation while already running does not consume another start.
+Containers have no internet access or persistent filesystem. The dashboard
+refreshes status every 15 seconds while visible; status reads do not renew the
+idle lease. Subscription failures do not prevent container management.
+
+Deploy `../e2b` first to provision its private `BuilderMachine` Durable Object,
+then deploy `../backend` (with the `BUILDER_MACHINE` cross-Worker binding), then
+this website. Container IDs and configuration come from the backend, never the
+browser; the machine test token is not needed for this private binding.
+The benchmark API remains separate. No new database migration is required.
+The ten-start limit conservatively bounds each user's runtime to ten hours:
+2.5 GiB-hours of allocated memory, 20 GB-hours of disk, and up to 37.5
+vCPU-minutes at the advertised lite capacity. Cloudflare's included allowances
+are shared across the entire account, rather than renewed for each user; this
+development quota is not a guarantee that the service runs within a $5 bill.
 
 The backend allowlists the plan prices:
 - Builder: `price_1UNAovGSUs8K8zgHwUCsCX16`
