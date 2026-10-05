@@ -69,6 +69,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
       onUnauthenticated();
       throw new Error('not_authenticated');
     }
+    if (response.status === 409) throw new Error('container_limit_exceeded');
     if (response.status === 429) throw new Error('container_quota_exceeded');
     const result = await response.json();
     if (!response.ok || !Array.isArray(result?.containers)
@@ -239,7 +240,9 @@ export function createContainersDashboard({ onUnauthenticated }) {
       if (disposed) return;
       error.textContent = cause.message === 'container_quota_exceeded'
         ? 'You’ve used all 10 container starts for this month. Your allowance resets next month (UTC).'
-        : `Could not ${method === 'POST' ? 'create' : 'stop'} your container. Refresh to check its status.`;
+        : cause.message === 'container_limit_exceeded'
+          ? 'Your Builder plan allows one running container. Refresh to use or stop it.'
+          : `Could not ${method === 'POST' ? 'create' : 'stop'} your container. Refresh to check its status.`;
       error.hidden = false;
       data = null;
       status.textContent = 'Refresh containers to check the current state.';

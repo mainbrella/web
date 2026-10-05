@@ -33,13 +33,13 @@ take precedence. Profile remains available at `/profile/`, and the account menu
 links to the dashboard. The authenticated dashboard reads `/subscription` and
 shows None, Builder, Pro, or Scale based on active access. Failed status requests
 show an error with retry rather than implying the user has no subscription.
-Container listing, creation, and stopping use the cookie-authenticated
-`GET`, `POST`, and `DELETE /containers` backend API. During development all
-signed-in users receive the same fixed limits, regardless of subscription:
+Container listing, creation, and stopping use the session-authenticated
+`GET`, `POST`, and `DELETE /containers` backend API. All
+signed-in users currently resolve to Builder ($5/month), regardless of saved subscription:
 one `lite` container (1/16 vCPU, 256 MiB RAM, 2 GB disk), one-hour maximum
 sessions, ten-minute inactivity timeout, and ten starts per UTC calendar month.
 Each start reserves a full session from the allowance, even if stopped early;
-repeat creation while already running does not consume another start.
+repeat creation while already running returns 409 without consuming another start.
 Containers have outbound internet access for package installation and no persistent filesystem. The dashboard
 refreshes status every 15 seconds while visible; status reads do not renew the
 idle lease. Subscription failures do not prevent container management.
@@ -123,3 +123,14 @@ The gateway and API share the `SSH_GATEWAY_SECRET` Worker secret. The gateway
 also needs a stable `SSH_HOST_KEY_B64` secret, generated separately from user SSH
 keys. See `../ssh-gateway/README.md` for deployment. All gateway and user-container
 runtime testing can run on Cloudflare without local Docker or OrbStack.
+
+API automation instructions are in [API.md](API.md), with a reusable agent skill
+in [SKILL.md](SKILL.md). Lifecycle and SSH issuance accept an existing login
+session as a Bearer credential. The backend enforces the same Builder limits for
+UI and API calls; database-backed tier resolution is deferred. Keep these two
+files synchronized with their copies in `../backend` when the API changes.
+
+To install the skill in Codex, copy `SKILL.md` and `API.md` into
+`~/.codex/skills/mainbrella-containers/` (or the equivalent skills directory for
+your agent), then invoke `$mainbrella-containers`. Provision the session credential
+separately using the instructions in `API.md`.
