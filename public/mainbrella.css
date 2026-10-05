@@ -233,3 +233,10 @@ h3 { font-size: 18px; line-height: 1.4; letter-spacing: -.015em; }
   .benchmark-table td[data-label] span { display: inline; margin: 0; }
   .benchmark-table td:last-child { grid-column: 1 / -1; padding-top: 8px; }
 }
+
+button.button { border: 0; font-family: inherit; cursor: pointer; }
+button:disabled { opacity: .65; cursor: wait; }
+#pro-signin { margin-top: 16px; min-height: 44px; }
+#pro-status[data-state="error"] { color: #ffb4ab; }
+#pro-account { overflow-wrap: anywhere; }
+.billing-link { padding: 0; border: 0; background: none; font-family: inherit; cursor: pointer; }

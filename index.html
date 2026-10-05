@@ -105,8 +105,13 @@ hello agent</code></pre>
             <h3>Pro</h3>
             <p class="plan-price">$180<span> / month + usage</span></p>
             <p>Managed sandboxes for your agent workloads, built on Cloudflare Containers.</p>
-            <a class="button" href="/download/">Check access availability <span aria-hidden="true">→</span></a>
-            <p class="pricing-note">Proposed launch pricing · Public signup not yet available</p>
+            <button class="button" id="pro-subscribe" type="button" disabled>Subscribe for $180/month</button>
+            <div id="pro-signin" hidden aria-label="Sign in to subscribe"></div>
+            <p class="pricing-note">Billed monthly. Cancel anytime. Compute usage is additional. The sandbox service is still in development.</p>
+            <p class="pricing-note" id="pro-status" role="status" aria-live="polite">Checking subscription…</p>
+            <p class="pricing-note" id="pro-account" hidden></p>
+            <button class="text-link billing-link" id="pro-logout" type="button" hidden>Sign out</button>
+            <noscript><p class="pricing-note">Enable JavaScript to subscribe.</p></noscript>
           </div>
           <div class="usage-pricing">
             <h3>Compute usage</h3>
@@ -137,5 +142,6 @@ hello agent</code></pre>
       <p>Agent sandboxes. Powered by Cloudflare.</p>
       <nav class="footer-links" aria-label="Footer navigation"><a href="/download/">Availability</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav>
     </footer>
+    <script type="module" src="/subscription.js"></script>
   </body>
 </html>
