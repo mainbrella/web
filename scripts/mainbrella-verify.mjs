@@ -1,16 +1,12 @@
 #!/usr/bin/env node
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { runDoctor } from './mainbrella-doctor.mjs';
 
-const exec = promisify(execFile);
 const hello = 'hello from mainbrella';
 
-// request and execute are injectable so the ownership and cleanup contract can
-// be verified without consuming starts or issuing real SSH credentials.
-export async function verify({ request, execute, catalogId = 'node' }) {
+// Requests are injectable to verify ownership and cleanup without paid starts.
+export async function verify({ request, catalogId = 'node' }) {
   let owned;
   const report = { ok: false, stdout: null, exitCode: null, cleanup: 'not_needed' };
   try {
@@ -36,14 +32,15 @@ export async function verify({ request, execute, catalogId = 'node' }) {
     }
     owned = { id: candidates[0].id, createdAt: candidates[0].createdAt };
     report.container = owned;
-    const access = await request('/containers/ssh', 'POST', owned);
-    const result = await execute(access);
+    const result = await request(`/containers/exec?${new URLSearchParams(owned)}`, 'POST',
+      { command: `echo "${hello}"`, timeoutMs: 30_000 });
     report.exitCode = Number.isInteger(result.exitCode) ? result.exitCode : null;
-    // Never echo unexpected output or SSH diagnostics that might contain credentials.
-    if (result.stdout?.trim() !== hello || result.exitCode !== 0) throw new Error('execution_failed');
+    // Never echo unexpected output or execution diagnostics that might contain credentials.
+    if (result.stdout?.trim() !== hello || result.exitCode !== 0
+      || result.timedOut !== false || result.outputTruncated !== false) throw new Error('execution_failed');
     report.stdout = hello;
   } catch (error) {
-    report.error = ['preflight_failed', 'creation_ambiguous', 'execution_failed', 'ssh_response_invalid'].includes(error.message)
+    report.error = ['preflight_failed', 'creation_ambiguous', 'execution_failed'].includes(error.message)
       ? error.message : 'verification_failed';
   } finally {
     if (owned) {
@@ -74,17 +71,7 @@ async function main() {
       if (!response.ok) throw new Error('request_failed');
       return response.json();
     },
-    async execute(access) {
-      const match = typeof access.command === 'string' && access.command.match(
-        /^ssh -o ProxyCommand='cloudflared access ssh --hostname %h' ([a-f0-9]{64})@([a-z0-9]+(?:[.-][a-z0-9]+)*)$/);
-      if (!match || match[2] !== access.hostname) throw new Error('ssh_response_invalid');
-      const args = ['-T', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=accept-new', '-o', 'ConnectTimeout=15',
-        '-o', 'ProxyCommand=cloudflared access ssh --hostname %h', `${match[1]}@${match[2]}`, `echo "${hello}"`];
-      try {
-        const result = await exec('ssh', args, { timeout: 30_000, maxBuffer: 64 * 1024 });
-        return { stdout: result.stdout, exitCode: 0 };
-      } catch (error) { return { stdout: '', exitCode: Number.isInteger(error.code) ? error.code : null }; }
-    },
+
   });
 }
 

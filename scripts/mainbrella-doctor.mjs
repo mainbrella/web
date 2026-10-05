@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { existsSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -13,10 +12,6 @@ const remedies = {
 };
 
 export async function runDoctor({ env = process.env, fetcher = fetch, cwd = process.cwd(),
-  toolAvailable = name => {
-    const result = spawnSync(name, [name === 'ssh' ? '-V' : '--version'], { timeout: 5000, stdio: 'ignore' });
-    return !result.error && result.status === 0;
-  },
 } = {}) {
   const checks = [];
   const check = (name, ok, message) => checks.push({ name, ok, message });
@@ -25,7 +20,6 @@ export async function runDoctor({ env = process.env, fetcher = fetch, cwd = proc
   const packageManager = ['pnpm-lock.yaml', 'yarn.lock', 'bun.lock', 'bun.lockb', 'package-lock.json']
     .find(file => existsSync(resolve(cwd, file))) ?? null;
   check('node', Number(process.versions.node.split('.')[0]) >= 22, 'Node 22 or newer is required.');
-  for (const tool of ['ssh', 'cloudflared']) check(tool, toolAvailable(tool), `${tool} is required for command execution.`);
   const key = env.MAINBRELLA_API_KEY;
   check('credential', typeof key === 'string' && /^mb_[A-Za-z0-9_-]+$/.test(key),
     'Set MAINBRELLA_API_KEY to a named mb_ API key. Its value is never printed.');
@@ -74,6 +68,10 @@ export async function runDoctor({ env = process.env, fetcher = fetch, cwd = proc
     const images = await get('/images');
     if (images) check('images', Array.isArray(images.images) && typeof images.buildsEnabled === 'boolean',
       typeof images.buildsEnabled === 'boolean' ? (images.buildsEnabled ? 'Custom image builds are enabled.' : 'Custom image builds are disabled; use a published catalog image.') : 'Unexpected image response.');
+    const schema = await get('/openapi.json');
+    if (schema) check('http_execution', schema.paths?.['/containers/exec']?.post?.operationId === 'executeContainerCommand',
+      schema.paths?.['/containers/exec']?.post?.operationId === 'executeContainerCommand'
+        ? 'HTTP command execution is advertised.' : 'This API deployment does not advertise HTTP execution. Update the backend before verification.');
   }
   return { ok: checks.every(item => item.ok), readOnly: true, project, packageManager, checks };
 }

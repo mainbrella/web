@@ -13,22 +13,24 @@ const key = 'mb_do_not_print_this';
 
 test('doctor checks prerequisites and account access using only GETs without leaking credentials', async () => {
   const calls = [];
-  const report = await runDoctor({ env: { MAINBRELLA_API_KEY: key }, toolAvailable: () => true,
+  const report = await runDoctor({ env: { MAINBRELLA_API_KEY: key }, 
     fetcher: async (url, options) => {
       calls.push(url.pathname);
       assert.equal(options.method, undefined);
       assert.equal(options.redirect, 'error');
       assert.equal(options.headers.Authorization, `Bearer ${key}`);
-      return Response.json(url.pathname === '/containers' ? state([existing]) : { images: [], buildsEnabled: false });
+      return Response.json(url.pathname === '/containers' ? state([existing])
+        : url.pathname === '/openapi.json' ? { paths: { '/containers/exec': { post: { operationId: 'executeContainerCommand' } } } }
+          : { images: [], buildsEnabled: false });
     } });
   assert.equal(report.ok, true);
-  assert.deepEqual(calls, ['/containers', '/images']);
+  assert.deepEqual(calls, ['/containers', '/images', '/openapi.json']);
   assert.equal(JSON.stringify(report).includes(key), false);
 });
 
 test('doctor reports revoked keys and service failures without echoing server bodies', async () => {
   for (const status of [401, 503]) {
-    const report = await runDoctor({ env: { MAINBRELLA_API_KEY: key }, toolAvailable: () => true,
+    const report = await runDoctor({ env: { MAINBRELLA_API_KEY: key }, 
       fetcher: async () => Response.json({ error: key }, { status }) });
     assert.equal(report.ok, false);
     assert.equal(JSON.stringify(report).includes(key), false);
@@ -39,21 +41,21 @@ test('doctor reports revoked keys and service failures without echoing server bo
 test('doctor rejects missing keys, unsafe origins, malformed responses, and exhausted allowance', async () => {
   for (const env of [{}, { MAINBRELLA_API_KEY: key, MAINBRELLA_API_URL: 'http://untrusted.example' },
     { MAINBRELLA_API_KEY: key, MAINBRELLA_API_URL: 'https://api.example/?key=secret' }]) {
-    const report = await runDoctor({ env, toolAvailable: () => true, fetcher: () => assert.fail('must not send credentials') });
+    const report = await runDoctor({ env, fetcher: () => assert.fail('must not send credentials') });
     assert.equal(report.ok, false);
   }
   for (const body of [null, {}, { ...state([existing]), active: false },
     { ...state([existing]), usage: { starts: 10 } }]) {
-    const report = await runDoctor({ env: { MAINBRELLA_API_KEY: key }, toolAvailable: () => true,
+    const report = await runDoctor({ env: { MAINBRELLA_API_KEY: key }, 
       fetcher: async () => Response.json(body) });
     assert.equal(report.ok, false);
   }
 });
 
-function scenario({ execute = async () => ({ stdout: 'hello from mainbrella\n', exitCode: 0 }),
+function scenario({ execute = async () => ({ stdout: 'hello from mainbrella\n', exitCode: 0, timedOut: false, outputTruncated: false }),
   launch = state([existing, created]), cleanupFails = false } = {}) {
   const calls = [];
-  return { calls, options: { execute, request: async (path, method = 'GET', body) => {
+  return { calls, options: { request: async (path, method = 'GET', body) => {
     calls.push({ path, method, body });
     if (method === 'DELETE') {
       const query = new URL(path, 'https://api.example').searchParams;
@@ -62,9 +64,12 @@ function scenario({ execute = async () => ({ stdout: 'hello from mainbrella\n', 
       if (cleanupFails) throw new Error('outage');
       return state([existing]);
     }
-    if (path === '/containers/ssh') {
-      assert.deepEqual(body, { id: created.id, createdAt: created.createdAt });
-      return { command: 'private' };
+    if (path.startsWith('/containers/exec?')) {
+      const params = new URL(path, 'https://api.example').searchParams;
+      assert.equal(params.get('id'), created.id);
+      assert.equal(params.get('createdAt'), created.createdAt);
+      assert.deepEqual(body, { command: 'echo "hello from mainbrella"', timeoutMs: 30_000 });
+      return execute();
     }
     if (method === 'POST') {
       if (launch instanceof Error) throw launch;
@@ -84,8 +89,10 @@ test('verification checks stdout/exit and deletes only the created generation', 
   assert.equal(calls.filter(call => call.method === 'POST' && call.path === '/containers').length, 1);
 });
 
-test('verification cleans up after SSH failures and never prints unexpected output', async () => {
-  for (const execute of [async () => ({ stdout: key, exitCode: 255 }), async () => { throw new Error(key); }]) {
+test('verification cleans up after HTTP execution failures and never prints unexpected output', async () => {
+  for (const execute of [async () => ({ stdout: key, exitCode: 255 }), async () => { throw new Error(key); },
+    async () => ({ stdout: 'hello from mainbrella', exitCode: 0, timedOut: true, outputTruncated: false }),
+    async () => ({ stdout: 'hello from mainbrella', exitCode: 0, timedOut: false, outputTruncated: true })]) {
     const report = await verify(scenario({ execute }).options);
     assert.equal(report.ok, false);
     assert.equal(report.cleanup, 'completed');

@@ -80,7 +80,7 @@ hello agent</code></pre>
           <h3>Step 2: Detect the project</h3>
           <p>Do not ask. package.json means JavaScript/TypeScript, pyproject.toml or requirements.txt means Python, Cargo.toml means Rust, and go.mod means Go. An empty directory gets a minimal Python project in a new subdirectory unless the user named a language.</p>
           <h3>Step 3: Integrate</h3>
-          <p>Follow the skill's REST and SSH workflow, matching the project's package manager, module format, and environment loading. Select an available image for the project. If agent or tool-calling code already exists, wire Mainbrella in where command execution happens and keep the existing conventions.</p>
+          <p>Follow the skill's HTTP workflow, matching the project's package manager, module format, and environment loading. Select an available image for the project. If agent or tool-calling code already exists, wire Mainbrella in where command execution happens and keep the existing conventions.</p>
           <h3>Step 4: Verify</h3>
           <p>Run the skill's verification script: create a container, run echo "hello from mainbrella", check stdout and exit code, and stop the created container in a finally block. Pass means stdout "hello from mainbrella", exit code 0, and cleanup completed. If it fails, follow Troubleshooting and re-run once only after cleanup is confirmed and allowance permits. Preserve existing containers.</p>
           <h3>Step 5: Report</h3>

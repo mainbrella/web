@@ -8,7 +8,7 @@ npm run build     # Build the static site into dist/
 npm run preview   # Preview the built site with Wrangler
 npm run deploy    # Build, then deploy dist/ with Wrangler
 npm run doctor    # Read-only agent setup diagnostics (MAINBRELLA_API_KEY)
-npm run verify:agent # Create, execute hello, and clean up; consumes one start
+npm run verify:agent # Create, execute hello over HTTP, and clean up; consumes one start
 ```
 
 Builder ($5/month), Pro ($180/month), and Scale ($999/month) use Stripe's
@@ -129,7 +129,7 @@ keys. See `../ssh-gateway/README.md` for deployment. All gateway and user-contai
 runtime testing can run on Cloudflare without local Docker or OrbStack.
 
 API automation instructions are in [API.md](API.md), with a reusable agent skill
-in [SKILL.md](SKILL.md). Lifecycle, images, and SSH issuance accept named `mb_` API keys as Bearer credentials. The backend enforces the same paid tier limits for
+in [SKILL.md](SKILL.md). Lifecycle, execution, images, and SSH issuance accept named `mb_` API keys as Bearer credentials. The backend enforces the same paid tier limits for
 UI and API calls. Keep these two
 files synchronized with their copies in `../backend` when the API changes.
 
@@ -137,7 +137,7 @@ The homepage's five-step agent setup prompt links to `/SKILL.md` and `/API.md`.
 Vite serves these source files in development and emits them verbatim into `dist/`,
 along with `/mainbrella-doctor.mjs` and `/mainbrella-verify.mjs`; no public document
 copies need maintaining. Run `npm test` and `npm run build` before deployment.
-The verification command requires Node 22+, local SSH/cloudflared, an API key,
+The verification command requires Node 22+, an API key,
 active access, and available allowance. Avoid concurrent launches during setup.
 Production verification must confirm hello output, exit code 0, and cleanup;
 mocked tests do not satisfy that live release gate.
