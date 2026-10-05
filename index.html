@@ -100,27 +100,91 @@ hello agent</code></pre>
 
       <section class="pricing wrap" id="pricing" aria-labelledby="pricing-title">
         <div class="section-heading"><div><h2 id="pricing-title">Cloudflare-powered. Clearly priced.</h2><p>A monthly plan plus compute billed by the second.</p></div></div>
-        <div class="pricing-layout">
+        <div class="pricing-plans" id="pricing-plans">
+          <div class="plan">
+            <h3>Builder</h3>
+            <p class="plan-price">$5<span> / month + usage</span></p>
+            <p>For developers building and testing real agents.</p>
+            <ul class="plan-features">
+              <li><strong>5 concurrent sandboxes</strong></li>
+              <li>1-hour sessions</li>
+              <li>Sub-second startup</li>
+              <li>Shell + filesystem APIs</li>
+              <li>Basic snapshots and resume</li>
+              <li>TypeScript + Python SDKs</li>
+              <li>1 team member · Standard API limits</li>
+              <li>Basic observability · Shared capacity</li>
+              <li>Community and docs support</li>
+            </ul>
+            <button class="button" data-plan="builder" type="button" disabled>Start building — $5</button>
+          </div>
           <div class="plan">
             <h3>Pro</h3>
             <p class="plan-price">$180<span> / month + usage</span></p>
-            <p>Managed sandboxes for your agent workloads, built on Cloudflare Containers.</p>
-            <button class="button" id="pro-subscribe" type="button" disabled>Subscribe for $180/month</button>
-            <button class="text-link billing-link" id="pro-login" type="button" hidden>Sign in to manage an account-linked subscription</button>
-            <div id="pro-signin" hidden aria-label="Sign in to manage your subscription"></div>
-            <p class="pricing-note">Billed monthly. Cancel anytime. Public sandbox access is not available yet. Checkout charges the monthly plan only; compute usage billing is not yet enabled. Read the <a href="/terms/">Terms of Service</a> and <a href="/privacy/">Privacy Policy</a> before subscribing.</p>
-            <p class="pricing-note" id="pro-status" role="status" aria-live="polite">Checking subscription…</p>
-            <p class="pricing-note" id="pro-account" hidden></p>
-            <button class="text-link billing-link" id="pro-logout" type="button" hidden>Sign out</button>
-            <noscript><p class="pricing-note">Enable JavaScript to subscribe.</p></noscript>
+            <p>For teams running agents in production.</p>
+            <ul class="plan-features">
+              <li><strong>100 concurrent sandboxes</strong></li>
+              <li>24-hour sessions</li>
+              <li>Snapshots and resume</li>
+              <li>Custom machine sizes</li>
+              <li>Full logs and usage metrics</li>
+              <li>Up to 5 team members</li>
+              <li>Higher API limits · Shared capacity</li>
+              <li>Basic audit logs</li>
+              <li>Priority email support</li>
+            </ul>
+            <button class="button" data-plan="pro" type="button" disabled>Choose Pro — $180</button>
           </div>
+          <div class="plan">
+            <h3>Scale</h3>
+            <p class="plan-price">$999<span> / month + usage</span></p>
+            <p>For high-volume agent infrastructure.</p>
+            <ul class="plan-features">
+              <li><strong>500+ concurrent sandboxes</strong></li>
+              <li>Multi-day workloads</li>
+              <li>Snapshots and custom machine sizes</li>
+              <li>Unlimited team members / negotiated</li>
+              <li>Highest API limits</li>
+              <li>Priority capacity</li>
+              <li>Advanced observability and exports</li>
+              <li>Full audit logs</li>
+              <li>Priority engineering support</li>
+            </ul>
+            <button class="button" data-plan="scale" type="button" disabled>Choose Scale — $999</button>
+          </div>
+        </div>
+        <section class="inline-checkout" id="inline-checkout" aria-labelledby="checkout-title" hidden>
+          <button class="text-link billing-link" id="checkout-back" type="button">← Back to plans</button>
+          <h3 id="checkout-title" tabindex="-1"></h3>
+          <p class="pricing-note" id="checkout-summary"></p>
+          <form id="checkout-form" hidden>
+            <label for="checkout-email">Email for receipts and billing</label>
+            <input id="checkout-email" name="email" type="email" autocomplete="email" required />
+            <div id="checkout-payment" aria-label="Payment details"></div>
+            <p class="pricing-note" id="checkout-total" aria-live="polite"></p>
+            <p class="pricing-note">By subscribing, you authorize recurring monthly charges until you cancel and agree to the <a href="/terms/">Terms of Service</a>.</p>
+            <p class="pricing-note" id="checkout-status" role="status" aria-live="polite"></p>
+            <button class="button" id="checkout-submit" type="submit" disabled>Subscribe</button>
+          </form>
+        </section>
+        <div class="billing-controls">
+          <p class="pricing-note">Billed monthly. Cancel anytime. Public sandbox access is not available yet; plan features describe the planned service. Checkout charges the monthly plan only; compute usage billing is not yet enabled. Read the <a href="/terms/">Terms of Service</a> and <a href="/privacy/">Privacy Policy</a> before subscribing.</p>
+          <p class="pricing-note" id="pro-status" role="status" aria-live="polite">Checking subscription…</p>
+          <p class="pricing-note" id="pro-account" hidden></p>
+          <button class="text-link billing-link" id="billing-manage" type="button" hidden>Manage subscription</button>
+          <button class="text-link billing-link" id="pro-login" type="button" hidden>Sign in to manage an account-linked subscription</button>
+          <div id="pro-signin" hidden aria-label="Sign in to manage your subscription"></div>
+          <button class="text-link billing-link" id="pro-logout" type="button" hidden>Sign out</button>
+          <noscript><p class="pricing-note">Enable JavaScript to subscribe.</p></noscript>
+        </div>
+        <div class="pricing-layout">
           <div class="usage-pricing">
             <h3>Compute usage</h3>
             <dl class="rate-list">
               <div><dt>CPU</dt><dd>$0.0000168 / vCPU-second</dd></div>
               <div><dt>Memory</dt><dd>$0.0000054 / GiB-second</dd></div>
             </dl>
-            <p class="pricing-note">Plan, CPU, and memory rates are 20% above <a href="https://e2b.dev/pricing">E2B’s published Pro pricing</a>, checked October 5, 2026. Storage, snapshots, and network charges are not included in this compute estimate.</p>
+            <p class="pricing-note">CPU and memory rates are 20% above <a href="https://e2b.dev/pricing">E2B’s published Pro pricing</a>, checked October 5, 2026. Storage, snapshots, and network charges are not included in this compute estimate.</p>
             <div class="cost-example">
               <h3>1,000 agent sessions × 10 minutes</h3>
               <p>At 2 vCPUs and 4 GiB per sandbox, with both allocated for the full session:</p>
@@ -143,6 +207,6 @@ hello agent</code></pre>
       <p>Agent sandboxes. Powered by Cloudflare.</p>
       <nav class="footer-links" aria-label="Footer navigation"><a href="/download/">Availability</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav>
     </footer>
-    <script type="module" src="/subscription.js"></script>
+    <script type="module" src="/src/subscription.js"></script>
   </body>
 </html>

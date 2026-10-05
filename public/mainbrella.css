@@ -196,11 +196,28 @@ h3 { font-size: 18px; line-height: 1.4; letter-spacing: -.015em; }
 .benchmark-table td:nth-child(2), .benchmark-table td:nth-child(3) { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .benchmark-note, .pricing-note { margin-top: 16px; color: var(--muted); font-size: 13px; }
 .pricing { padding-top: 8px; padding-bottom: 48px; }
-.pricing-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 64px; border-top: 1px solid var(--line); padding-top: 28px; }
+.pricing-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; border-top: 1px solid var(--line); padding-top: 28px; }
 .plan-price { margin: 8px 0 16px; font-size: 44px; font-weight: 600; letter-spacing: -.025em; line-height: 1.3; }
 .plan-price span { font-size: 15px; color: var(--muted); font-weight: 400; letter-spacing: 0; }
 .plan > p:not(.plan-price) { max-width: 42ch; color: var(--muted); }
-.plan .button { margin-top: 24px; }
+.pricing-plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; border-top: 1px solid var(--line); padding-top: 28px; }
+.plan { display: flex; flex-direction: column; min-width: 0; }
+.plan-features { flex: 1; margin: 20px 0 0; padding: 0; list-style: none; }
+.plan-features li { margin-top: 8px; font-size: 15px; }
+.plan .button { align-self: flex-start; margin-top: 24px; }
+.plan-price span { display: block; }
+.billing-controls { margin: 24px 0 32px; }
+.billing-controls > .pricing-note { max-width: 90ch; }
+.inline-checkout { max-width: 580px; }
+.inline-checkout h3 { margin-top: 8px; font-size: 24px; }
+#checkout-form { display: grid; gap: 12px; margin-top: 20px; }
+#checkout-form[hidden], .inline-checkout[hidden], .pricing-plans[hidden] { display: none; }
+#checkout-form label { font-size: 14px; }
+#checkout-email { min-width: 0; width: 100%; min-height: 48px; padding: 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); font: inherit; }
+#checkout-submit { justify-self: start; }
+#checkout-form .pricing-note { margin-top: 0; }
+#checkout-status[data-state="error"] { color: #ffb4ab; }
+@media (max-width: 800px) { .pricing-plans { grid-template-columns: 1fr; gap: 28px; } .plan + .plan { padding-top: 28px; border-top: 1px solid var(--line); } }
 .rate-list, .cost-list { margin: 16px 0 0; }
 .rate-list div, .cost-list div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; padding: 10px 0; }
 .rate-list dt, .cost-list dt { color: var(--muted); }

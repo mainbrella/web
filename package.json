@@ -11,5 +11,8 @@
   "devDependencies": {
     "vite": "^7.1.4",
     "wrangler": "^4.128.0"
+  },
+  "dependencies": {
+    "@stripe/stripe-js": "^9.17.0"
   }
 }
