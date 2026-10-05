@@ -106,7 +106,8 @@ the shell continues only while the container's existing lease allows it.
 
 Run `npm run deploy` in `../backend` to deploy the container Worker and its
 named Docker image (bash, tmux, Node 24), followed by the API. Deploy the website
-afterward. Docker must be running for the image build. Existing containers using the old image must be stopped and
+afterward. GitHub Actions builds the image; local backend deployments do not
+require Docker. Existing containers using the old image must be stopped and
 recreated to gain tmux. No new token table, migration, CLI, or public port is
 required for browser terminals.
 
