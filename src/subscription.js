@@ -1,6 +1,6 @@
 import { mountStripeEmbeddedCheckout } from "./payments/stripeEmbeddedCheckout.js";
-const apiOrigin = ["localhost", "127.0.0.1"].includes(location.hostname)
-  ? "http://localhost:8787" : "https://api.mainbrella.com";
+import { API_ORIGIN } from "./auth.js";
+const apiOrigin = API_ORIGIN;
 const planButtons = [...document.querySelectorAll("[data-plan]")];
 const manage = document.querySelector("#billing-manage");
 const plans = { builder: { name: "Builder", price: 5 }, pro: { name: "Pro", price: 180 }, scale: { name: "Scale", price: 999 } };
@@ -28,13 +28,11 @@ function disablePlans(disabled) {
 const status = document.querySelector("#pro-status");
 const account = document.querySelector("#pro-account");
 const logout = document.querySelector("#pro-logout");
-const signin = document.querySelector("#pro-signin");
 const login = document.querySelector("#pro-login");
 let user = null;
 let config = null;
 let subscription = null;
 let ready = false;
-let googlePromise;
 
 async function api(path, body) {
   const response = await fetch(apiOrigin + path, {
@@ -55,7 +53,7 @@ function render() {
   account.hidden = !user;
   account.textContent = user ? `Signed in as ${user.email || user.name}` : "";
   logout.hidden = !user;
-  login.hidden = Boolean(user) || !config?.google_client_id || !checkoutView.hidden;
+  login.hidden = Boolean(user) || !checkoutView.hidden;
   manage.hidden = !subscription;
   planButtons.forEach((button) => {
     button.hidden = Boolean(subscription) || guestSubscribed;
@@ -200,53 +198,11 @@ async function openBilling() {
     logout.disabled = false;
   }
 }
-function loadGoogle() {
-  if (!googlePromise) {
-    googlePromise = new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = "https://accounts.google.com/gsi/client";
-      script.onload = resolve;
-      script.onerror = () => { script.remove(); googlePromise = null; reject(new Error("signin_unavailable")); };
-      document.head.append(script);
-    });
-  }
-  return googlePromise;
-}
 planButtons.forEach((button) => button.addEventListener("click", async () => {
   if (!ready) { await initialize(); if (!ready) return; }
   return openCheckout(button.dataset.plan);
 }));
 manage.addEventListener("click", openBilling);
-login.addEventListener("click", async () => {
-  login.disabled = true;
-  try {
-    if (!config.google_client_id) throw new Error("signin_unavailable");
-    await loadGoogle();
-    window.google.accounts.id.initialize({
-      client_id: config.google_client_id,
-      callback: async ({ credential }) => {
-        signin.hidden = true;
-        try {
-          message("Signing in…");
-          user = (await api("/auth/google", { credential })).user;
-          await refresh();
-          render();
-        } catch {
-          message("Unable to sign in. Please try again.", true);
-          render();
-        }
-      },
-    });
-    signin.hidden = false;
-    signin.replaceChildren();
-    window.google.accounts.id.renderButton(signin, { theme: "outline", size: "large", text: "signin_with", width: 260 });
-    message("Sign in with Google to manage an account-linked subscription.");
-  } catch {
-    message("Google sign-in is unavailable. Please try again.", true);
-  } finally {
-    login.disabled = false;
-  }
-});
 logout.addEventListener("click", async () => {
   logout.disabled = true;
   try {
@@ -254,7 +210,6 @@ logout.addEventListener("click", async () => {
     await api("/auth/logout", {});
     user = null;
     subscription = null;
-    signin.hidden = true;
     message("Signed out.");
     render();
   } catch {

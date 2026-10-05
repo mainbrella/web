@@ -260,7 +260,6 @@ h3 { font-size: 18px; line-height: 1.4; letter-spacing: -.015em; }
 
 button.button { border: 0; font-family: inherit; cursor: pointer; }
 button:disabled { opacity: .65; cursor: wait; }
-#pro-signin { margin-top: 16px; min-height: 44px; }
 #pro-status[data-state="error"] { color: #ffb4ab; }
 #pro-account { overflow-wrap: anywhere; }
 .billing-link { padding: 0; border: 0; background: none; font-family: inherit; cursor: pointer; }
@@ -268,3 +267,20 @@ button:disabled { opacity: .65; cursor: wait; }
 #pro-login[hidden] { display: none; }
 
 .plan .button[hidden], .billing-controls [hidden] { display: none; }
+
+.login-main { flex: 1; width: 100%; max-width: 448px; margin: 0 auto; padding: 40px 24px; }
+.login-content h1 { font-size: 32px; line-height: 1.2; letter-spacing: -.025em; }
+.login-status { min-height: 28px; margin-top: 12px; color: var(--muted); }
+.login-error { margin-top: 8px; color: #ffb4ab; font-size: 14px; }
+.login-provider, .login-signed-in { margin-top: 24px; }
+.google-button-host { min-height: 44px; }
+.login-provider.is-disabled { pointer-events: none; opacity: .65; }
+.google-loading { color: var(--muted); font-size: 14px; }
+.google-retry, .login-sign-out { display: block; min-height: 44px; margin-top: 12px; padding: 8px 16px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: transparent; font: inherit; cursor: pointer; }
+.google-retry:hover, .login-sign-out:hover { background: var(--surface); }
+.login-identity { overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .site-header nav > .login-link { display: inline-flex; }
+  .sandbox-home .site-header nav { gap: 12px; }
+  .login-main { padding-top: 24px; }
+}

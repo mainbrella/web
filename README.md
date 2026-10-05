@@ -16,6 +16,14 @@ linked automatically to accounts; contact support@mainbrella.com for guest billi
 changes or cancellation. Account-linked subscriptions use Google sign-in and the
 Stripe billing portal.
 
+Google login is available at `/login` (redirecting to `/login/`), using the same
+credentialed `/auth/me`, `/auth/google`, and `/auth/logout` flow as AHP Tour.
+The default client ID is
+`854186419005-l0u2olqlqe40qmgin0q8tjpvftooi6ac.apps.googleusercontent.com`
+in `src/auth.js` and `../backend/wrangler.jsonc`. Optional `VITE_GOOGLE_CLIENT_ID`
+and `VITE_API_URL` overrides support other environments; the backend client ID
+must match. Billing login returns to pricing after sign-in.
+
 The backend allowlists the plan prices:
 - Builder: `price_1UNAovGSUs8K8zgHwUCsCX16`
 - Pro: `price_1UNAWSGSUs8K8zgHXfnoTiJE` (unchanged)

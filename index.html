@@ -33,6 +33,7 @@
       <nav aria-label="Main navigation">
         <a href="#cloudflare">Why Cloudflare</a>
         <a href="#benchmarks">Benchmarks</a>
+        <a class="login-link" href="/login/">Log in</a>
         <a class="button button-small" href="#pricing">Pricing <span aria-hidden="true">↓</span></a>
       </nav>
     </header>
@@ -172,8 +173,7 @@ hello agent</code></pre>
           <p class="pricing-note" id="pro-status" role="status" aria-live="polite">Checking subscription…</p>
           <p class="pricing-note" id="pro-account" hidden></p>
           <button class="text-link billing-link" id="billing-manage" type="button" hidden>Manage subscription</button>
-          <button class="text-link billing-link" id="pro-login" type="button" hidden>Sign in to manage an account-linked subscription</button>
-          <div id="pro-signin" hidden aria-label="Sign in to manage your subscription"></div>
+          <a class="text-link billing-link" id="pro-login" href="/login/?returnTo=%2F%23pricing" hidden>Sign in to manage an account-linked subscription</a>
           <button class="text-link billing-link" id="pro-logout" type="button" hidden>Sign out</button>
           <noscript><p class="pricing-note">Enable JavaScript to subscribe.</p></noscript>
         </div>
