@@ -73,7 +73,7 @@ export function mountStripeEmbeddedCheckout({
   statusElement,
   clientSecret,
   publishableKey,
-  submitLabel = "Subscribe for $9.99/month",
+  submitLabel,
   emailInput,
   totalElement,
   onProcessing,
@@ -84,6 +84,10 @@ export function mountStripeEmbeddedCheckout({
   let checkoutActions = null;
   let paymentElement = null;
   let processing = false;
+  let emailTimer;
+  let syncSession;
+  let syncedEmail = "";
+  let confirmedSession = null;
 
   submitButton.disabled = true;
   setStatus(statusElement, "Loading payment form…", "pending");
@@ -108,10 +112,10 @@ export function mountStripeEmbeddedCheckout({
       }
 
       checkoutActions = loadResult.actions;
-      const syncSession = (session) => {
+      syncSession = (session) => {
         if (destroyed) return;
         if (session?.total?.total?.amount) totalElement.textContent = `Due today: ${session.total.total.amount}`;
-        submitButton.disabled = processing || session?.canConfirm !== true;
+        submitButton.disabled = processing || (!confirmedSession && (syncedEmail !== emailInput.value.trim() || !emailInput.validity.valid || session?.canConfirm !== true));
       };
       if (typeof checkout.on === "function") checkout.on("change", syncSession);
 
@@ -126,6 +130,7 @@ export function mountStripeEmbeddedCheckout({
       paymentElement.mount(container);
       syncSession(checkoutActions.getSession?.());
       setStatus(statusElement, "", "");
+      if (emailInput.value) await updateEmail();
     } catch (error) {
       if (destroyed) return;
       const message = error?.message || "Unable to load the payment form.";
@@ -133,6 +138,27 @@ export function mountStripeEmbeddedCheckout({
       setStatus(statusElement, message, "error");
       onError?.(message);
     }
+  }
+
+  async function updateEmail() {
+    const email = emailInput.value.trim();
+    if (destroyed || !checkoutActions || !emailInput.validity.valid) return;
+    try {
+      const result = await checkoutActions.updateEmail(email);
+      if (destroyed || email !== emailInput.value.trim()) return;
+      if (result.type === "error") throw new Error(result.error.message);
+      syncedEmail = email;
+      syncSession(checkoutActions.getSession());
+      setStatus(statusElement, "");
+    } catch (error) {
+      if (destroyed) return;
+      setStatus(statusElement, error?.message || "Unable to update your email. Please try again.", "error");
+    }
+  }
+  function handleEmailInput() {
+    submitButton.disabled = true;
+    clearTimeout(emailTimer);
+    emailTimer = setTimeout(updateEmail, 300);
   }
 
   async function handleSubmit(event) {
@@ -148,17 +174,21 @@ export function mountStripeEmbeddedCheckout({
     submitButton.textContent = "Processing…";
     setStatus(statusElement, "Processing payment…", "pending");
     try {
-      const result = await checkoutActions.confirm({ redirect: "if_required", email: emailInput.value.trim() });
-      if (result?.type === "error") {
-        throw new Error(result.error?.message || "Unable to activate subscription.");
+      if (!confirmedSession) {
+        const result = await checkoutActions.confirm({ redirect: "if_required", email: emailInput.value.trim() });
+        if (result?.type === "error") {
+          throw new Error(result.error?.message || "Unable to activate subscription.");
+        }
+        confirmedSession = result?.session || checkoutActions.getSession?.();
+        emailInput.readOnly = true;
       }
       if (destroyed) return;
-      await onComplete?.(result?.session || checkoutActions.getSession?.());
+      await onComplete?.(confirmedSession);
     } catch (error) {
       if (destroyed) return;
       const message = error?.message || "Unable to activate subscription.";
       submitButton.disabled = false;
-      submitButton.textContent = submitLabel;
+      submitButton.textContent = confirmedSession ? "Retry confirmation" : submitLabel;
       setStatus(statusElement, message, "error");
       onError?.(message);
     } finally {
@@ -167,11 +197,14 @@ export function mountStripeEmbeddedCheckout({
     }
   }
 
+  emailInput.addEventListener("input", handleEmailInput);
   form.addEventListener("submit", handleSubmit);
   initialize();
 
   return () => {
     destroyed = true;
+    clearTimeout(emailTimer);
+    emailInput.removeEventListener("input", handleEmailInput);
     form.removeEventListener("submit", handleSubmit);
     paymentElement?.destroy?.();
     paymentElement = null;

@@ -8,24 +8,34 @@ npm run preview   # Preview the built site with Wrangler
 npm run deploy    # Build, then deploy dist/ with Wrangler
 ```
 
-Pro subscriptions use Stripe-hosted Checkout without requiring sign-in. Stripe
-collects the guest’s email and creates their billing customer during checkout.
-Guest purchases are not linked automatically to Mainbrella accounts; contact
-support@mainbrella.com for guest billing changes or cancellation. Existing
-account-linked subscriptions still use Google sign-in and the billing portal. The backend
-hard-codes `price_1UNAWSGSUs8K8zgHXfnoTiJE` for the $180/month plan; the frontend
-cannot select a different price. Only the monthly plan is charged by this flow;
-compute usage metering and billing are not implemented here.
+Builder ($5/month), Pro ($180/month), and Scale ($999/month) use Stripe's
+inline Payment Element, adapted from Cubacadabra's checkout helper. Customers
+enter email and payment details on Mainbrella without signing in. Stripe collects
+card details directly; Mainbrella never receives them. Guest purchases are not
+linked automatically to accounts; contact support@mainbrella.com for guest billing
+changes or cancellation. Account-linked subscriptions use Google sign-in and the
+Stripe billing portal.
+
+The backend allowlists the plan prices:
+- Builder: `price_1UNAovGSUs8K8zgHwUCsCX16`
+- Pro: `price_1UNAWSGSUs8K8zgHXfnoTiJE` (unchanged)
+- Scale: `price_1UNAq1GSUs8K8zgHnt8PplRQ`
+
+Only the monthly plan is charged by checkout; compute usage billing and public
+sandbox access are not implemented here. Published features describe planned tiers.
 
 Before deploying, apply `../backend/migrations/003_pro_billing.sql` with
 `npm run db:migrate:remote` from the backend, and configure its Stripe account key
 with `npx wrangler secret put STRIPE_SECRET_KEY`. Enable the Stripe customer portal
 with payment updates and cancellation. Add `https://mainbrella.com` (and
 `http://localhost:5173` for development) to the Google OAuth client's authorized
-JavaScript origins. No Stripe publishable key is needed for hosted checkout.
+JavaScript origins. Configure `STRIPE_PUBLISHABLE_KEY` with `npx wrangler secret put STRIPE_PUBLISHABLE_KEY`
+using the same Stripe account and mode as the secret key. Deploy the backend and
+website together; the checkout response now supplies a client secret instead of a
+hosted URL.
 
 For local development, run the backend on port 8787 and this site on port 5173.
-Use a Stripe test secret and a test recurring price in a local branch; the supplied
+Use matching Stripe test secret/publishable keys and test recurring prices in a local branch; the supplied
 production price belongs to its Stripe account and mode. Subscription status is
 read directly from Stripe on every billing request, including renewals and
 cancellations; this flow does not depend on a webhook or the checkout redirect.

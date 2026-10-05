@@ -11,12 +11,15 @@ const checkoutBack = document.querySelector("#checkout-back");
 let cleanupCheckout;
 let checkoutVersion = 0;
 let busy = false;
+let guestSubscribed = false;
 function closeCheckout() {
   checkoutVersion++;
+  busy = false;
   cleanupCheckout?.();
   cleanupCheckout = null;
   checkoutView.hidden = true;
   checkoutForm.hidden = true;
+  document.querySelector("#checkout-total").textContent = "";
   document.querySelector("#pricing-plans").hidden = false;
 }
 function disablePlans(disabled) {
@@ -52,10 +55,10 @@ function render() {
   account.hidden = !user;
   account.textContent = user ? `Signed in as ${user.email || user.name}` : "";
   logout.hidden = !user;
-  login.hidden = Boolean(user) || !config?.google_client_id;
+  login.hidden = Boolean(user) || !config?.google_client_id || !checkoutView.hidden;
   manage.hidden = !subscription;
   planButtons.forEach((button) => {
-    button.hidden = Boolean(subscription);
+    button.hidden = Boolean(subscription) || guestSubscribed;
     button.disabled = busy;
   });
 }
@@ -90,9 +93,10 @@ async function initialize() {
     }
     if (user) await refresh();
     else message("Subscribe securely below. No sign-in required.");
-    if (params.get("subscription_return") === "1" && !params.get("session_id")) {
+    if (params.get("subscription_return") === "1" && !user) {
       message("You’ve returned from Stripe. For help with your subscription, contact support@mainbrella.com.");
       params.delete("subscription_return");
+      params.delete("session_id");
       history.replaceState(null, "", `${location.pathname}${params.size ? `?${params}` : ""}${location.hash}`);
     }
     if (params.get("subscription_cancelled") === "1") {
@@ -125,6 +129,7 @@ async function openCheckout(plan) {
     if (!data.client_secret || !data.publishable_key) throw new Error("billing_unavailable");
     document.querySelector("#checkout-summary").textContent = "Enter your payment details below. Usage billing is not yet enabled.";
     checkoutEmail.value = user?.email || "";
+    checkoutEmail.readOnly = false;
     checkoutForm.hidden = false;
     const submit = document.querySelector("#checkout-submit");
     submit.textContent = `Subscribe for $${details.price}/month`;
@@ -137,9 +142,16 @@ async function openCheckout(plan) {
       onProcessing: (processing) => { checkoutBack.disabled = processing; logout.disabled = processing; },
       onComplete: async (session) => {
         if (!session?.id) throw new Error("Unable to confirm your subscription. Please contact support@mainbrella.com.");
-        const result = await api("/subscription/complete", { session_id: session.id, client_secret: data.client_secret });
+        let result;
+        try {
+          result = await api("/subscription/complete", { session_id: session.id, client_secret: data.client_secret });
+        } catch {
+          throw new Error("Payment was submitted. We couldn’t confirm your subscription. Retry confirmation or contact support@mainbrella.com.");
+        }
         if (version !== checkoutVersion) return;
+        if (!user) guestSubscribed = true;
         closeCheckout();
+        render();
         if (user) { await refresh(); render(); }
         else message(result.active ? `Your ${details.name} subscription is active. A receipt will be sent to your email. Contact support@mainbrella.com to manage billing.` : "Payment is being reviewed. Contact support@mainbrella.com for help.");
       },
@@ -150,7 +162,7 @@ async function openCheckout(plan) {
     if (error.message === "subscription_exists") await refresh().catch(() => {});
     message("Unable to open payment details. Please try again.", true);
   } finally {
-    busy = false;
+    if (version === checkoutVersion) busy = false;
     render();
   }
 }
@@ -160,6 +172,8 @@ checkoutBack.addEventListener("click", () => {
   planButtons.find((button) => !button.hidden)?.focus();
 });
 async function openBilling() {
+  busy = true;
+  manage.disabled = true;
   disablePlans(true);
   logout.disabled = true;
   try {
@@ -180,6 +194,8 @@ async function openBilling() {
     } else {
       message("Unable to open billing. Please try again.", true);
     }
+    busy = false;
+    manage.disabled = false;
     render();
     logout.disabled = false;
   }
