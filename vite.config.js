@@ -36,7 +36,7 @@ export default defineConfig({
       name: "page-redirects",
       configureServer(server) {
         server.middlewares.use((request, response, next) => {
-          const match = request.url?.match(/^\/(privacy|terms|download|login|profile|dashboard|api-keys)(\?.*)?$/);
+          const match = request.url?.match(/^\/(about|privacy|terms|download|login|profile|dashboard|api-keys)(\?.*)?$/);
           if (!match) {
             next();
             return;
@@ -55,6 +55,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: fileURLToPath(new URL("./index.html", import.meta.url)),
+        about: fileURLToPath(new URL("./about/index.html", import.meta.url)),
         pricing: fileURLToPath(new URL("./pricing/index.html", import.meta.url)),
         login: fileURLToPath(new URL("./login/index.html", import.meta.url)),
         profile: fileURLToPath(new URL("./profile/index.html", import.meta.url)),

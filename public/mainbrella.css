@@ -96,7 +96,7 @@ h3 { font-size: 18px; line-height: 1.4; letter-spacing: -.015em; }
 .site-footer { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding-top: 24px; padding-bottom: 24px; }
 .footer-brand { display: inline-flex; align-items: center; min-height: 44px; font-size: 18px; }
 .site-footer p { color: var(--muted); font-size: 12px; }
-.footer-links { display: flex; gap: 24px; color: var(--muted); }
+.footer-links { display: flex; flex-wrap: wrap; gap: 8px 24px; color: var(--muted); }
 .footer-links a[aria-current="page"] { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
 .info-body { display: flex; flex-direction: column; min-height: 100svh; }
 .info-content { flex: 1; padding-top: 64px; padding-bottom: 64px; }

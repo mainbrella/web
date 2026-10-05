@@ -11,6 +11,7 @@ Builder allows 5 concurrent containers, 10 starts per month, sessions up to 1 ho
 Prototype startup benchmarks are observations, not service guarantees: 30/30 create tests succeeded at P50 381 ms and P95 528 ms; 100/100 concurrent starts succeeded at P95 680 ms.
 
 - [Overview and plans](https://mainbrella.com/): Product details, benchmarks, and pricing.
+- [About](https://mainbrella.com/about/): Why we’re building an agent sandbox system on Cloudflare infrastructure.
 - [Agent setup skill](https://mainbrella.com/SKILL.md): API key handoff, project detection, integration, verification, and troubleshooting.
 - [API reference](https://mainbrella.com/API.md): Authentication, container lifecycle, image selection, SSH, limits, and error handling.
 - [OpenAPI schema](https://api.mainbrella.com/openapi.json): Machine-readable API contracts.
