@@ -19,6 +19,8 @@ class Element {
   addEventListener(type, handler) { this.listeners.set(type, handler); }
   async click() { if (!this.disabled) await this.listeners.get('click')?.(); }
   focus() {}
+  reportValidity() { return true; }
+  async submit() { await this.listeners.get("submit")?.({ preventDefault() {} }); }
 }
 async function fixture(t, current = 'builder', target = 'pro', extra = {}) {
   const nodes = new Map();
@@ -50,10 +52,15 @@ async function fixture(t, current = 'builder', target = 'pro', extra = {}) {
     if (path === '/subscription') { if (extra.loadGate) await extra.loadGate;
       return failRead ? Response.json({ error: 'billing_unavailable' }, { status: 503 }) : Response.json(state); }
     if (gate) await gate;
-    if (fail) return Response.json({ error: fail }, { status: 409 });
+    if (fail && (!extra.failPath || extra.failPath === path)) return Response.json({ error: fail }, { status: 409 });
     if (path === '/subscription/checkout') return Response.json({ client_secret: 'cs_owned_secret', publishable_key: 'pk_mock' });
     if (path === '/subscription/complete') {
       state = { plan: target, active: true, valid_until: Date.UTC(2026, 10, 5), subscription: { id: 'sub_owned', cancel_at_period_end: false } };
+      return Response.json(state);
+    }
+    if (path === '/subscription/trial') {
+      const expiresAt = Date.now() + 14 * 86400000;
+      state = { plan: body.plan, active: true, valid_until: expiresAt, subscription: null, trial: { plan: body.plan, expires_at: expiresAt } };
       return Response.json(state);
     }
     if (path === '/subscription/portal') return Response.json({ url: 'https://billing.stripe.com/p/session_owned' });
@@ -257,5 +264,57 @@ for (const action of ['upgrade', 'manage', 'downgrade', 'cancel', 'resume']) {
     assert.deepEqual(f.redirects, []);
   });
 }
+
+test('promo redemption closes payment details and shows the server-confirmed trial deadline', async t => {
+  const f = await fixture(t, null, 'builder', { active: false, subscription: null });
+  f.node('#trial-code').value = ' WELCOME123 ';
+  await f.node('#trial-code-form').submit();
+  assert.deepEqual(f.calls.find(call => call.path === '/subscription/trial').body, { plan: 'builder', code: 'WELCOME123' });
+  assert.match(f.node('#pro-status').textContent, /free trial ends.*No automatic charges/);
+  assert.equal(f.node('#inline-checkout').hidden, true);
+  assert.equal(f.node('#billing-manage').hidden, true);
+  assert.equal(f.button.disabled, false);
+  assert.match(f.button.textContent, /Subscribe to Builder/);
+  await f.button.click();
+  assert.equal(f.calls.filter(call => call.path === '/subscription/portal').length, 0);
+  assert.equal(f.node('#trial-code-form').hidden, true);
+});
+
+test('invalid promo codes preserve inputs and restore checkout for retry or payment', async t => {
+  const f = await fixture(t, null, 'builder', { active: false, subscription: null, failPath: '/subscription/trial' });
+  f.node('#trial-code').value = 'INVALID';
+  f.node('#checkout-email').value = 'billing@example.com';
+  f.setFail('invalid_promo_code');
+  await f.node('#trial-code-form').submit();
+  assert.match(f.node('#trial-code-status').textContent, /invalid, expired/);
+  assert.equal(f.node('#trial-code').value, 'INVALID');
+  assert.equal(f.node('#checkout-email').value, 'billing@example.com');
+  assert.equal(f.node('#checkout-form').hidden, false);
+  assert.equal(f.node('#trial-code-submit').disabled, false);
+});
+
+test('signing out during promo redemption ignores the trial response', async t => {
+  const f = await fixture(t, null, 'builder', { active: false, subscription: null });
+  f.node('#trial-code').value = 'WELCOME123';
+  let release; f.setGate(new Promise(resolve => { release = resolve; }));
+  const pending = f.node('#trial-code-form').submit();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.node('#trial-code-submit').disabled, true);
+  f.signOutExternally(); release(); await pending;
+  assert.equal(f.node('#pro-status').textContent, 'Signed out.');
+  assert.equal(f.node('#pro-account').textContent, '');
+});
+
+test('payment checkout failures still allow a valid card-free trial redemption', async t => {
+  const f = await fixture(t, null, 'pro', { active: false, subscription: null, failPath: '/subscription/checkout' });
+  f.setFail('billing_unavailable');
+  await f.button.click();
+  assert.equal(f.node('#inline-checkout').hidden, false);
+  assert.equal(f.node('#checkout-form').hidden, true);
+  assert.equal(f.node('#trial-code-submit').disabled, false);
+  f.node('#trial-code').value = 'WELCOME123';
+  await f.node('#trial-code-form').submit();
+  assert.match(f.node('#pro-status').textContent, /Pro free trial ends/);
+});
 
 test.after(() => hooks.deregister());

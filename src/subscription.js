@@ -19,12 +19,19 @@ const checkoutView = document.querySelector("#inline-checkout");
 const checkoutForm = document.querySelector("#checkout-form");
 const checkoutEmail = document.querySelector("#checkout-email");
 const checkoutBack = document.querySelector("#checkout-back");
+const trialForm = document.querySelector("#trial-code-form");
+const trialCode = document.querySelector("#trial-code");
+const trialSubmit = document.querySelector("#trial-code-submit");
+const trialStatus = document.querySelector("#trial-code-status");
+let checkoutPlan = null;
+let checkoutProcessing = false;
 let cleanupCheckout;
 let checkoutVersion = 0;
 let busy = false;
 function closeCheckout() {
   checkoutVersion++;
   busy = false;
+  checkoutProcessing = false;
   cleanupCheckout?.();
   cleanupCheckout = null;
   checkoutView.hidden = true;
@@ -127,7 +134,10 @@ function render() {
   manage.disabled = busy || !ready;
   if (cancelButton) cancelButton.disabled = busy || !ready;
   if (resumeButton) resumeButton.disabled = busy || !ready;
-  logout.disabled = busy;
+  logout.disabled = busy || checkoutProcessing;
+  if (trialForm) trialForm.hidden = Boolean(subscription || subscriptionState?.trial);
+  if (trialSubmit) trialSubmit.disabled = busy || !ready || checkoutProcessing;
+  if (trialCode) trialCode.disabled = busy || !ready || checkoutProcessing;
   if (cancelButton) cancelButton.hidden = !subscription
     || Boolean(subscription.cancel_at_period_end || subscriptionState?.cancel_at_period_end);
   if (resumeButton) resumeButton.hidden = !subscription
@@ -137,10 +147,10 @@ function render() {
     const currentPlan = subscriptionState?.plan;
     const scheduledPlan = subscriptionState?.scheduled_plan;
     const keepCurrent = currentPlan === targetPlan && Boolean(scheduledPlan);
-    const isCurrent = currentPlan === targetPlan && !scheduledPlan;
+    const isCurrent = currentPlan === targetPlan && !scheduledPlan && !subscriptionState?.trial;
     const needsPayment = user && subscription && !subscriptionState?.active;
     button.disabled = busy || !ready || isCurrent || Boolean(needsPayment);
-    if (user && subscriptionState?.active) {
+    if (user && subscriptionState?.active && !subscriptionState?.trial) {
       const rank = { builder: 0, pro: 1, scale: 2 };
       button.textContent = keepCurrent
         ? `Keep ${plans[targetPlan].name}`
@@ -161,17 +171,21 @@ function render() {
   });
 }
 function applySubscription(data) {
-  if (typeof data.active !== 'boolean' || (data.active && (!Object.hasOwn(plans, data.plan) || !data.subscription))) {
+  const validTrial = data.trial?.plan === data.plan && Number.isFinite(data.trial?.expires_at)
+    && data.trial.expires_at > Date.now() && data.valid_until === data.trial.expires_at;
+  if (typeof data.active !== 'boolean' || (data.active && (!Object.hasOwn(plans, data.plan) || (!data.subscription && !validTrial)))) {
     throw new Error('billing_unavailable');
   }
   subscription = data.subscription;
   subscriptionState = data;
   if (data.active) {
     const name = plans[data.plan]?.name || "Your plan";
-    if (data.scheduled_plan) {
+    if (data.trial) {
+      message(`Your ${name} free trial ends ${periodEnd()}. No automatic charges. Subscribe to continue after your trial.`);
+    } else if (data.scheduled_plan) {
       const date = data.scheduled_change_at ? new Date(data.scheduled_change_at * 1000).toLocaleDateString() : "renewal";
       message(`${name} is active. Your plan changes to ${plans[data.scheduled_plan]?.name || data.scheduled_plan} on ${date}.`);
-    } else if (subscription.cancel_at_period_end || data.cancel_at_period_end) {
+    } else if (subscription?.cancel_at_period_end || data.cancel_at_period_end) {
       message(`${name} is active. Your subscription ends ${periodEnd()}.`);
     } else message(`Your ${name} subscription is active.`);
   } else if (subscription) {
@@ -242,7 +256,7 @@ async function initialize() {
     }
     ready = true;
     render();
-    if (selectedPlan && user && !subscription && !returningFromCheckout) await openCheckout(selectedPlan);
+    if (selectedPlan && user && !subscription && !subscriptionState?.active && !returningFromCheckout) await openCheckout(selectedPlan);
   } catch {
     if (version !== authVersion) return;
     ready = false;
@@ -250,14 +264,17 @@ async function initialize() {
     disablePlans(false);
   }
 }
-async function openCheckout(plan) {
+async function openCheckout(plan, email = user?.email || "") {
   if (!user) {
     location.assign(`/login?returnTo=${encodeURIComponent(planPath(plan))}`);
     return;
   }
   closeCheckout();
   const version = checkoutVersion;
+  checkoutPlan = plan;
+  trialStatus.textContent = "";
   busy = true;
+  render();
   disablePlans(true);
   const details = plans[plan];
   try {
@@ -271,7 +288,7 @@ async function openCheckout(plan) {
     if (version !== checkoutVersion) return;
     if (!data.client_secret || !data.publishable_key) throw new Error("billing_unavailable");
     document.querySelector("#checkout-summary").textContent = "Enter your payment details below. Your plan has a fixed monthly price; compute usage charges are not enabled.";
-    checkoutEmail.value = user?.email || "";
+    checkoutEmail.value = email;
     checkoutEmail.readOnly = false;
     checkoutForm.hidden = false;
     const submit = document.querySelector("#checkout-submit");
@@ -283,6 +300,9 @@ async function openCheckout(plan) {
       clientSecret: data.client_secret, publishableKey: data.publishable_key,
       submitLabel: submit.textContent,
       onProcessing: (processing) => {
+        checkoutProcessing = processing;
+        trialSubmit.disabled = processing;
+        trialCode.disabled = processing;
         checkoutBack.disabled = processing;
         logout.disabled = processing;
         window.dispatchEvent(new CustomEvent('checkout-processing', { detail: { processing } }));
@@ -303,14 +323,65 @@ async function openCheckout(plan) {
     });
   } catch (error) {
     if (version !== checkoutVersion) return;
-    closeCheckout();
-    if (error.message === "subscription_exists") await refresh().catch(() => {});
-    message("Unable to open payment details. Please try again.", true);
+    checkoutForm.hidden = true;
+    document.querySelector("#checkout-summary").textContent = "Payment details are temporarily unavailable. You can still redeem a free trial code.";
+    if (error.message === "subscription_exists") {
+      closeCheckout();
+      await refresh().catch(() => {});
+    }
+    message("Unable to open payment details. Refresh to try again.", true);
   } finally {
     if (version === checkoutVersion) busy = false;
     render();
   }
 }
+trialForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (busy || checkoutProcessing || !ready || !user || !checkoutPlan || !trialForm.reportValidity()) return;
+  const version = checkoutVersion;
+  const accountVersion = authVersion;
+  busy = true;
+  checkoutBack.disabled = true;
+  document.querySelector("#checkout-submit").disabled = true;
+  checkoutEmail.disabled = true;
+  cleanupCheckout?.();
+  cleanupCheckout = null;
+  checkoutForm.hidden = true;
+  trialStatus.textContent = "Checking promo code…";
+  trialStatus.dataset.state = "";
+  render();
+  try {
+    const data = await api("/subscription/trial", { plan: checkoutPlan, code: trialCode.value.trim() });
+    if (version !== checkoutVersion) return;
+    applySubscription(data);
+    closeCheckout();
+  } catch (error) {
+    if (version !== checkoutVersion) return;
+    trialStatus.textContent = {
+      invalid_promo_code: "This code is invalid, expired, fully redeemed, or unavailable for this plan.",
+      trial_already_used: "This account has already used a free trial.",
+      subscription_exists: "This account already has a subscription. Refresh to manage billing.",
+      not_authenticated: "Please sign in again to redeem your code.",
+      billing_operation_pending: "Another billing change is in progress. Please try again.",
+    }[error.message] || "Unable to start your trial. Please try again.";
+    trialStatus.dataset.state = "error";
+    // Remount payment controls to restore Stripe's own confirmation eligibility.
+    busy = false;
+    const errorText = trialStatus.textContent;
+    await openCheckout(checkoutPlan, checkoutEmail.value);
+    if (version + 1 === checkoutVersion) {
+      trialStatus.textContent = errorText;
+      trialStatus.dataset.state = "error";
+    }
+  } finally {
+    if (accountVersion === authVersion && (version === checkoutVersion || version + 1 === checkoutVersion)) {
+      busy = false;
+      checkoutBack.disabled = false;
+      checkoutEmail.disabled = false;
+      render();
+    }
+  }
+});
 checkoutBack.addEventListener("click", () => {
   if (selectedPlan) {
     location.assign("/#pricing");
@@ -450,7 +521,7 @@ planButtons.forEach((button) => button.addEventListener("click", async () => {
     location.assign(planPath(button.dataset.plan));
     return;
   }
-  if (subscriptionState?.active) return changePlan(selectedPlan);
+  if (subscriptionState?.active && !subscriptionState?.trial) return changePlan(selectedPlan);
   if (subscription) return openBilling();
   return openCheckout(button.dataset.plan);
 }));
