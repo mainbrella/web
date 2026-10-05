@@ -475,6 +475,12 @@ button:disabled { opacity: .65; cursor: wait; }
 .docs-table th { font-weight: 500; }
 .docs-table thead th { color: var(--muted); font-size: 13px; }
 .docs-table td { color: var(--muted); }
+.legal-content .docs-table th[scope="row"] { overflow-wrap: normal; }
+.recipe-links { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 16px; }
+.recipe-links a { display: inline-flex; align-items: center; min-height: 44px; color: var(--blue); text-decoration: underline; text-underline-offset: 4px; font-size: 14px; }
+.content-list { margin-top: 12px; padding-left: 24px; }
+.content-list li + li { margin-top: 8px; }
+.benchmark-note a { color: var(--blue); text-decoration: underline; text-underline-offset: 4px; }
 .contact-list { margin: 24px 0; }
 .contact-list > div { padding: 16px 0; border-bottom: 1px solid var(--line); }
 .contact-list dt { font-weight: 600; }

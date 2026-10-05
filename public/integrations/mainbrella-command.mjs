@@ -3,7 +3,7 @@
 export function mainbrellaCommand({ id, createdAt }, {
   key = process.env.MAINBRELLA_API_KEY, fetcher = fetch,
 } = {}) {
-  if (typeof id !== 'string' || !id || !Number.isFinite(Date.parse(createdAt))
+  if (typeof id !== 'string' || !id || typeof createdAt !== 'string' || !Number.isFinite(Date.parse(createdAt))
     || typeof key !== 'string' || !/^mb_[A-Za-z0-9_-]+$/.test(key)) {
     throw new Error('A container generation and Mainbrella API key are required.');
   }

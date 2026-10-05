@@ -143,7 +143,7 @@ Production verification must confirm hello output, exit code 0, and cleanup;
 mocked tests do not satisfy that live release gate.
 
 To install the skill in Codex, copy `SKILL.md` and `API.md` into
-`~/.codex/skills/mainbrella-containers/` (or the equivalent skills directory for
+`.agents/skills/mainbrella-containers/` (or the equivalent skills directory for
 your agent), then invoke `$mainbrella-containers`. Provision `MAINBRELLA_API_KEY`
 separately using the instructions in `API.md`.
 
@@ -173,3 +173,44 @@ checks and incidents with their times and scope, keeping the history intact.
 
 All current plans still use lite containers. Larger per-container CPU and memory
 require backend support before changing the public machine specifications.
+
+## P1 public pages and evidence
+
+`/benchmarks/` preserves the historical 381 ms P50 / 528 ms P95 creation result
+(30 successes) and 680 ms P95 burst result (100 successes). The original test date,
+region, machine/image configuration, cache semantics, raw samples, and harness
+are not in this repository. Do not fill those gaps using today's configuration.
+The new `/mainbrella-benchmark.mjs` measures the authenticated HTTP workflow,
+including retries, first-command validation, byte verification, and cleanup;
+it does not reproduce the old prototype protocol. Run it only with authorization
+to consume the requested starts, retain its version with the JSON samples, and
+publish failures and cleanup outcomes. No paid benchmark was run for this change.
+
+`/integrations/` has Codex and Claude Code skill recipes and an OpenAI Agents SDK
+function-tool example using `/integrations/mainbrella-command.mjs`. The command
+adapter binds a trusted container generation and leaves creation and cleanup to
+the application. Agent orchestration runs outside the 256 MiB machine. Local
+contract tests and current official framework documentation validate these
+recipes; a live agent/provider run remains a separate account-dependent check.
+No framework or SDK dependencies were added to the website.
+
+`/trust/` summarizes current security, data handling, continuity, and DPA
+availability. `/subprocessors/` lists the Cloudflare, Google, and Stripe services
+identified in the Privacy Policy, with linked provider processing-location
+information reviewed October 5, 2026. Exact workload/database placement and the
+support email provider have not been independently established here. Identify
+that communications provider before representing the list as exhaustive for a
+contractual DPA. The footer links to DPA **availability**, not an unsigned DPA.
+Self-service plans have no SLA, support response-time guarantee, or service credits.
+
+`/platform/` replaces Availability with compute placement, runtime availability,
+limits, and service access. `/download`, `/download/`, and `/download/index.html`
+redirect in Vite and through the built Cloudflare assets `_redirects` file.
+
+The Contact page invites real “Built with Mainbrella” submissions; obtain explicit
+publication permission and verify each project before publishing any customer
+story, logo, or quote. No customer proof is fabricated. `/status/` distinguishes
+historical benchmark observations from production metrics: total starts, 30-day
+start success, and API uptime need verified operational data before publication.
+It links to the latest recorded release date and platform placement information.
+A signable DPA requires business readiness and legal review outside this web task.
