@@ -43,8 +43,8 @@ Containers have no internet access or persistent filesystem. The dashboard
 refreshes status every 15 seconds while visible; status reads do not renew the
 idle lease. Subscription failures do not prevent container management.
 
-Deploy `../e2b` first to provision its private `BuilderMachine` Durable Object,
-then deploy `../backend` (with the `BUILDER_MACHINE` cross-Worker binding), then
+Deploy `../reference` first to provision its private `UserContainer` Durable Object in `mainbrella-containers`,
+then deploy `../backend` (with the `USER_CONTAINER` cross-Worker binding), then
 this website. Container IDs and configuration come from the backend, never the
 browser; the machine test token is not needed for this private binding.
 The benchmark API remains separate. No new database migration is required.
