@@ -47,7 +47,7 @@
             <p class="hero-description">Give AI agents an isolated Linux environment to run code, install packages, and work with files. Connect over SSH or use the browser terminal.</p>
             <div class="hero-actions">
               <a class="button" href="#pricing">Explore pricing <span aria-hidden="true">↓</span></a>
-              <a class="text-link" href="#benchmarks">See the benchmarks <span aria-hidden="true">→</span></a>
+              <a class="text-link" href="#agent-setup">Set up your agent <span aria-hidden="true">→</span></a>
             </div>
             <p class="release-note hero-note">Available with an active monthly subscription</p>
           </div>
@@ -65,6 +65,31 @@ Ready to build.
 hello agent</code></pre>
             <div class="terminal-foot">Isolated Linux · Cloudflare Containers</div>
           </figure>
+        </div>
+      </section>
+
+      <section class="agent-setup wrap" id="agent-setup" aria-labelledby="agent-setup-title">
+        <div class="section-heading">
+          <div><h2 id="agent-setup-title">Set up Mainbrella with your agent.</h2><p>Copy these instructions into your coding agent.</p></div>
+          <button class="button button-small" id="copy-agent-setup" type="button" hidden>Copy instructions</button>
+        </div>
+        <div class="agent-instructions" id="agent-instructions">
+          <h3>Step 1: Set up Mainbrella</h3>
+          <p>Read https://mainbrella.com/SKILL.md and follow its Quick Setup. It covers the API key handoff (MAINBRELLA_API_KEY, starts with mb_), prerequisites, and the read-only doctor command. Ask the user only where the skill says to.</p>
+          <h3>Step 2: Detect the project</h3>
+          <p>Do not ask. package.json means JavaScript/TypeScript, pyproject.toml or requirements.txt means Python, Cargo.toml means Rust, and go.mod means Go. An empty directory gets a minimal Python project in a new subdirectory unless the user named a language.</p>
+          <h3>Step 3: Integrate</h3>
+          <p>Follow the skill's REST and SSH workflow, matching the project's package manager, module format, and environment loading. Select an available image for the project. If agent or tool-calling code already exists, wire Mainbrella in where command execution happens and keep the existing conventions.</p>
+          <h3>Step 4: Verify</h3>
+          <p>Run the skill's verification script: create a container, run echo "hello from mainbrella", check stdout and exit code, and stop the created container in a finally block. Pass means stdout "hello from mainbrella", exit code 0, and cleanup completed. If it fails, follow Troubleshooting and re-run once only after cleanup is confirmed and allowance permits. Preserve existing containers.</p>
+          <h3>Step 5: Report</h3>
+          <p>One paragraph: what changed, what ran, and what you verified. Then offer one next step from the skill: a custom image, an LLM tool that runs commands, or a coding agent running inside a container.</p>
+        </div>
+        <div class="agent-setup-links">
+          <a class="text-link" href="/SKILL.md">Agent skill</a>
+          <a class="text-link" href="/API.md">API reference</a>
+          <a class="text-link" href="https://api.mainbrella.com/openapi.json">OpenAPI</a>
+          <p id="agent-copy-status" role="status" aria-live="polite"></p>
         </div>
       </section>
 
@@ -188,5 +213,6 @@ hello agent</code></pre>
     </footer>
     <script type="module" src="/src/subscription.js"></script>
     <script type="module" src="/src/account-menu.js"></script>
+    <script type="module" src="/src/agent-setup.js"></script>
   </body>
 </html>

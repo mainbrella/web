@@ -169,6 +169,17 @@ h3 { font-size: 18px; line-height: 1.4; letter-spacing: -.015em; }
 }
 
 /* Sandbox homepage: keep the existing typography and dark surface system. */
+.agent-setup { padding-top: 40px; padding-bottom: 32px; }
+.agent-setup .section-heading { align-items: center; flex-wrap: wrap; }
+.agent-instructions { max-width: 78ch; }
+.agent-instructions h3 { margin-top: 24px; font-size: 16px; }
+.agent-instructions h3:first-child { margin-top: 0; }
+.agent-instructions p { margin-top: 8px; color: var(--muted); overflow-wrap: anywhere; }
+.agent-setup-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; margin-top: 16px; font-size: 14px; }
+.agent-setup-links a { display: inline-flex; align-items: center; min-height: 44px; }
+.agent-setup-links p { color: var(--muted); }
+.agent-setup button { border: 0; cursor: pointer; font-family: inherit; }
+.agent-setup button:disabled { opacity: .65; cursor: wait; }
 .sandbox-home { --blue: #ffad70; --button-blue: #ad4400; }
 .sandbox-home .button:hover { background: #913900; }
 .sandbox-home h1 { font-size: clamp(40px, 4.1vw, 56px); letter-spacing: -.025em; }

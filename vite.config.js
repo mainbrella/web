@@ -2,11 +2,13 @@ import { defineConfig } from "vite";
 import { fileURLToPath } from "node:url";
 import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { plans } from "./src/plans.js";
+import { agentDocsPlugin } from "./scripts/agent-docs-plugin.mjs";
 
 export default defineConfig({
   base: "/",
   publicDir: "public",
   plugins: [
+    agentDocsPlugin(),
     {
       name: "pricing-routes",
       configureServer(server) {
