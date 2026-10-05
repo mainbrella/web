@@ -47,7 +47,7 @@ Deploy `../reference` first to provision its private `UserContainer` Durable Obj
 then deploy `../backend` (with the `USER_CONTAINER` cross-Worker binding), then
 this website. Container IDs and configuration come from the backend, never the
 browser; the machine test token is not needed for this private binding.
-The benchmark API remains separate. No new database migration is required.
+The benchmark API remains separate. SSH access requires backend migration `005_ssh_access.sql`.
 The ten-start limit conservatively bounds each user's runtime to ten hours:
 2.5 GiB-hours of allocated memory, 20 GB-hours of disk, and up to 37.5
 vCPU-minutes at the advertised lite capacity. Cloudflare's included allowances
@@ -59,8 +59,7 @@ The backend allowlists the plan prices:
 - Pro: `price_1UNAWSGSUs8K8zgHXfnoTiJE` (unchanged)
 - Scale: `price_1UNAq1GSUs8K8zgHnt8PplRQ`
 
-Only the monthly plan is charged by checkout; compute usage billing and public
-sandbox access are not implemented here. Published features describe planned tiers.
+Only the monthly plan is charged by checkout; compute usage billing is not implemented here. Published features describe planned tiers.
 
 Before deploying, apply all backend migrations (including `004_subscription_details.sql`) with
 `npm run db:migrate:remote` from the backend, and configure its Stripe account key
@@ -84,3 +83,17 @@ Ended subscriptions clear these fields on the next status request. Stripe change
 sync when the account next requests billing status; there is no webhook syncing
 accounts in the background. Guest purchases remain in Stripe without a local
 account billing record.
+
+
+Dashboard Connect prepares a private SSH command using a 15-minute access token.
+Install `cloudflared` on the user's computer, then paste the command into their
+terminal. The connection goes through `ssh.mainbrella.com` to the Cloudflare
+SSH gateway in `../ssh-gateway`, then to that user's running container. No
+Mainbrella CLI or public IPv4 address is required. Tokens stop working when the
+container stops or is recreated; sessions also end when access expires. The
+one-hour container limit and ten-minute inactivity timeout still apply.
+
+The gateway and API share the `SSH_GATEWAY_SECRET` Worker secret. The gateway
+also needs a stable `SSH_HOST_KEY_B64` secret, generated separately from user SSH
+keys. See `../ssh-gateway/README.md` for deployment. All gateway and user-container
+runtime testing can run on Cloudflare without local Docker or OrbStack.
