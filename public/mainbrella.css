@@ -329,3 +329,10 @@ button:disabled { opacity: .65; cursor: wait; }
 @media (max-width: 480px) {
   .site-header nav.has-account > .button { display: none; }
 }
+
+.container-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.container-ssh { padding: 0 0 16px; }
+.container-ssh label { display: block; font-weight: 600; }
+.container-ssh textarea { display: block; box-sizing: border-box; width: 100%; margin-top: 8px; padding: 8px; font: 13px/1.5 monospace; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; resize: vertical; }
+.container-ssh a { color: var(--ink); }
+@media (max-width: 480px) { .container-row { flex-wrap: wrap; } }

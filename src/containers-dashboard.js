@@ -10,6 +10,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
   let busy = false;
   let disposed = false;
   let timer;
+  let access = null;
 
   function controls() {
     create.disabled = busy || !data || data.containers.length > 0
@@ -44,6 +45,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
     status.textContent = data.containers.length
       ? `${remaining} starts remaining this month.`
       : `You have no running containers. ${remaining} starts remaining this month.`;
+    if (access && (!data.containers.some(c => c.createdAt === access.createdAt) || access.expiresAt <= Date.now())) access = null;
     for (const container of data.containers) {
       const row = document.createElement('li');
       row.className = 'container-row';
@@ -61,10 +63,79 @@ export function createContainersDashboard({ onUnauthenticated }) {
       stop.setAttribute('aria-label', `Stop ${container.name}`);
       stop.addEventListener('click', () => mutate('DELETE'));
       details.append(name, state);
-      row.append(details, stop);
+      const actions = document.createElement('div');
+      actions.className = 'container-actions';
+      const connect = document.createElement('button');
+      connect.type = 'button';
+      connect.className = 'dashboard-retry';
+      connect.textContent = 'Connect';
+      connect.addEventListener('click', () => connectSSH(container));
+      actions.append(connect, stop);
+      row.append(details, actions);
       list.append(row);
+      if (access?.createdAt === container.createdAt) {
+        const connection = document.createElement('li');
+        connection.className = 'container-ssh';
+        const label = document.createElement('label');
+        label.textContent = 'SSH command';
+        const command = document.createElement('textarea');
+        command.readOnly = true;
+        command.rows = 3;
+        command.value = access.command;
+        label.append(command);
+        const copy = document.createElement('button');
+        copy.type = 'button';
+        copy.className = 'dashboard-retry';
+        copy.textContent = 'Copy command';
+        copy.addEventListener('click', async () => {
+          try { await navigator.clipboard.writeText(command.value); copy.textContent = 'Copied'; }
+          catch { command.focus(); command.select(); }
+        });
+        const note = document.createElement('p');
+        note.className = 'dashboard-status';
+        note.textContent = `Requires cloudflared on your computer. Access expires at ${new Date(access.expiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}. Keep this command private.`;
+        const install = document.createElement('a');
+        install.href = 'https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/';
+        install.textContent = 'Install cloudflared';
+        install.target = '_blank';
+        install.rel = 'noopener noreferrer';
+        connection.append(label, copy, note, install);
+        list.append(connection);
+      }
     }
     controls();
+  }
+
+  async function connectSSH(container) {
+    if (busy || disposed) return;
+    busy = true;
+    clearTimeout(timer);
+    error.hidden = true;
+    controls();
+    try {
+      const response = await fetch(`${API_ORIGIN}/containers/ssh`, {
+        method: 'POST', credentials: 'include', headers: { accept: 'application/json' },
+      });
+      if (response.status === 401) { dispose(); onUnauthenticated(); return; }
+      const result = await response.json();
+      if (!response.ok || typeof result.command !== 'string' || !Number.isFinite(result.expiresAt)) {
+        throw new Error(response.status === 429 ? 'limit' : 'unavailable');
+      }
+      if (disposed) return;
+      access = { ...result, createdAt: container.createdAt };
+      render();
+      list.querySelector('textarea')?.focus();
+    } catch (cause) {
+      if (disposed) return;
+      error.textContent = cause.message === 'limit'
+        ? 'You have too many active SSH commands. Wait for one to expire.'
+        : 'Could not prepare SSH access. Refresh containers and try again.';
+      error.hidden = false;
+    } finally {
+      busy = false;
+      controls();
+      schedule();
+    }
   }
 
   function schedule() {
@@ -137,6 +208,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
     disposed = true;
     clearTimeout(timer);
     data = null;
+    access = null;
     list.replaceChildren();
     controls();
   }
