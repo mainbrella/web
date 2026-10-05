@@ -21,7 +21,7 @@ export async function runBenchmark({ request, samples, concurrency, catalogId = 
   }
   const before = await request('/containers');
   if (!before?.active || !Array.isArray(before.containers)
-    || !before.imageCatalog?.some(image => image.id === catalogId)
+    || !Array.isArray(before.imageCatalog) || !before.imageCatalog.some(image => image.id === catalogId)
     || !Number.isInteger(before.limits?.maxContainers)
     || !Number.isInteger(before.limits?.maxStartsPerMonth)
     || !Number.isInteger(before.usage?.starts)
@@ -37,7 +37,7 @@ export async function runBenchmark({ request, samples, concurrency, catalogId = 
   };
   for (let offset = 0; offset < samples; offset += concurrency) {
     const batch = await Promise.all(Array.from({ length: Math.min(concurrency, samples - offset) }, async (_, i) => {
-      let start, running, executed;
+      let start, running, executed, instance;
       let createRequests = 0;
       const result = await verify({ catalogId, wait, async request(path, method = 'GET', body, headers) {
         if (path === '/containers' && method === 'POST') {
@@ -45,11 +45,15 @@ export async function runBenchmark({ request, samples, concurrency, catalogId = 
           createRequests++;
         }
         const data = await request(path, method, body, headers);
-        if (path === '/containers' && method === 'POST' && data.creation?.status === 'running') running = now();
+        if (path === '/containers' && method === 'POST' && data.creation?.status === 'running') {
+          running = now();
+          instance = data.containers?.find(container => container.id === data.creation.containerId
+            && container.createdAt === data.creation.createdAt)?.instance ?? null;
+        }
         if (path.startsWith('/containers/exec?') && method === 'POST') executed = now();
         return data;
       } });
-      return { sample: offset + i + 1, ...result, createRequests,
+      return { sample: offset + i + 1, ...result, createRequests, instance: instance ?? null,
         createMs: start !== undefined && running !== undefined ? running - start : null,
         firstCommandMs: start !== undefined && executed !== undefined && result.stdout
           ? executed - start : null };

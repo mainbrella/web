@@ -8,7 +8,7 @@ Plans have fixed monthly prices and no compute usage charges: Builder $5/month, 
 
 Builder allows 5 concurrent containers, 10 starts per month, sessions up to 1 hour, and a 10-minute idle timeout. Pro allows 100 concurrent containers, 1,000 starts per month, sessions up to 24 hours, and a 30-minute idle timeout. Scale allows 500 concurrent containers, 10,000 starts per month, sessions up to 72 hours, and a 60-minute idle timeout.
 
-Prototype startup benchmarks are observations, not service guarantees: 30/30 create tests succeeded at P50 381 ms and P95 528 ms; 100/100 concurrent starts succeeded at P95 680 ms.
+Historical prototype startup benchmarks have incomplete original metadata and raw samples; they are not rolling operational metrics or service guarantees: 30/30 create tests succeeded at P50 381 ms and P95 528 ms; 100/100 concurrent starts succeeded at P95 680 ms.
 
 - [Overview and plans](https://mainbrella.com/): Product details, benchmarks, and pricing.
 - [About](https://mainbrella.com/about/): Andrew Arrow, founder of Mainbrella Co., and why we are building cloud computers for agents.
@@ -16,7 +16,7 @@ Prototype startup benchmarks are observations, not service guarantees: 30/30 cre
 - [API reference](https://mainbrella.com/API.md): Authentication, container lifecycle, image selection, SSH, limits, and error handling.
 - [OpenAPI schema](https://api.mainbrella.com/docs): Machine-readable API contracts.
 - [Dashboard](https://mainbrella.com/dashboard/): Manage containers and subscriptions.
-- [Availability](https://mainbrella.com/download/): Access instructions.
+- [Platform and availability](https://mainbrella.com/platform/): Compute placement, runtime availability, access, and current limits.
 - [Privacy](https://mainbrella.com/privacy/): Privacy policy.
 - [Terms](https://mainbrella.com/terms/): Terms of service.
 
@@ -26,3 +26,8 @@ Prototype startup benchmarks are observations, not service guarantees: 30/30 cre
 - [Contact](https://mainbrella.com/contact/): Support, deployments, security, founder contact, and legal notices.
 - [Status](https://mainbrella.com/status/): Manually maintained component observations and reporting history; no inferred uptime.
 - [Changelog](https://mainbrella.com/changelog/): Dated updates from source history.
+
+- [Benchmarks](https://mainbrella.com/benchmarks/): Historical results, metadata gaps, HTTP methodology, and reproducible runner.
+- [Integrations](https://mainbrella.com/integrations/): Codex and Claude Code skill recipes, OpenAI Agents SDK function tool, and native HTTP.
+- [Trust center](https://mainbrella.com/trust/): Current security, data handling, continuity, and DPA availability; no self-service SLA.
+- [Providers and subprocessors](https://mainbrella.com/subprocessors/): Provider purposes, data categories, and processing-location disclosures.

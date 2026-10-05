@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://mainbrella.com/</loc></url>
   <url><loc>https://mainbrella.com/about/</loc></url>
-  <url><loc>https://mainbrella.com/download/</loc></url>
+  <url><loc>https://mainbrella.com/platform/</loc></url>
   <url><loc>https://mainbrella.com/privacy/</loc></url>
   <url><loc>https://mainbrella.com/terms/</loc></url>
   <url><loc>https://mainbrella.com/docs/</loc></url>
@@ -21,4 +21,8 @@
   <url><loc>https://mainbrella.com/contact/</loc></url>
   <url><loc>https://mainbrella.com/status/</loc></url>
   <url><loc>https://mainbrella.com/changelog/</loc></url>
+  <url><loc>https://mainbrella.com/benchmarks/</loc></url>
+  <url><loc>https://mainbrella.com/integrations/</loc></url>
+  <url><loc>https://mainbrella.com/trust/</loc></url>
+  <url><loc>https://mainbrella.com/subprocessors/</loc></url>
 </urlset>
