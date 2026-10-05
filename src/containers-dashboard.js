@@ -7,6 +7,11 @@ export function canCreateContainer(data) {
   )));
 }
 
+export function imageSelection(value) {
+  return value.startsWith('catalog:') ? { catalogId: value.slice(8) }
+    : value ? { imageId: value } : null;
+}
+
 export function createContainersDashboard({ onUnauthenticated }) {
   const imageSelect = document.querySelector('#container-image');
   const create = document.querySelector('#container-create');
@@ -29,6 +34,9 @@ export function createContainersDashboard({ onUnauthenticated }) {
   let timer;
   let access = null;
   let terminal = null;
+  let customImages = [];
+  let catalog = [{ id: 'node', name: 'Node 24 + TypeScript' }];
+  let imageOptionsKey = '';
   const terminalHost = document.querySelector('#container-terminal');
 
   function closeTerminal(stopped = false) {
@@ -74,7 +82,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
   }
 
   function controls() {
-    create.disabled = busy || disposed || !canCreateContainer(data);
+    create.disabled = busy || disposed || !canCreateContainer(data) || (!catalog.length && !customImages.length);
     refresh.disabled = busy || disposed;
     imageSelect.disabled = busy || disposed;
     list.querySelectorAll('button').forEach((button) => {
@@ -85,13 +93,14 @@ export function createContainersDashboard({ onUnauthenticated }) {
   }
 
   async function request(method, id, createdAt) {
+    const image = imageSelection(imageSelect.value);
     const url = new URL(`${API_ORIGIN}/containers`);
     if (id) url.searchParams.set('id', id);
     if (createdAt) url.searchParams.set('createdAt', createdAt);
     const response = await fetch(url, {
       method, credentials: 'include',
-      headers: { accept: 'application/json', ...(method === 'POST' && imageSelect.value ? { 'content-type': 'application/json' } : {}) },
-      ...(method === 'POST' && imageSelect.value ? { body: JSON.stringify({ imageId: imageSelect.value }) } : {}),
+      headers: { accept: 'application/json', ...(method === 'POST' && image ? { 'content-type': 'application/json' } : {}) },
+      ...(method === 'POST' && image ? { body: JSON.stringify(image) } : {}),
     });
     if (response.status === 401) {
       dispose();
@@ -113,6 +122,10 @@ export function createContainersDashboard({ onUnauthenticated }) {
   }
 
   function render() {
+    if (Array.isArray(data.imageCatalog)) {
+      catalog = data.imageCatalog.filter(image => typeof image.id === 'string' && typeof image.name === 'string');
+      renderImages();
+    }
     if (terminal && !data.containers.some(c => c.id === terminal.id && c.createdAt === terminal.createdAt)) closeTerminal(true);
     list.hidden = data.containers.length === 0;
     page = Math.min(page, Math.max(0, Math.ceil(data.containers.length / pageSize) - 1));
@@ -370,12 +383,27 @@ export function createContainersDashboard({ onUnauthenticated }) {
 
   create.addEventListener('click', () => mutate('POST'));
   refresh.addEventListener('click', () => load());
-  function setImages(images) {
+  function renderImages() {
+    const key = JSON.stringify([catalog, customImages]);
+    if (key === imageOptionsKey) return;
+    imageOptionsKey = key;
     const selected = imageSelect.value;
-    imageSelect.replaceChildren(new Option('Default · Node 24, bash, tmux', ''));
-    for (const image of images) imageSelect.add(new Option(image.name, image.id));
-    imageSelect.value = images.some(image => image.id === selected) ? selected : '';
+    imageSelect.replaceChildren();
+    for (const image of catalog) imageSelect.add(new Option(image.name, image.id === 'node' ? '' : `catalog:${image.id}`));
+    if (customImages.length) {
+      const group = document.createElement('optgroup');
+      group.label = 'Your custom images';
+      for (const image of customImages) group.append(new Option(image.name, image.id));
+      imageSelect.append(group);
+    }
+    if (!imageSelect.options.length) {
+      const option = new Option('No images available', '');
+      option.disabled = true;
+      imageSelect.add(option);
+    }
+    imageSelect.value = Array.from(imageSelect.options).some(option => option.value === selected) ? selected : imageSelect.options[0].value;
   }
+  function setImages(images) { customImages = images; renderImages(); controls(); }
   function selectImage(id) { imageSelect.value = id; imageSelect.focus(); }
   previous.addEventListener('click', () => { if (!previous.disabled) { page--; render(); previous.focus(); } });
   next.addEventListener('click', () => { if (!next.disabled) { page++; render(); next.focus(); } });

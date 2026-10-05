@@ -353,8 +353,12 @@ button:disabled { opacity: .65; cursor: wait; }
 .container-actions button, .terminal-heading button { min-height: 44px; }
 @media (prefers-reduced-motion: reduce) { .container-terminal .xterm-cursor { animation: none !important; } }
 
-.dashboard-images { margin-top: 32px; }
-.dashboard-images > .dashboard-status { margin-top: 8px; }
+.dashboard-images { margin-top: 16px; }
+.dashboard-images > summary { width: fit-content; min-height: 44px; align-content: center; cursor: pointer; color: var(--muted); font-size: 13px; }
+.dashboard-images > summary:hover { color: var(--ink); }
+.dashboard-images > summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.custom-images-content { margin-top: 8px; }
+.custom-images-content > .dashboard-status { margin-top: 8px; font-size: 14px; }
 .container-image-picker { display: flex; align-items: center; gap: 12px; margin: 12px 0; min-width: 0; }
 .container-image-picker label { flex-shrink: 0; }
 .container-image-picker select { min-width: 0; max-width: 100%; }
