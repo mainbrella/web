@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0d1014" />
+    <meta name="description" content="Manage your Mainbrella API keys." />
+    <link rel="canonical" href="https://mainbrella.com/api-keys/" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>API Keys · Mainbrella</title>
+  </head>
+  <body class="info-body sandbox-home login-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header wrap">
+      <a class="brand" href="/" aria-label="Mainbrella home">
+        <img src="/images/logo.png" alt="" width="44" height="44" /><span>mainbrella</span>
+      </a>
+      <nav aria-label="Main navigation"><a class="button button-small" href="/#pricing">Pricing</a></nav>
+    </header>
+    <main id="main" class="dashboard-main api-keys-main" aria-busy="true">
+      <div class="dashboard-section-heading">
+        <h1>API Keys</h1>
+        <a class="text-link" href="https://api.mainbrella.com/docs">API documentation ↗</a>
+      </div>
+      <p id="keys-status" class="dashboard-status" role="status">Checking your session…</p>
+      <p id="keys-error" class="dashboard-error" role="alert" hidden></p>
+      <button id="keys-retry" class="dashboard-retry" type="button" hidden>Retry</button>
+      <div id="keys-content" hidden>
+        <p class="dashboard-status">Use keys for container, image, and SSH operations. Your plan’s limits apply. Keys stay valid until revoked.</p>
+        <form id="key-form" class="key-form">
+          <div>
+            <label for="key-name">Key name</label>
+            <input id="key-name" name="name" maxlength="80" required placeholder="e.g. Deployment script" autocomplete="off" />
+          </div>
+          <button id="key-create" class="button button-small" type="submit">Create key</button>
+        </form>
+        <section id="key-secret" class="key-secret" aria-labelledby="key-secret-title" hidden>
+          <h2 id="key-secret-title">Key created</h2>
+          <p class="dashboard-status">Copy and store this key securely. You won’t be able to see it again.</p>
+          <label for="key-token">API key</label>
+          <textarea id="key-token" readonly rows="2" spellcheck="false" autocomplete="off"></textarea>
+          <p class="dashboard-status">Send it as <code>Authorization: Bearer &lt;your-key&gt;</code>.</p>
+          <div class="key-secret-actions">
+            <button id="key-copy" class="dashboard-retry" type="button">Copy key</button>
+            <button id="key-dismiss" class="dashboard-retry" type="button">Done</button>
+          </div>
+          <p id="key-copy-status" class="dashboard-status" role="status"></p>
+        </section>
+        <p id="keys-empty" class="dashboard-status" hidden>You haven’t created any API keys.</p>
+        <ul id="key-list" class="container-list" aria-label="Your API keys"></ul>
+      </div>
+      <noscript><p>Enable JavaScript to manage your API keys.</p></noscript>
+    </main>
+    <script type="module" src="/src/api-keys.js"></script>
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>

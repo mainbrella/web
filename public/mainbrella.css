@@ -384,3 +384,25 @@ button:disabled { opacity: .65; cursor: wait; }
 .trial-code-form .pricing-note { margin-top: 8px; }
 #trial-code-status:empty { display: none; }
 @media (max-width: 480px) { .trial-code-controls { flex-direction: column; } }
+
+.api-keys-main { max-width: 720px; }
+.api-keys-main [hidden] { display: none; }
+.api-keys-main .dashboard-section-heading .text-link { min-height: 44px; display: inline-flex; align-items: center; font-size: 14px; }
+.key-form { display: flex; align-items: end; gap: 12px; margin: 24px 0; }
+.key-form > div { flex: 1; min-width: 0; }
+.key-form label, .key-secret label { display: block; margin-bottom: 8px; font-size: 14px; }
+.key-form input, .key-secret textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); font: inherit; }
+.key-form input::placeholder { color: var(--muted); }
+.key-form .button { min-height: 44px; flex-shrink: 0; }
+.key-secret { margin: 24px 0; }
+.key-secret > p { margin: 8px 0 16px; font-size: 14px; }
+.key-secret textarea { resize: vertical; font-family: monospace; overflow-wrap: anywhere; }
+.key-secret-actions { display: flex; gap: 8px; }
+.key-secret-actions .dashboard-retry { margin-top: 0; }
+.key-metadata { margin-top: 4px; font-size: 13px; }
+.key-revoke { color: #ffb4ab; }
+.key-form input:focus-visible, .key-secret textarea:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+@media (max-width: 480px) {
+  .key-form { align-items: stretch; flex-direction: column; }
+  .key-form .button { align-self: flex-start; }
+}

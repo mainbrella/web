@@ -34,7 +34,7 @@ export default defineConfig({
       name: "page-redirects",
       configureServer(server) {
         server.middlewares.use((request, response, next) => {
-          const match = request.url?.match(/^\/(privacy|terms|download|login|profile|dashboard)(\?.*)?$/);
+          const match = request.url?.match(/^\/(privacy|terms|download|login|profile|dashboard|api-keys)(\?.*)?$/);
           if (!match) {
             next();
             return;
@@ -56,6 +56,7 @@ export default defineConfig({
         pricing: fileURLToPath(new URL("./pricing/index.html", import.meta.url)),
         login: fileURLToPath(new URL("./login/index.html", import.meta.url)),
         profile: fileURLToPath(new URL("./profile/index.html", import.meta.url)),
+        apiKeys: fileURLToPath(new URL("./api-keys/index.html", import.meta.url)),
         dashboard: fileURLToPath(new URL("./dashboard/index.html", import.meta.url)),
         download: fileURLToPath(new URL("./download/index.html", import.meta.url)),
         privacy: fileURLToPath(new URL("./privacy/index.html", import.meta.url)),
