@@ -3,7 +3,7 @@
 ```sh
 npm ci
 npm run dev       # Vite development server
-npm test          # Terminal client tests (Node 22.15+)
+npm test          # Browser client tests (Node 22.15+)
 npm run build     # Build the static site into dist/
 npm run preview   # Preview the built site with Wrangler
 npm run deploy    # Build, then deploy dist/ with Wrangler
@@ -17,7 +17,9 @@ The homepage pricing buttons open `/pricing/builder`, `/pricing/pro`, or
 plan route as `returnTo`; after sign-in that route opens checkout automatically.
 Existing subscribers see their subscription status and billing management instead.
 Pricing remains available at `/#pricing`. Stripe collects card details directly; Mainbrella never
-receives them. Account-linked subscriptions use the Stripe billing portal.
+receives them. Subscribers change plans or cancel from the pricing section;
+payment updates use the Stripe billing portal. Upgrades open a hosted Stripe
+confirmation, while downgrades and cancellations take effect at the next renewal.
 For existing guest purchases, contact support@mainbrella.com for billing changes
 or cancellation.
 
@@ -34,38 +36,39 @@ links to the dashboard. The authenticated dashboard reads `/subscription` and
 shows None, Builder, Pro, or Scale based on active access. Failed status requests
 show an error with retry rather than implying the user has no subscription.
 Container listing, creation, and stopping use the session-authenticated
-`GET`, `POST`, and `DELETE /containers` backend API. All
-signed-in users currently resolve to Builder ($5/month), regardless of saved subscription:
-one `lite` container (1/16 vCPU, 256 MiB RAM, 2 GB disk), one-hour maximum
-sessions, ten-minute inactivity timeout, and ten starts per UTC calendar month.
-Each start reserves a full session from the allowance, even if stopped early;
-repeat creation while already running returns 409 without consuming another start.
+`GET`, `POST`, and `DELETE /containers` backend API. Active paid subscriptions
+grant tier-specific limits: Builder allows 5 concurrent containers, 10 starts
+per UTC month, one-hour sessions and a 10-minute idle timeout; Pro allows
+100 concurrent containers, 1,000 monthly starts, 24-hour sessions and a
+30-minute idle timeout; Scale allows 500 concurrent containers, 10,000 monthly
+starts, 72-hour sessions and a 60-minute idle timeout. All plans use `lite`
+containers (1/16 vCPU, 256 MiB RAM, 2 GB disk). Each creation reserves a
+start even if stopped early; a pending start counts toward concurrency.
+Creation without an active paid subscription returns 402.
 Containers have outbound internet access for package installation and no persistent filesystem. The dashboard
 refreshes status every 15 seconds while visible; status reads do not renew the
 idle lease. Subscription failures do not prevent container management.
 
-Run `npm run deploy` in `../backend` to deploy the private `UserContainer`
-Worker in `mainbrella-containers` and then the API with its `USER_CONTAINER`
-cross-Worker binding. Deploy this website afterward. Container IDs and configuration come from the backend, never the
+Run `npm run deploy` in `../backend` to deploy the API first, then the private
+`UserContainer` Worker in `mainbrella-containers` with its account coordinator.
+This order ensures the API supplies paid entitlements before the private workers
+start enforcing them. Deploy this website afterward. Container IDs and configuration come from the backend, never the
 browser; the machine test token is not needed for this private binding.
-The benchmark API remains separate. SSH access requires backend migration `005_ssh_access.sql`.
-The ten-start limit conservatively bounds each user's runtime to ten hours:
-2.5 GiB-hours of allocated memory, 20 GB-hours of disk, and up to 37.5
-vCPU-minutes at the advertised lite capacity. Cloudflare's included allowances
-are shared across the entire account, rather than renewed for each user; this
-development quota is not a guarantee that the service runs within a $5 bill.
+The benchmark API remains separate. SSH access requires migrations `005_ssh_access.sql` and `007_ssh_container_id.sql`.
+Cloudflare's included allowances are shared across the entire account, rather
+than renewed for each user; plan limits are enforced by Mainbrella.
 
 The backend allowlists the plan prices:
 - Builder: `price_1UNAovGSUs8K8zgHwUCsCX16`
 - Pro: `price_1UNAWSGSUs8K8zgHXfnoTiJE` (unchanged)
 - Scale: `price_1UNAq1GSUs8K8zgHnt8PplRQ`
 
-Only the monthly plan is charged by checkout; compute usage billing is not implemented here. Published features describe planned tiers.
+Only the monthly plan is charged by checkout; compute usage billing is not implemented here.
 
-Before deploying, apply all backend migrations (including `004_subscription_details.sql`) with
+Before deploying, apply all backend migrations (including `006_billing_webhooks.sql` and `007_ssh_container_id.sql`) with
 `npm run db:migrate:remote` from the backend, and configure its Stripe account key
 with `npx wrangler secret put STRIPE_SECRET_KEY`. Enable the Stripe customer portal
-with payment updates and cancellation. Add `https://mainbrella.com` (and
+with payment updates. Add `https://mainbrella.com` (and
 `http://localhost:5173` for development) to the Google OAuth client's authorized
 JavaScript origins. Configure `STRIPE_PUBLISHABLE_KEY` with `npx wrangler secret put STRIPE_PUBLISHABLE_KEY`
 using the same Stripe account and mode as the secret key. Deploy the backend and
@@ -74,16 +77,15 @@ hosted URL.
 
 For local development, run the backend on port 8787 and this site on port 5173.
 Use matching Stripe test secret/publishable keys and test recurring prices in a local branch; the supplied
-production price belongs to its Stripe account and mode. Subscription status is
-read directly from Stripe. Account checkout completion and subscription status
-requests save the verified plan, subscription ID, status, cancellation flag, billing
-period end (Unix seconds), and sync timestamp in `pro_billing`. Existing account
-subscriptions are backfilled on their next status request. A saved plan alone
-does not indicate paid access: only `active` and `trialing` statuses grant access.
-Ended subscriptions clear these fields on the next status request. Stripe changes
-sync when the account next requests billing status; there is no webhook syncing
-accounts in the background. Guest purchases remain in Stripe without a local
-account billing record.
+production prices belong to their Stripe account and mode. The backend verifies
+subscription state with Stripe, saves billing details in `pro_billing`, and
+processes signed Stripe webhooks for subscription changes. A saved plan alone
+does not indicate paid access: the backend requires an active subscription, a
+paid invoice for its current period, and a successful payment that has not been
+refunded or disputed. Trialing, overdue, unpaid, and expired subscriptions do not
+grant access. Configure `STRIPE_WEBHOOK_SECRET` and the signed event endpoint
+`/subscription/webhook` as described in the backend README. Existing guest purchases remain in Stripe without a
+local account billing record.
 
 
 The dashboard's primary **Open terminal** action opens an in-page xterm.js terminal.
@@ -100,12 +102,12 @@ backoff; clean exits do not reconnect. Keystrokes are binary UTF-8, resizes are
 JSON `{cols, rows}`, and output is binary with JSON acknowledgements after
 rendering for backpressure. Container disappearance or generation changes in
 the existing status poll close the terminal. Input/output activity renews the
-ten-minute idle deadline, but the independent alarm and terminal deadline never
-extend the one-hour hard expiration. Closing the panel detaches the tmux client;
+plan-specific idle deadline, but the independent alarm and terminal deadline never
+extend the plan's hard session expiration. Closing the panel detaches the tmux client;
 the shell continues only while the container's existing lease allows it.
 
-Run `npm run deploy` in `../backend` to deploy the container Worker and its
-named Docker image (bash, tmux, Node 24), followed by the API. Deploy the website
+Run `npm run deploy` in `../backend` to deploy the API first, then the container
+Worker and its named Docker image (bash, tmux, Node 24). Deploy the website
 afterward. GitHub Actions builds the image; local backend deployments do not
 require Docker. Existing containers using the old image must be stopped and
 recreated to gain tmux. No new token table, migration, CLI, or public port is
@@ -117,7 +119,7 @@ terminal. The connection goes through `ssh.mainbrella.com` to the Cloudflare
 SSH gateway in `../ssh-gateway`, then to that user's running container. No
 Mainbrella CLI or public IPv4 address is required. Tokens stop working when the
 container stops or is recreated; sessions also end when access expires. The
-one-hour container limit and ten-minute inactivity timeout still apply.
+plan-specific session and inactivity limits still apply.
 
 The gateway and API share the `SSH_GATEWAY_SECRET` Worker secret. The gateway
 also needs a stable `SSH_HOST_KEY_B64` secret, generated separately from user SSH
@@ -126,8 +128,8 @@ runtime testing can run on Cloudflare without local Docker or OrbStack.
 
 API automation instructions are in [API.md](API.md), with a reusable agent skill
 in [SKILL.md](SKILL.md). Lifecycle and SSH issuance accept an existing login
-session as a Bearer credential. The backend enforces the same Builder limits for
-UI and API calls; database-backed tier resolution is deferred. Keep these two
+session as a Bearer credential. The backend enforces the same paid tier limits for
+UI and API calls. Keep these two
 files synchronized with their copies in `../backend` when the API changes.
 
 To install the skill in Codex, copy `SKILL.md` and `API.md` into

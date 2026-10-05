@@ -6,7 +6,7 @@ import { API_ORIGIN } from './auth.js';
 const MAX_RECONNECTS = 5;
 const encoder = new TextEncoder();
 
-export function openContainerTerminal(host, { createdAt, onClose }) {
+export function openContainerTerminal(host, { id, createdAt, onClose }) {
   const terminal = new Terminal({
     cursorBlink: !matchMedia('(prefers-reduced-motion: reduce)').matches,
     fontSize: 14, scrollback: 2000, screenReaderMode: true,
@@ -44,7 +44,9 @@ export function openContainerTerminal(host, { createdAt, onClose }) {
     if (disposed || ended) return;
     const url = new URL('/containers/terminal', API_ORIGIN);
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-    url.searchParams.set('createdAt', createdAt);
+    if (id) url.searchParams.set('id', id);
+    if (createdAt) url.searchParams.set('createdAt', createdAt);
+    if (!id && !createdAt) throw new Error('A container id or generation is required.');
     url.searchParams.set('cols', String(Math.min(500, terminal.cols)));
     url.searchParams.set('rows', String(Math.min(200, terminal.rows)));
     const current = new WebSocket(url);

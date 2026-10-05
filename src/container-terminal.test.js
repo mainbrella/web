@@ -33,7 +33,7 @@ globalThis.FitMock = class { fit() {} };
 const { openContainerTerminal } = await import('./container-terminal.js');
 hooks.deregister();
 
-function fixture(t) {
+function fixture(t, container = { createdAt: '2026-10-05T12:00:00.000Z' }) {
   const sockets = [];
   const timers = new Map();
   let timerId = 0;
@@ -64,7 +64,7 @@ function fixture(t) {
   const output = { clientWidth: 600 };
   const host = { hidden: false, querySelector(selector) { return selector === '.terminal-output' ? output : selector === 'button' ? button : status; } };
   let closed = false;
-  const client = openContainerTerminal(host, { createdAt: '2026-10-05T12:00:00.000Z', onClose: () => { closed = true; } });
+  const client = openContainerTerminal(host, { ...container, onClose: () => { closed = true; } });
   t.after(() => client.dispose());
   const fire = ms => {
     const entry = [...timers].find(([, timer]) => timer.ms === ms);
@@ -91,6 +91,13 @@ test('browser client sends only its generation, dimensions and binary UTF-8, ack
   assert.equal(new TextDecoder().decode(term.output[0]), 'hello');
   assert.deepEqual(JSON.parse(socket.sent.at(-1)), { type: 'ack' });
   assert.equal(f.status.textContent, 'Connected');
+});
+
+test('browser terminal scopes a container slot to its id and generation', t => {
+  const f = fixture(t, { id: 'c2', createdAt: '2026-10-05T12:00:00.000Z' });
+  const url = new URL(f.sockets[0].url);
+  assert.equal(url.searchParams.get('id'), 'c2');
+  assert.equal(url.searchParams.get('createdAt'), '2026-10-05T12:00:00.000Z');
 });
 
 test('abnormal disconnect uses bounded exponential retries with the original generation', t => {

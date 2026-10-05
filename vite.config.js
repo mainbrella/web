@@ -20,7 +20,7 @@ export default defineConfig({
     {
       name: "pricing-pages",
       apply: "build",
-      async closeBundle() {
+      async writeBundle() {
         const output = fileURLToPath(new URL("./dist/pricing/", import.meta.url));
         const html = await readFile(`${output}index.html`, "utf8");
         for (const [slug, plan] of Object.entries(plans)) {

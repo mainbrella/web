@@ -11,6 +11,7 @@ const retry = document.querySelector('#dashboard-retry');
 const content = document.querySelector('#dashboard-content');
 const level = document.querySelector('#subscription-level');
 const note = document.querySelector('#subscription-note');
+const billing = document.querySelector('#subscription-manage');
 let version = 0;
 const containers = createContainersDashboard({ onUnauthenticated: goToLogin });
 
@@ -31,6 +32,8 @@ async function loadDashboard() {
   status.textContent = 'Checking your session…';
   level.textContent = 'Loading…';
   note.hidden = true;
+  billing.href = '/#pricing';
+  billing.textContent = 'Plans and billing';
   let authenticated = false;
   try {
     const session = await auth.readSession();
@@ -62,11 +65,25 @@ async function loadDashboard() {
       throw new Error('subscription_unavailable');
     }
     level.textContent = data.active ? plans[data.plan].name : 'None';
+    if (data.subscription && Object.hasOwn(plans, data.plan)) {
+      billing.href = `/pricing/${data.plan}`;
+      billing.textContent = 'Manage subscription';
+    } else {
+      billing.textContent = 'View plans';
+    }
     if (data.subscription && !data.active) {
       note.textContent = 'Your subscription is inactive. Manage subscription to review billing.';
       note.hidden = false;
-    } else if (data.active && data.subscription?.cancel_at_period_end) {
-      note.textContent = 'Your subscription ends after the current billing period.';
+    } else if (data.active && data.scheduled_plan) {
+      const date = data.scheduled_change_at
+        ? new Date(data.scheduled_change_at * 1000).toLocaleDateString()
+        : 'your next renewal';
+      note.textContent = `Your plan changes to ${plans[data.scheduled_plan]?.name || data.scheduled_plan} on ${date}.`;
+      note.hidden = false;
+    } else if (data.active && (data.subscription?.cancel_at_period_end || data.cancel_at_period_end)) {
+      note.textContent = data.valid_until
+        ? `Your subscription ends on ${new Date(data.valid_until).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}.`
+        : 'Your subscription ends after the current billing period.';
       note.hidden = false;
     }
   } catch {

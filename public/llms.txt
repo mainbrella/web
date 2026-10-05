@@ -1,16 +1,17 @@
 # Mainbrella
 
-> Agent sandboxes. Powered by Cloudflare.
+> Linux containers for AI agents, powered by Cloudflare.
 
-Mainbrella is a sandbox service in development for AI agents, built on Cloudflare Sandboxes and Containers. Its focus is isolated Linux workspaces for code execution, file operations, workspace restoration, and parallel tasks. Public access and signup are not available yet.
+Mainbrella provides isolated Linux containers with SSH and browser terminal access. Sign in and choose a monthly plan to use containers.
 
-User-reported prototype benchmarks: create P50 381 ms / P95 528 ms, 30/30 successful; resume P50 473 ms / P95 788 ms, 30/30 successful with restored files verified; 100 simultaneous starts, 100/100 successful, P95 680 ms, with 100 distinct machines confirmed running at once. These are prototype observations, not service guarantees.
+Plans have fixed monthly prices and no compute usage charges: Builder $5/month, Pro $180/month, and Scale $999/month. All plans use the same lite container size (256 MiB RAM, 2 GB disk) and include internet access.
 
-Monthly plans: Builder $5, Pro $180, Scale $999, plus proposed compute usage at $0.0000168/vCPU-second and $0.0000054/GiB-second. Compute rates are 20% above E2B published Pro pricing checked October 5, 2026. 1,000 ten-minute sessions at 2 vCPUs and 4 GiB cost an estimated $33.12 in compute, or $213.12 including one month of Pro, excluding storage, snapshots, network, and taxes. Measured workload cost is pending.
+Builder allows 5 concurrent containers, 10 starts per month, sessions up to 1 hour, and a 10-minute idle timeout. Pro allows 100 concurrent containers, 1,000 starts per month, sessions up to 24 hours, and a 30-minute idle timeout. Scale allows 500 concurrent containers, 10,000 starts per month, sessions up to 72 hours, and a 60-minute idle timeout.
 
-Planned tiers: Builder includes 5 concurrent sandboxes and 1-hour sessions; Pro includes 100 concurrent sandboxes, 24-hour sessions, and up to 5 team members; Scale includes 500+ concurrent sandboxes, multi-day workloads, and priority capacity and engineering support. Checkout charges the monthly plan only, using an inline Stripe payment form; usage billing and public sandbox access are not yet enabled.
+Prototype startup benchmarks are observations, not service guarantees: 30/30 create tests succeeded at P50 381 ms and P95 528 ms; 100/100 concurrent starts succeeded at P95 680 ms.
 
-- [Overview](https://mainbrella.com/): Product, benchmarks, and proposed pricing.
-- [Availability](https://mainbrella.com/download/): Public access status.
-- [Privacy](https://mainbrella.com/privacy/): Privacy policy availability.
-- [Terms](https://mainbrella.com/terms/): Terms availability.
+- [Overview and plans](https://mainbrella.com/): Product details, benchmarks, and pricing.
+- [Dashboard](https://mainbrella.com/dashboard/): Manage containers and subscriptions.
+- [Availability](https://mainbrella.com/download/): Access instructions.
+- [Privacy](https://mainbrella.com/privacy/): Privacy policy.
+- [Terms](https://mainbrella.com/terms/): Terms of service.

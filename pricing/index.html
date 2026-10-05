@@ -18,7 +18,14 @@
     <main id="main" class="subscription-main wrap">
       <div id="pricing-plans">
         <h1 id="plan-title">Subscribe</h1>
+        <p id="selected-plan-limits" class="pricing-note" hidden></p>
         <button class="button" data-plan="" type="button" disabled>Continue to checkout</button>
+        <details class="plan-rules">
+          <summary>Plan rules and included access</summary>
+          <p>All plans use the same container: 1/16 vCPU, 256 MiB RAM and 2 GB ephemeral disk, with Node 24, bash, tmux, outbound internet, SSH and browser terminals. Each container allows four terminal connections; each account allows ten live SSH commands, valid for up to 15 minutes.</p>
+          <p>Starts are shared across your account and reset at the start of each UTC month. Failed starts count. Stopping a container or changing plans does not reset usage. Sessions end at their hard limit or the end of the paid period at creation, whichever comes first. Files are lost when a container stops.</p>
+          <p>Upgrades require payment through Stripe. Downgrades and cancellation take effect at renewal; lower limits may stop containers. Snapshots, larger machines, team seats, SDKs, advanced logs, audit exports and priority capacity are unavailable on every plan.</p>
+        </details>
       </div>
       <section class="inline-checkout" id="inline-checkout" aria-labelledby="checkout-title" hidden>
         <button class="text-link billing-link" id="checkout-back" type="button">← Back to plans</button>
@@ -38,9 +45,11 @@
         <p class="pricing-note" id="pro-status" role="status" aria-live="polite">Checking subscription…</p>
         <p class="pricing-note" id="pro-account" hidden></p>
         <button class="text-link billing-link" id="billing-manage" type="button" hidden>Manage subscription</button>
+        <button class="text-link billing-link" id="billing-cancel" type="button" hidden>Cancel subscription</button>
+        <button class="text-link billing-link" id="billing-resume" type="button" hidden>Resume subscription</button>
         <a class="text-link billing-link" id="pro-login" href="/login" hidden>Sign in to subscribe</a>
         <button class="text-link billing-link" id="pro-logout" type="button" hidden>Sign out</button>
-        <p class="pricing-note">Billed monthly. Cancel anytime. Public sandbox access is not available yet. Compute usage billing is not yet enabled. Read our <a href="/terms/">Terms of Service</a> and <a href="/privacy/">Privacy Policy</a>.</p>
+        <p class="pricing-note">Billed monthly. Fixed monthly pricing; compute usage charges are not enabled. Applicable taxes and the total are shown at checkout. Container access is available with an active subscription. Read our <a href="/terms/">Terms of Service</a> and <a href="/privacy/">Privacy Policy</a>.</p>
         <noscript><p class="pricing-note">Enable JavaScript to subscribe.</p></noscript>
       </div>
     </main>

@@ -1,5 +1,12 @@
 import { API_ORIGIN } from './auth.js';
 
+export function canCreateContainer(data) {
+  return Boolean(data && (!data.active || (
+    data.containers.length < data.limits.maxContainers
+      && data.usage.starts < data.limits.maxStartsPerMonth
+  )));
+}
+
 export function createContainersDashboard({ onUnauthenticated }) {
   const imageSelect = document.querySelector('#container-image');
   const create = document.querySelector('#container-create');
@@ -7,8 +14,17 @@ export function createContainersDashboard({ onUnauthenticated }) {
   const list = document.querySelector('#container-list');
   const status = document.querySelector('#containers-status');
   const error = document.querySelector('#containers-error');
+  const pagination = document.querySelector('#container-pagination');
+  const previous = document.querySelector('#containers-previous');
+  const next = document.querySelector('#containers-next');
+  const range = document.querySelector('#containers-range');
+  const pageSize = 50;
+  let page = 0;
   let data = null;
   let busy = false;
+  let loading = false;
+  let stateVersion = 0;
+  let renderedRows = null;
   let disposed = false;
   let timer;
   let access = null;
@@ -28,8 +44,10 @@ export function createContainersDashboard({ onUnauthenticated }) {
   }
 
   async function connectTerminal(container) {
-    if (busy || disposed) return;
+    if (busy || disposed || !data || container.status !== 'running') return;
     busy = true;
+    stateVersion++;
+    clearTimeout(timer);
     controls();
     let openContainerTerminal;
     try {
@@ -41,29 +59,36 @@ export function createContainersDashboard({ onUnauthenticated }) {
     } finally {
       busy = false;
       controls();
+      schedule();
     }
-    if (disposed || !data?.containers.some(c => c.createdAt === container.createdAt)) return;
+    if (disposed || !data?.containers.some(c => c.id === container.id && c.createdAt === container.createdAt)) return;
     closeTerminal();
     terminalHost.querySelector('button').onclick = null;
     terminalHost.querySelector('.terminal-output').hidden = false;
     terminalHost.hidden = false;
     terminalHost.querySelector('[role="status"]').textContent = 'Connecting…';
-    terminal = { createdAt: container.createdAt, session: openContainerTerminal(terminalHost, {
-      createdAt: container.createdAt,
+    terminal = { id: container.id, createdAt: container.createdAt, session: openContainerTerminal(terminalHost, {
+      id: container.id, createdAt: container.createdAt,
       onClose: () => { terminal = null; list.querySelector('button')?.focus(); },
     }) };
   }
 
   function controls() {
-    create.disabled = busy || !data || data.containers.length > 0
-      || data.usage.starts >= data.limits.maxStartsPerMonth;
+    create.disabled = busy || disposed || !canCreateContainer(data);
     refresh.disabled = busy || disposed;
     imageSelect.disabled = busy || disposed;
-    list.querySelectorAll('button').forEach((button) => { button.disabled = busy; });
+    list.querySelectorAll('button').forEach((button) => {
+      button.disabled = busy || !data || disposed || (button.dataset.requiresRunning === 'true' && button.dataset.running !== 'true');
+    });
+    previous.disabled = busy || !data || disposed || page === 0;
+    next.disabled = busy || !data || disposed || (page + 1) * pageSize >= data.containers.length;
   }
 
-  async function request(method) {
-    const response = await fetch(`${API_ORIGIN}/containers`, {
+  async function request(method, id, createdAt) {
+    const url = new URL(`${API_ORIGIN}/containers`);
+    if (id) url.searchParams.set('id', id);
+    if (createdAt) url.searchParams.set('createdAt', createdAt);
+    const response = await fetch(url, {
       method, credentials: 'include',
       headers: { accept: 'application/json', ...(method === 'POST' && imageSelect.value ? { 'content-type': 'application/json' } : {}) },
       ...(method === 'POST' && imageSelect.value ? { body: JSON.stringify({ imageId: imageSelect.value }) } : {}),
@@ -73,13 +98,13 @@ export function createContainersDashboard({ onUnauthenticated }) {
       onUnauthenticated();
       throw new Error('not_authenticated');
     }
-    if (response.status === 409) {
-      const failure = await response.json().catch(() => null);
-      throw new Error(failure?.error || 'container_limit_exceeded');
+    const result = await response.json().catch(() => null);
+    if (!response.ok) {
+      const fallback = response.status === 409 ? 'container_limit_exceeded'
+        : response.status === 429 ? 'container_quota_exceeded' : 'containers_unavailable';
+      throw new Error(result?.error || fallback);
     }
-    if (response.status === 429) throw new Error('container_quota_exceeded');
-    const result = await response.json();
-    if (!response.ok || !Array.isArray(result?.containers)
+    if (!Array.isArray(result?.containers)
       || !Number.isInteger(result.usage?.starts)
       || !Number.isInteger(result.limits?.maxStartsPerMonth)) {
       throw new Error('containers_unavailable');
@@ -88,30 +113,54 @@ export function createContainersDashboard({ onUnauthenticated }) {
   }
 
   function render() {
-    if (terminal && !data.containers.some(c => c.createdAt === terminal.createdAt)) closeTerminal(true);
-    list.replaceChildren();
+    if (terminal && !data.containers.some(c => c.id === terminal.id && c.createdAt === terminal.createdAt)) closeTerminal(true);
     list.hidden = data.containers.length === 0;
+    page = Math.min(page, Math.max(0, Math.ceil(data.containers.length / pageSize) - 1));
+    pagination.hidden = data.containers.length <= pageSize;
+    range.textContent = `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, data.containers.length)} of ${data.containers.length}`;
     const remaining = Math.max(0, data.limits.maxStartsPerMonth - data.usage.starts);
-    status.textContent = data.containers.length
-      ? `${remaining} starts remaining this month.`
-      : `You have no running containers. ${remaining} starts remaining this month.`;
-    if (access && (!data.containers.some(c => c.createdAt === access.createdAt) || access.expiresAt <= Date.now())) access = null;
-    for (const container of data.containers) {
+    status.textContent = data.active
+      ? `${data.containers.length} of ${data.limits.maxContainers} container slots in use · ${remaining} starts remaining this month.`
+      : 'No active plan. Choose a plan to start containers.';
+    const hours = Math.round(data.limits.maxSessionMs / 3600000);
+    const idleMinutes = Math.round(data.limits.idleTimeoutMs / 60000);
+    document.querySelector('#container-limits').textContent = data.active
+      ? `${data.limits.maxContainers} concurrent containers · 256 MiB RAM · 2 GB disk. Sessions last up to ${hours} ${hours === 1 ? 'hour' : 'hours'} and stop after ${idleMinutes} idle minutes. ${data.limits.maxStartsPerMonth} starts per month.`
+      : 'Choose a monthly plan to create containers. All plans include 256 MiB RAM and 2 GB disk, with SSH and browser terminal access.';
+    if (access && (!data.containers.some(c => c.id === access.id && c.createdAt === access.createdAt) || access.expiresAt <= Date.now())) access = null;
+    const rows = data.containers.slice(page * pageSize, (page + 1) * pageSize);
+    const rowVersion = JSON.stringify({ page, rows, access, today: new Date().toDateString() });
+    if (rowVersion === renderedRows) { controls(); return; }
+    const focused = list.contains(document.activeElement) ? document.activeElement : null;
+    const focusedRow = focused?.closest('[data-container-id]');
+    const focus = focusedRow ? { id: focusedRow.dataset.containerId, createdAt: focusedRow.dataset.createdAt,
+      action: focused.dataset.action, start: focused.selectionStart, end: focused.selectionEnd } : null;
+    list.replaceChildren();
+    for (const container of rows) {
       const row = document.createElement('li');
       row.className = 'container-row';
+      row.dataset.containerId = container.id;
+      row.dataset.createdAt = container.createdAt;
       const details = document.createElement('div');
       const name = document.createElement('strong');
-      name.textContent = container.imageName || container.name;
+      name.textContent = container.imageName || container.name || container.id;
       const state = document.createElement('p');
       state.className = 'dashboard-status';
       const expiry = new Date(container.expiresAt);
-      state.textContent = `Running · Stops by ${expiry.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+      const expiryOptions = { hour: 'numeric', minute: '2-digit',
+        ...(expiry.toDateString() !== new Date().toDateString() ? { month: 'short', day: 'numeric' } : {}) };
+      const running = container.status === 'running';
+      const stateLabel = running ? 'Running' : container.status === 'starting' ? 'Starting…' : 'Stopping…';
+      state.textContent = `${stateLabel} · Stops by ${expiry.toLocaleString([], expiryOptions)}`;
       const stop = document.createElement('button');
       stop.type = 'button';
       stop.className = 'dashboard-retry';
       stop.textContent = 'Stop';
-      stop.setAttribute('aria-label', `Stop ${container.name}`);
-      stop.addEventListener('click', () => mutate('DELETE'));
+      stop.dataset.action = 'stop';
+      stop.setAttribute('aria-label', `Stop ${container.id}`);
+      stop.addEventListener('click', () => {
+        if (window.confirm(`Stop ${container.name || container.id}? Its files will be lost.`)) mutate('DELETE', container.id, container.createdAt);
+      });
       details.append(name, state);
       const actions = document.createElement('div');
       actions.className = 'container-actions';
@@ -119,29 +168,39 @@ export function createContainersDashboard({ onUnauthenticated }) {
       connect.type = 'button';
       connect.className = 'dashboard-retry';
       connect.textContent = 'SSH';
+      connect.dataset.action = 'ssh';
+      connect.dataset.requiresRunning = 'true';
+      connect.dataset.running = String(running);
       connect.addEventListener('click', () => connectSSH(container));
       const shell = document.createElement('button');
       shell.type = 'button';
       shell.className = 'button button-small';
       shell.textContent = 'Open terminal';
+      shell.dataset.action = 'terminal';
+      shell.dataset.requiresRunning = 'true';
+      shell.dataset.running = String(running);
       shell.addEventListener('click', () => connectTerminal(container));
       actions.append(shell, connect, stop);
       row.append(details, actions);
       list.append(row);
-      if (access?.createdAt === container.createdAt) {
+      if (access?.id === container.id) {
         const connection = document.createElement('li');
         connection.className = 'container-ssh';
+        connection.dataset.containerId = container.id;
+        connection.dataset.createdAt = container.createdAt;
         const label = document.createElement('label');
         label.textContent = 'SSH command';
         const command = document.createElement('textarea');
         command.readOnly = true;
         command.rows = 3;
         command.value = access.command;
+        command.dataset.action = 'ssh-command';
         label.append(command);
         const copy = document.createElement('button');
         copy.type = 'button';
         copy.className = 'dashboard-retry';
         copy.textContent = 'Copy command';
+        copy.dataset.action = 'copy';
         copy.addEventListener('click', async () => {
           try { await navigator.clipboard.writeText(command.value); copy.textContent = 'Copied'; }
           catch { command.focus(); command.select(); }
@@ -158,18 +217,31 @@ export function createContainersDashboard({ onUnauthenticated }) {
         list.append(connection);
       }
     }
+    renderedRows = rowVersion;
     controls();
+    if (focus) {
+      const target = [...list.querySelectorAll('[data-action]')].find(element => {
+        const row = element.closest('[data-container-id]');
+        return element.dataset.action === focus.action && row.dataset.containerId === focus.id && row.dataset.createdAt === focus.createdAt;
+      });
+      if (target && !target.disabled) {
+        target.focus({ preventScroll: true });
+        if (Number.isInteger(focus.start)) target.setSelectionRange(focus.start, focus.end);
+      }
+    }
   }
 
   async function connectSSH(container) {
-    if (busy || disposed) return;
+    if (busy || disposed || !data || container.status !== 'running') return;
     busy = true;
+    stateVersion++;
     clearTimeout(timer);
     error.hidden = true;
     controls();
     try {
       const response = await fetch(`${API_ORIGIN}/containers/ssh`, {
-        method: 'POST', credentials: 'include', headers: { accept: 'application/json' },
+        method: 'POST', credentials: 'include', headers: { accept: 'application/json', 'content-type': 'application/json' },
+        body: JSON.stringify({ id: container.id, createdAt: container.createdAt }),
       });
       if (response.status === 401) { dispose(); onUnauthenticated(); return; }
       const result = await response.json();
@@ -177,7 +249,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
         throw new Error(response.status === 429 ? 'limit' : 'unavailable');
       }
       if (disposed) return;
-      access = { ...result, createdAt: container.createdAt };
+      access = { ...result, id: container.id, createdAt: container.createdAt };
       render();
       list.querySelector('textarea')?.focus();
     } catch (cause) {
@@ -196,64 +268,83 @@ export function createContainersDashboard({ onUnauthenticated }) {
   function schedule() {
     clearTimeout(timer);
     if (!disposed) timer = setTimeout(() => {
-      if (document.visibilityState === 'visible') load(true);
+      if (document.visibilityState === 'visible' && !busy && !loading) load(true);
       else schedule();
     }, 15000);
   }
 
   async function load(background = false) {
-    if (busy || disposed) return;
-    busy = true;
+    if (busy || disposed || loading) return;
+    const version = stateVersion;
+    loading = true;
+    if (!background) busy = true;
     if (!background) error.hidden = true;
     controls();
     try {
       const result = await request('GET');
-      if (disposed) return;
+      if (disposed || version !== stateVersion) return;
       data = result;
       render();
       error.hidden = true;
     } catch {
-      if (disposed) return;
+      if (disposed || version !== stateVersion) return;
       // Disable creation while the current state is unknown, including when a
       // background refresh fails after the last known container stopped.
       data = null;
       list.hidden = true;
+      pagination.hidden = true;
       status.textContent = 'Container status is unavailable.';
       error.textContent = 'Could not load containers. Refresh to try again.';
       error.hidden = false;
     } finally {
-      busy = false;
+      loading = false;
+      if (!background) busy = false;
       controls();
-      schedule();
+      if (version === stateVersion) schedule();
     }
   }
 
-  async function mutate(method) {
+  async function mutate(method, id, createdAt) {
     if (busy || disposed || !data || (method === 'POST' && create.disabled)) return;
-    if (method === 'DELETE') closeTerminal(true);
+    if (method === 'DELETE' && terminal?.id === id && terminal.createdAt === createdAt) closeTerminal(true);
     busy = true;
+    stateVersion++;
     clearTimeout(timer);
     error.hidden = true;
     create.textContent = method === 'POST' ? 'Creating…' : 'Create container';
     status.textContent = method === 'POST' ? 'Starting your container…' : 'Stopping your container…';
     controls();
     try {
-      const result = await request(method);
+      const result = await request(method, id, createdAt);
       if (disposed) return;
       data = result;
       render();
       if (method === 'DELETE') refresh.focus();
     } catch (cause) {
       if (disposed) return;
-      error.textContent = cause.message === 'container_quota_exceeded'
-        ? 'You’ve used all 10 container starts for this month. Your allowance resets next month (UTC).'
+      const message = cause.message === 'container_quota_exceeded'
+        ? `You’ve used all ${data?.limits?.maxStartsPerMonth ?? 'available'} container starts for this month. Your allowance resets next month (UTC).`
         : ['image_not_ready', 'image_not_available'].includes(cause.message)
           ? 'This image is not ready to launch. Refresh images and try again.'
         : cause.message === 'image_not_found'
           ? 'This image is no longer available. Choose another image.'
         : cause.message === 'container_limit_exceeded'
-          ? 'Your Builder plan allows one running container. Refresh to use or stop it.'
+          ? `Your plan allows ${data?.limits?.maxContainers ?? 'the current maximum'} running containers. Stop one or change plans to create another.`
+          : cause.message === 'subscription_required'
+            ? 'Choose a plan to create containers.'
+            : cause.message === 'container_not_running'
+              ? 'This container has already stopped or been replaced. Refresh to see the current containers.'
+            : cause.message === 'billing_unavailable'
+              ? 'Billing is temporarily unavailable. Try again shortly.'
           : `Could not ${method === 'POST' ? 'create' : 'stop'} your container. Refresh to check its status.`;
+      error.replaceChildren();
+      error.append(document.createTextNode(message));
+      if (cause.message === 'subscription_required') {
+        const link = document.createElement('a');
+        link.href = '/#pricing';
+        link.textContent = ' View plans';
+        error.append(link);
+      }
       error.hidden = false;
       data = null;
       status.textContent = 'Refresh containers to check the current state.';
@@ -273,6 +364,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
     data = null;
     access = null;
     list.replaceChildren();
+    pagination.hidden = true;
     controls();
   }
 
@@ -285,5 +377,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
     imageSelect.value = images.some(image => image.id === selected) ? selected : '';
   }
   function selectImage(id) { imageSelect.value = id; imageSelect.focus(); }
+  previous.addEventListener('click', () => { if (!previous.disabled) { page--; render(); previous.focus(); } });
+  next.addEventListener('click', () => { if (!next.disabled) { page++; render(); next.focus(); } });
   return { load, dispose, setImages, selectImage };
 }
