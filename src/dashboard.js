@@ -34,6 +34,7 @@ async function loadDashboard() {
   note.hidden = true;
   billing.href = '/#pricing';
   billing.textContent = 'Plans and billing';
+  billing.className = 'text-link';
   let authenticated = false;
   try {
     const session = await auth.readSession();
@@ -64,14 +65,21 @@ async function loadDashboard() {
       || (data.active && !Object.hasOwn(plans, data.plan))) {
       throw new Error('subscription_unavailable');
     }
-    level.textContent = data.active ? plans[data.plan].name : 'None';
+    level.textContent = data.active ? plans[data.plan].name : 'No active subscription';
     if (data.subscription && Object.hasOwn(plans, data.plan)) {
       billing.href = `/pricing/${data.plan}`;
       billing.textContent = 'Manage subscription';
+    } else if (!data.active && !data.subscription) {
+      billing.href = '/pricing/builder';
+      billing.textContent = `Upgrade to ${plans.builder.name} — $${plans.builder.price}/month`;
+      billing.className = 'button button-small';
     } else {
       billing.textContent = 'View plans';
     }
-    if (data.subscription && !data.active) {
+    if (!data.active && !data.subscription) {
+      note.textContent = 'Images and container creation require an active subscription. Upgrade to Builder to choose an image and launch your first container.';
+      note.hidden = false;
+    } else if (data.subscription && !data.active) {
       note.textContent = 'Your subscription is inactive. Manage subscription to review billing.';
       note.hidden = false;
     } else if (data.active && data.scheduled_plan) {

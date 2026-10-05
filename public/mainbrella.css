@@ -309,6 +309,7 @@ button:disabled { opacity: .65; cursor: wait; }
 .dashboard-plan-row { margin-top: 8px; }
 .dashboard-plan-row .text-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; }
 #subscription-level { font-weight: 600; }
+#subscription-note { margin-top: 8px; }
 .dashboard-containers { margin-top: 32px; }
 .dashboard-section-heading { margin-bottom: 12px; }
 .dashboard-main button { font-family: inherit; cursor: pointer; }
