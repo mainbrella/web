@@ -3,14 +3,14 @@
   "source": "mainbrella/backend",
   "licenseSha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
   "files": {
-    "API.md": "b1659a6a5e88ece61093324a4977667033be3ede85ba0ed8d65704369b70f8af",
-    "SKILL.md": "39776fe3ea6001659f9f25e2ca1473bef7a0931b0054b46b71ec3289bfb64f1b",
-    "sdk/javascript.md": "17451685ac7cf44b06611ade2f3583853d5213ff1e9082574d6db6736069a472",
+    "API.md": "ca5414748f5c17161c143cc1c56f0ec27fc9375755781239773c5cb73fe8ac9a",
+    "SKILL.md": "fc2f77d0fd64c1cc50527dfae34f8a32a451781768d0c0ed3676df45e66252d6",
+    "sdk/javascript.md": "50be9c05676799691347bbc4a9b8c9a1dd2fd9f9039449b481c2d87970e0aa81",
     "sdk/python.md": "fdca068929fd30d303283a0600c6508af9762dfb057f71c9b328d93bd14b6f43",
     "references/authentication.md": "a8f04f7b5abfe904a5b01525f062795dd0e7fd0d2bfcd3a6c3662e392939c8bb",
     "references/agent-setup-and-verification.md": "8b95b47057e523e95b7ab3ed0d683beca69e6596c00c280e7ca218ab8c13daf5",
     "references/images.md": "c750445141ebd12cff4679f39ee508afb2d4ede05b1e63ae098915980093e2e4",
-    "references/endpoints.md": "868a82f81a105de5ed4593afbec2c5aa04ef2de0f19cd024fae81c2203900569",
+    "references/endpoints.md": "1b921a1706e3bcc0e80ed26193bfc1975d9072b4d24aea90d60687dccbb9e9b1",
     "references/http-command-execution.md": "40e10d3421fde1fe9d3203f19abd9d9845e0c1f467cc0aa2c01fc0984d441061",
     "references/http-files.md": "67c15010906cad18c50a424c1eb2cd188b6ef3886a0cf058db027ec010800cdc",
     "references/filesystem-metadata-and-directories.md": "6268bfb7d061fb0d6e3d1ce376f49c84630e650828bb0ea57f545ed33e1f74ff",
@@ -26,9 +26,9 @@
     "references/public-operational-status.md": "f8e868f8232ff37fd56da2432535accad59b309a641aa12855aad5983ff4a23a",
     "references/machine-sizes-and-compute-allowance.md": "ed636389603026b455ae85a5f0c19634d406ece64c1b1b03b40ef5efaaf25159",
     "references/saved-workspaces-and-portable-export.md": "d29699b75f10760d29b04fceb95218180957d0732610b0ba5dacd1134916fc37",
-    "references/javascript-sdk.md": "17451685ac7cf44b06611ade2f3583853d5213ff1e9082574d6db6736069a472",
+    "references/javascript-sdk.md": "50be9c05676799691347bbc4a9b8c9a1dd2fd9f9039449b481c2d87970e0aa81",
     "references/python-sdk.md": "fdca068929fd30d303283a0600c6508af9762dfb057f71c9b328d93bd14b6f43",
     "references/index.md": "9ad4657cecdfc0b01c27c5c4ae3d95bfffcdf82ffbb2eec0b9e60894af3276cb",
-    "llms-full.txt": "f7c0521337102d0eec87452c74fc6772d1f6e5a32f63c165c9cf2f8a180d7e9c"
+    "llms-full.txt": "4b1fc06153cdb16235c66f9f9651e2f894b180ec4e6062ce4b81f2e451b220d2"
   }
 }

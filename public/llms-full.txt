@@ -189,7 +189,7 @@ that account's existing containers.
 All plans offer five sizes with bash, tmux and outbound internet. `POST /containers` accepts `size`: `lite` (default), `small`, `medium`, `large`, or `xl`. Size is included in the idempotency fingerprint. The default image includes Node 24; other runtimes depend on the selected image. All include SSH and browser terminals. A container permits four concurrent
 terminal connections (browser/SSH combined). An account permits ten live SSH
 access tokens, each lasting at most 15 minutes or the machine deadline. Process
-resume after stop, custom resources, a published JavaScript SDK, teams, advanced logs/audits and
+resume after stop, custom resources, teams, advanced logs/audits and
 priority capacity are unavailable. Monthly fees are fixed; compute usage is not billed.
 Ordinary stop discards unsaved filesystem changes; save a workspace explicitly
 to restore its filesystem into a fresh container.
@@ -663,8 +663,8 @@ the relevant topic when the full contract is unnecessary.
 Use `https://api.mainbrella.com` unless the user specifies another environment.
 Mainbrella uses REST for lifecycle, foreground command execution, and file transfer.
 The Python SDK is published as `mainbrella` 0.1.0: `pip install mainbrella==0.1.0`.
-The JavaScript SDK remains unpublished; install from `sdk/javascript` when the
-backend checkout is available. See the SDK references for the actual APIs.
+The JavaScript SDK is published as `@mainbrella/sdk` 0.1.0: `npm install @mainbrella/sdk@0.1.0`.
+See the SDK references for the actual APIs.
 Use public `GET /capabilities` to discover deployment support before choosing an
 execution mode. Obtain account allowances and deployed images from `/containers`.
 
@@ -818,10 +818,10 @@ Check `/capabilities` persistence flags before issuing a save or restore. Ordina
 
 # Mainbrella JavaScript SDK
 
-Local package, not published to npm yet. Requires Node 22+; no dependencies.
+Published as `@mainbrella/sdk` 0.1.0 on npm. Requires Node 22+; no runtime dependencies.
 
 ```sh
-npm install /absolute/path/to/backend/sdk/javascript
+npm install @mainbrella/sdk@0.1.0
 ```
 
 ```js
@@ -869,9 +869,9 @@ operations share the four-operation pool and 30-second file deadline. Recursive
 deletion and moves across filesystems may partly complete before interruption;
 inspect state before retrying a mutation. Watchers remain unsupported.
 
-Versioned local archives can be built and checked with backend `npm run sdk:qualify`.
-Install its `.tgz` with `npm install /path/to/mainbrella-sdk-0.1.0.tgz`; this remains
-an archive installation, not an npm registry release. See the backend
+Release candidates are built and checked with backend `npm run sdk:qualify`.
+Version 0.1.0 passed artifact and bounded deployed qualification; fresh npm
+downloads match the qualified archive and pass clean-install checks. See the backend
 [SDK release runbook](https://github.com/mainbrella/backend/blob/main/docs/sdk-release.md)
 for artifact and deployed-workflow gates.
 
