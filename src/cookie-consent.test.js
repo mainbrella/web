@@ -12,6 +12,7 @@ const consentKey = 'mainbrella-cookie-consent';
 
 function visit({ local = new Map(), session = new Map(), blockedLocal = false, blockedSession = false } = {}) {
   const scripts = [];
+  const scriptElements = [];
   const cookieWrites = [];
   const listeners = new Map();
   const settingsListeners = new Map();
@@ -32,11 +33,12 @@ function visit({ local = new Map(), session = new Map(), blockedLocal = false, b
     querySelectorAll: () => [settings],
     documentElement: { classList: { add() {}, remove() {} } },
     createElement: tag => ({ tag }),
-    head: { append: script => scripts.push(script.src) },
+    getElementById: id => scriptElements.find(script => script.id === id) ?? null,
+    head: { append(script) { scripts.push(script.src); scriptElements.push(script); } },
     set cookie(value) { cookieWrites.push(value); },
   };
   const methods = runInNewContext(source + '\n({ readConsent, needsSignInCookies });', { window, document, CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } } });
-  return { ...methods, dialog, scripts, cookieWrites, window, local, session,
+  return { ...methods, dialog, scripts, scriptElements, cookieWrites, window, local, session,
     reopen() { settingsListeners.get('click')(); },
     choose(choice) { listeners.get('click')({ target: { closest: () => ({ dataset: { consent: choice } }) } }); },
   };
@@ -53,6 +55,7 @@ test('first visit and Reject All never load trackers or write cookies, including
   assert.deepEqual(first.cookieWrites, []);
   assert.equal(first.window.gtag, undefined);
   assert.equal(first.window.oaiq, undefined);
+  assert.equal(first.window._tfa, undefined);
   const returning = visit({ local: first.local });
   assert.equal(returning.dialog.open, false);
   assert.deepEqual(returning.scripts, []);
@@ -78,12 +81,17 @@ test('measurement scripts load only after explicit acceptance and on accepted re
   const first = visit();
   assert.deepEqual(first.scripts, []);
   first.choose('accepted');
-  assert.equal(first.scripts.length, 2);
+  assert.equal(first.scripts.length, 3);
   assert.ok(first.scripts.some(url => url.startsWith('https://www.googletagmanager.com/')));
   assert.ok(first.scripts.some(url => url.startsWith('https://bzrcdn.openai.com/')));
+  assert.ok(first.scripts.includes('https://cdn.taboola.com/libtrc/unip/2122717/tfa.js'));
+  assert.deepEqual(JSON.parse(JSON.stringify(first.window._tfa)), [{ notify: 'event', name: 'page_view', id: 2122717 }]);
+  const taboolaScript = first.scriptElements.find(script => script.id === 'tb_tfa_script');
+  assert.equal(taboolaScript.async, true);
   const returning = visit({ local: first.local });
   assert.equal(returning.dialog.open, false);
   assert.deepEqual(returning.scripts, first.scripts);
+  assert.deepEqual(JSON.parse(JSON.stringify(returning.window._tfa)), [{ notify: 'event', name: 'page_view', id: 2122717 }]);
 });
 
 test('importing payment code does not inject Stripe before checkout opens', async t => {
@@ -140,8 +148,9 @@ test('rejected visitors can reopen the original modal, reject again, or accept t
   returning.reopen();
   returning.choose('accepted');
   assert.equal(returning.needsSignInCookies(), false);
-  assert.equal(returning.scripts.length, 2);
+  assert.equal(returning.scripts.length, 3);
   returning.reopen();
   returning.choose('accepted');
-  assert.equal(returning.scripts.length, 2);
+  assert.equal(returning.scripts.length, 3);
+  assert.equal(returning.window._tfa.length, 1);
 });

@@ -49,6 +49,7 @@ async function fixture(t, { choice = 'rejected', profile = false } = {}) {
     querySelectorAll: () => [node('[data-cookie-settings]')],
     documentElement: { classList: { add() {}, remove() {} } },
     createElement: () => new Element(),
+    getElementById: () => null,
     head: {
       append(script) { scripts.push(script.src); },
       appendChild(script) {
@@ -117,6 +118,7 @@ test('Change cookie choice reopens the two-choice modal and Accept All restores 
   assert.equal(f.node('.login-provider').hidden, false);
   assert.ok(f.scripts.some(url => url.startsWith('https://www.googletagmanager.com/')));
   assert.ok(f.scripts.some(url => url.startsWith('https://bzrcdn.openai.com/')));
+  assert.ok(f.scripts.includes('https://cdn.taboola.com/libtrc/unip/2122717/tfa.js'));
   assert.ok(f.scripts.includes('https://accounts.google.com/gsi/client'));
   f.node('#login-email').value = 'test@example.com';
   f.node('#login-password').value = 'password';

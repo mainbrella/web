@@ -26,6 +26,16 @@ function loadTracking() {
     document.head.append(openaiPixel);
   }
   window.oaiq('init', { pixelId: 'QeBc7EgP6cvtRWN38MkXjE', debug: true });
+
+  window._tfa = window._tfa || [];
+  window._tfa.push({ notify: 'event', name: 'page_view', id: 2122717 });
+  if (!document.getElementById('tb_tfa_script')) {
+    const taboolaPixel = document.createElement('script');
+    taboolaPixel.async = true;
+    taboolaPixel.src = 'https://cdn.taboola.com/libtrc/unip/2122717/tfa.js';
+    taboolaPixel.id = 'tb_tfa_script';
+    document.head.append(taboolaPixel);
+  }
 }
 
 if (dialog) {
