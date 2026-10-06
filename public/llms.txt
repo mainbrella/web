@@ -38,12 +38,14 @@ Historical prototype startup benchmarks have incomplete original metadata and ra
 - [Careers](https://mainbrella.com/careers/): Founder contact for interest in building agent infrastructure; no advertised open roles.
 
 - [Deployment capabilities](https://api.mainbrella.com/capabilities): Public feature flags and limits; account allowances are authenticated.
-- [JavaScript SDK reference](https://mainbrella.com/sdk/javascript.md): Local unpublished SDK; installation requires a backend checkout.
-- [Python SDK reference](https://mainbrella.com/sdk/python.md): Local unpublished SDK; installation requires a backend checkout.
+- [JavaScript SDK reference](https://mainbrella.com/sdk/javascript.md): Published on npm; install with npm install @mainbrella/sdk@0.1.0.
+- [Python SDK reference](https://mainbrella.com/sdk/python.md): Published on PyPI; install with pip install mainbrella==0.1.0.
 - [Full agent reference](https://mainbrella.com/llms-full.txt): Generated API, skill and SDK instructions.
 - [Reference index](https://mainbrella.com/references/index.md): API topics and SDK references generated from backend sources.
-- [Installable skill archive](https://mainbrella.com/skills/mainbrella-containers-0.1.0.tar.gz): Versioned Mainbrella skill and indexed references; SDK registry packages remain unpublished.
+- [Installable skill archive](https://mainbrella.com/skills/mainbrella-containers-0.1.0.tar.gz): Versioned Mainbrella skill and indexed API and SDK references.
 
 Sizes and units/hour: lite 1 (1/16 vCPU, 256 MiB, 2 GB disk); small 6 (0.5 vCPU, 4 GiB, 8 GB); medium 10 (1 vCPU, 6 GiB, 12 GB); large 16 (2 vCPU, 8 GiB, 16 GB); xl 28 (4 vCPU, 12 GiB, 20 GB). POST /containers accepts size with catalogId or imageId; default lite. Runtime is reserved before start; unused runtime is released on confirmed stop. Sessions stop at their budget deadline or UTC month boundary. No automatic overages or top-ups.
 
-Protected previews are implemented locally but await live qualification. Check previews.supported in /capabilities before issuance. Start your HTTP server first; POST /containers/previews with exact id/createdAt and port returns a one-time bearer URL. GET lists metadata only; DELETE with previewId revokes. Local JS/Python SDKs provide sandbox.previews.create/list/revoke. See https://mainbrella.com/docs/containers/#previews for limits and safe reconciliation.
+Protected previews are enabled on mainbrella.dev after live qualification. Check previews.supported in /capabilities before issuance. Start your HTTP server first; POST /containers/previews with exact id/createdAt and port returns a one-time bearer URL. GET lists metadata only; DELETE with previewId revokes. JS/Python SDKs provide sandbox.previews.create/list/revoke. See https://mainbrella.com/docs/containers/#previews for limits and safe reconciliation.
+
+Saved filesystem workspaces are enabled after customer API qualification. Save explicitly before stopping; ordinary stop discards changes. Restore creates a fresh generation with saved files, not running processes or memory. Check persistence.snapshots in /capabilities before save/restore. See https://mainbrella.com/references/saved-workspaces-and-portable-export.md for quotas, retention, image compatibility and portable /workspace export.

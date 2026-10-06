@@ -5,7 +5,7 @@
   "files": {
     "API.md": "ca5414748f5c17161c143cc1c56f0ec27fc9375755781239773c5cb73fe8ac9a",
     "SKILL.md": "fc2f77d0fd64c1cc50527dfae34f8a32a451781768d0c0ed3676df45e66252d6",
-    "sdk/javascript.md": "50be9c05676799691347bbc4a9b8c9a1dd2fd9f9039449b481c2d87970e0aa81",
+    "sdk/javascript.md": "3fb021251a243f5171003d3ab4dd870596487288689672db591ad40a3a773fab",
     "sdk/python.md": "fdca068929fd30d303283a0600c6508af9762dfb057f71c9b328d93bd14b6f43",
     "references/authentication.md": "a8f04f7b5abfe904a5b01525f062795dd0e7fd0d2bfcd3a6c3662e392939c8bb",
     "references/agent-setup-and-verification.md": "8b95b47057e523e95b7ab3ed0d683beca69e6596c00c280e7ca218ab8c13daf5",
@@ -26,9 +26,9 @@
     "references/public-operational-status.md": "f8e868f8232ff37fd56da2432535accad59b309a641aa12855aad5983ff4a23a",
     "references/machine-sizes-and-compute-allowance.md": "ed636389603026b455ae85a5f0c19634d406ece64c1b1b03b40ef5efaaf25159",
     "references/saved-workspaces-and-portable-export.md": "d29699b75f10760d29b04fceb95218180957d0732610b0ba5dacd1134916fc37",
-    "references/javascript-sdk.md": "50be9c05676799691347bbc4a9b8c9a1dd2fd9f9039449b481c2d87970e0aa81",
+    "references/javascript-sdk.md": "3fb021251a243f5171003d3ab4dd870596487288689672db591ad40a3a773fab",
     "references/python-sdk.md": "fdca068929fd30d303283a0600c6508af9762dfb057f71c9b328d93bd14b6f43",
     "references/index.md": "9ad4657cecdfc0b01c27c5c4ae3d95bfffcdf82ffbb2eec0b9e60894af3276cb",
-    "llms-full.txt": "4b1fc06153cdb16235c66f9f9651e2f894b180ec4e6062ce4b81f2e451b220d2"
+    "llms-full.txt": "fcd2d08756052d03a6ab6a27fa509996f06d649943dac41c828b110bb82c4dbd"
   }
 }
