@@ -27,7 +27,7 @@
 <p>HTTP execution and file operations require the exact container ID and creation timestamp. This prevents a stale request from acting on a replacement instance in the same slot. Include the generation when stopping a container or issuing SSH access too.</p>
 <p>Commands, output, files, concurrent operations, session duration, and idle time are bounded by server policy. These controls limit resource use; they are not an application-level guarantee that an agent's commands are safe. See <a href="/docs/limits/">limits</a>.</p>
 <h2>Data and network access</h2>
-<p>The public website and API use HTTPS. Container files are ephemeral and are lost after stop; there are no persistent workspaces or customer snapshots. Keep independent backups and remove unnecessary secrets from workloads.</p>
+<p>The public website and API use HTTPS. Ordinary stop discards unsaved container files. Saved workspaces preserve filesystem snapshots for restore into fresh containers, subject to plan quotas and retention; they do not preserve running processes. Keep independent backups and remove unnecessary secrets from workloads.</p>
 <p>Outbound internet access is enabled for packages and external services. There are no customer-configurable egress policies or guaranteed residency regions today. Your code controls which destinations receive its data. Do not submit regulated data without prior written agreement.</p>
 <h2>Infrastructure providers</h2>
 <p>Cloudflare provides hosting, compute, and database infrastructure; Google provides sign-in; Stripe handles payments. Mainbrella does not receive full payment card details. Account, billing, and support records have a separate lifecycle from temporary container files; see the <a href="/privacy/">Privacy Policy</a>.</p>

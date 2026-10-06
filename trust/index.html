@@ -24,7 +24,7 @@
       <p>Cloudflare provides website, API, compute, and database infrastructure. Google provides sign-in; Stripe provides billing. The <a href="/subprocessors/">provider and subprocessor list</a> describes purposes, data categories, and processing locations.</p>
       <h2>Data handling and encryption</h2>
       <p>The public website and API use HTTPS. Session tokens, API keys, and SSH access tokens are stored as hashes; full card details are handled by Stripe. No customer-managed encryption keys or Mainbrella-specific encryption-at-rest attestation is offered.</p>
-      <p>Container files are ephemeral and lost after stop. Account and billing records, owned image records, and build logs have separate retention needs. Keep independent backups and avoid unnecessary personal data and secrets. Outbound internet access is enabled; you control the services your workload contacts.</p>
+      <p>Ordinary stop discards unsaved container files. Saved filesystem snapshots have plan-specific quotas and retention. Account and billing records, owned image records, and build logs have separate retention needs. Keep independent backups and avoid unnecessary personal data and secrets. Outbound internet access is enabled; you control the services your workload contacts.</p>
       <p>Mainbrella does not guarantee a data residency region. See the <a href="/privacy/">Privacy Policy</a> for retention, deletion requests, and international processing.</p>
       <h2>Vulnerability reporting</h2>
       <p>Report security issues to <a href="mailto:security@mainbrella.com">security@mainbrella.com</a>. Read the <a href="/security/disclosure/">vulnerability disclosure policy</a> for scope and permitted testing.</p>

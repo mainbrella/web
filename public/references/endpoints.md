@@ -63,10 +63,11 @@ that account's existing containers.
 
 All plans offer five sizes with bash, tmux and outbound internet. `POST /containers` accepts `size`: `lite` (default), `small`, `medium`, `large`, or `xl`. Size is included in the idempotency fingerprint. The default image includes Node 24; other runtimes depend on the selected image. All include SSH and browser terminals. A container permits four concurrent
 terminal connections (browser/SSH combined). An account permits ten live SSH
-access tokens, each lasting at most 15 minutes or the machine deadline. Snapshots,
-resume after stop, custom resources, SDKs, teams, advanced logs/audits and priority
-capacity are unavailable. Monthly fees are fixed; compute usage is not billed.
-The filesystem is lost when a container stops.
+access tokens, each lasting at most 15 minutes or the machine deadline. Process
+resume after stop, custom resources, published SDKs, teams, advanced logs/audits and
+priority capacity are unavailable. Monthly fees are fixed; compute usage is not billed.
+Ordinary stop discards unsaved filesystem changes; save a workspace explicitly
+to restore its filesystem into a fresh container.
 
 Ownership and resources come from the authenticated account and server policy.
 Request bodies and client headers cannot override the owner, plan, registry image, raw resource configuration,

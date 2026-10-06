@@ -1,7 +1,7 @@
 <!-- Generated from backend/API.md; edit the source and run docs:package. -->
 ## Saved workspaces and portable export
 
-Discover `capabilities.persistence.snapshots` before issuing saves or restores. Issuance is disabled until the runtime and API deployment have passed live qualification. Ordinary stop remains destructive; save explicitly before stopping.
+Discover `capabilities.persistence.snapshots` before issuing saves or restores. Saved-workspace issuance is enabled in the qualified production deployment; other deployments may disable it. Ordinary stop remains destructive; save explicitly before stopping.
 
 `POST /workspaces` accepts `{id, createdAt, name, stop?}` and requires an `Idempotency-Key`. The source identity must match a running generation owned by the authenticated account. Save captures the writable root filesystem, commits its private provider handle, and optionally stops that exact generation. Persist the request body and key before sending: repeat the identical request after a lost response. Recovery receipts last 24 hours. A capture whose provider result cannot be recovered fails closed rather than silently taking another snapshot.
 

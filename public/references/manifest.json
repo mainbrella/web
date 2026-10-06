@@ -3,16 +3,16 @@
   "source": "mainbrella/backend",
   "licenseSha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
   "files": {
-    "API.md": "393f0943318e22cd995dd706bbb196020822f867e61bba6d5a495d7be3dad3ed",
+    "API.md": "c38a24af6933e8e9a92bca739de8a697aa452143a01a0ec7a1b2a59b051e94d9",
     "SKILL.md": "a8c5546673d54bb3c35fe6a4c2495e3051dbf5f40cde930940c32f70218a34f2",
     "sdk/javascript.md": "17451685ac7cf44b06611ade2f3583853d5213ff1e9082574d6db6736069a472",
     "sdk/python.md": "8582e7513a5b22b85fd22b9dc4b46902a23633105aa71507d064df0855dd0b7f",
     "references/authentication.md": "a8f04f7b5abfe904a5b01525f062795dd0e7fd0d2bfcd3a6c3662e392939c8bb",
     "references/agent-setup-and-verification.md": "8b95b47057e523e95b7ab3ed0d683beca69e6596c00c280e7ca218ab8c13daf5",
     "references/images.md": "c750445141ebd12cff4679f39ee508afb2d4ede05b1e63ae098915980093e2e4",
-    "references/endpoints.md": "9f85e33925584a5eb1c5badafffaa0140763b9578510dca4ef96244bc470189c",
+    "references/endpoints.md": "b33679e49293371249553859a037228e815aad26c82d1e138edf004ff9630084",
     "references/http-command-execution.md": "40e10d3421fde1fe9d3203f19abd9d9845e0c1f467cc0aa2c01fc0984d441061",
-    "references/http-files.md": "88b308f546f609f8f604981f1ef5828a1a8be60aa0a652b2eb1c7c4fa2d715c6",
+    "references/http-files.md": "67c15010906cad18c50a424c1eb2cd188b6ef3886a0cf058db027ec010800cdc",
     "references/filesystem-metadata-and-directories.md": "6268bfb7d061fb0d6e3d1ce376f49c84630e650828bb0ea57f545ed33e1f74ff",
     "references/browser-billing-endpoints.md": "1fe2b992eeb63dd8ff5542b852d2fc684aeb49537c169be1de4216bfd3744ff7",
     "references/errors-and-retry-behavior.md": "b3ab328b07df20a4a0847ff1c9c804e436021149de79d5f8b6f0cb28a2c15b25",
@@ -25,10 +25,10 @@
     "references/lifecycle-webhooks.md": "d53567686481e7deee6d65f85afd035312469e8130fdfb0c965b6e2365c6326a",
     "references/public-operational-status.md": "f8e868f8232ff37fd56da2432535accad59b309a641aa12855aad5983ff4a23a",
     "references/machine-sizes-and-compute-allowance.md": "ed636389603026b455ae85a5f0c19634d406ece64c1b1b03b40ef5efaaf25159",
-    "references/saved-workspaces-and-portable-export.md": "e308dff03eaaabaeb641f12ad849a0005dc00587a2fee997c8fe3abab16e7112",
+    "references/saved-workspaces-and-portable-export.md": "d29699b75f10760d29b04fceb95218180957d0732610b0ba5dacd1134916fc37",
     "references/javascript-sdk.md": "17451685ac7cf44b06611ade2f3583853d5213ff1e9082574d6db6736069a472",
     "references/python-sdk.md": "8582e7513a5b22b85fd22b9dc4b46902a23633105aa71507d064df0855dd0b7f",
     "references/index.md": "9ad4657cecdfc0b01c27c5c4ae3d95bfffcdf82ffbb2eec0b9e60894af3276cb",
-    "llms-full.txt": "37f5af3c67503a2f7608dfed400fba97b59fdb167bebeaa63cb1a36fa0a61533"
+    "llms-full.txt": "3c69b45ce2dcc0c59418a99a4f05d43383d6388c1dcb25117d2e7c6377c9c475"
   }
 }

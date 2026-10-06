@@ -22,7 +22,7 @@
           <summary>Plan rules and included access</summary>
           <p>Small uses 6 compute units per hour; XL uses 28. Running time, including idle time, uses your allowance. Starting a session reserves its runtime; stopping releases unused runtime. Allowances reset each UTC month without rollover, and sessions end at the month boundary or their earlier deadline. No automatic overage charges.</p>
           <p>All plans offer five machine sizes, from Lite (256 MiB RAM) to XL (4 vCPU, 12 GiB RAM, 20 GB ephemeral disk), with bash, tmux, outbound internet, SSH and browser terminals. The default image includes Node 24; other runtimes depend on the selected image. Each container allows four terminal connections; each account allows ten live SSH commands, valid for up to 15 minutes.</p>
-          <p>Starts are shared across your account and reset at the start of each UTC month. Failed starts count. Stopping a container or changing plans does not reset usage. Sessions end at their hard limit or the end of the paid period at creation, whichever comes first. Files are lost when a container stops.</p>
+          <p>Starts are shared across your account and reset at the start of each UTC month. Failed starts count. Stopping a container or changing plans does not reset usage. Sessions end at their hard limit or the end of the paid period at creation, whichever comes first. Ordinary stop discards unsaved files; save a workspace or export outputs first.</p>
           <p>Upgrades require payment through Stripe. Downgrades and cancellation take effect at renewal; lower limits may stop containers. <a href="/docs/limits/">Read all platform limits</a>.</p>
         </details>
       </div>

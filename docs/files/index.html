@@ -49,7 +49,7 @@ const bytes = new Uint8Array(await download.arrayBuffer());</code></pre>
 <p>Listing rescans between pages, so directory changes can duplicate or omit entries. Root is accepted for list/stat only. Watchers remain unsupported. Recursive removal and moves across filesystems may partly complete before interruption; inspect state before retrying. See the <a href="/references/filesystem-metadata-and-directories.md">filesystem contract</a> and <a href="/sdk/javascript.md">JavaScript</a> or <a href="/sdk/python.md">Python SDK</a> helpers.</p>
 <h2>Limits and persistence</h2>
 <p>Uploads and downloads are each limited to 1 MiB. Operations are bounded by 30 seconds and the hard container deadline, share the four-command pool, and renew idle activity. For larger files, use authorized SSH access.</p>
-<p>A lost write response may hide a completed upload; read to reconcile before retrying. Export needed files before stopping: workspace storage is ephemeral.</p>
+<p>A lost write response may hide a completed upload; read to reconcile before retrying. Save a workspace or export needed files before stopping; ordinary stop discards unsaved changes.</p>
 </article></main>
     <!-- site-footer -->
     <script type="module" src="/src/account-menu.js"></script>

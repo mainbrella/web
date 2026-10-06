@@ -46,7 +46,7 @@ per UTC month, one-hour sessions and a 10-minute idle timeout; Pro allows
 starts, 72-hour sessions and a 60-minute idle timeout. All plans offer five sizes (Lite through XL), with 250 / 9,000 / 50,000 monthly compute-unit hours and 28 / 128 / 640 concurrent units. Each creation reserves a
 start even if stopped early; a pending start counts toward concurrency.
 Creation without an active paid subscription returns 402.
-Containers have outbound internet access for package installation and no persistent filesystem. The dashboard
+Containers have outbound internet access for package installation. Save workspaces explicitly to preserve filesystem snapshots for restore; ordinary stop discards unsaved changes. The dashboard
 refreshes status every 15 seconds while visible; status reads do not renew the
 idle lease. Subscription failures do not prevent container management.
 

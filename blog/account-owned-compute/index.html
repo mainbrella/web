@@ -32,7 +32,7 @@
 <p>Infrastructure capability and product capability are different contracts. Cloudflare’s network footprint does not mean a Mainbrella customer can select a compute region. Every Mainbrella plan offers five named machine sizes, from Lite (256 MiB RAM) to XL (4 vCPU, 12 GiB RAM). A higher plan raises monthly compute allowance, account capacity, and session duration. Larger machines spend the allowance faster.</p>
 <h2>A lease with an end</h2>
 <p>Commands and terminal activity renew the idle deadline. Reading status does not. The hard session deadline and paid period recognized at creation still bound the session, even if the agent stays busy. Renewing a subscription does not extend an existing container.</p>
-<p>After stop, the filesystem is lost. The agent should export its result before cleanup and keep durable state elsewhere. That makes the workspace suitable for bounded execution steps; a workflow that needs snapshots or persistent storage needs capabilities Mainbrella does not currently offer.</p>
+<p>Ordinary stop discards unsaved filesystem changes. Save a workspace explicitly to restore its files into a fresh container, or export outputs before cleanup. Saved workspaces have plan-specific quotas and retention and do not preserve running processes. Keep independent backups.</p>
 <p>Implementation contract: <a href="/API.md">Container automation API</a>. Resource and deadline details: <a href="/docs/limits/">Limits</a> and <a href="/platform/">Platform availability</a>.</p>
 
 </article>
