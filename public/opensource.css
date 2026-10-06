@@ -1,0 +1,39 @@
+.source-label { margin-bottom: 16px; color: var(--blue); font-size: 14px; }
+.opensource-page .hero h1 { font-size: clamp(36px, 3.6vw, 50px); }
+.source-stack { min-width: 0; margin: 0; }
+.source-stack figcaption { font-size: 18px; font-weight: 600; }
+.source-stack ol { list-style: none; margin: 20px 0 0; padding: 0; }
+.source-stack li { display: flex; gap: 20px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.source-stack li > span { padding-top: 3px; color: var(--blue); font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.source-stack strong { font-size: 17px; font-weight: 500; }
+.source-stack li p { margin-top: 4px; color: var(--muted); font-size: 14px; }
+.source-sections { margin-top: 12px; }
+.source-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
+.source-columns > *, .generation-example { min-width: 0; }
+.source-columns p { margin-top: 12px; max-width: 68ch; color: var(--muted); font-size: 15px; }
+.opensource-page .text-link { min-height: 44px; }
+.opensource-page code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .88em; }
+.source-installs { display: flex; flex-wrap: wrap; gap: 24px 40px; margin-top: 20px; }
+.source-installs a { display: inline-flex; align-items: center; min-height: 44px; color: var(--blue); font-size: 14px; }
+.source-installs code { display: block; overflow-wrap: anywhere; }
+.generation-story { margin: 0; padding-left: 24px; }
+.generation-story li { padding-left: 8px; }
+.generation-story li + li { margin-top: 24px; }
+.generation-story li::marker { color: var(--blue); }
+.source-columns .terminal-foot { margin-top: 0; font-size: 13px; color: var(--ink); }
+.source-note { max-width: 90ch; margin-top: 24px; color: var(--muted); font-size: 14px; }
+.save-flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; list-style: none; padding: 0; margin: 0 0 32px; }
+.save-flow li { padding: 16px 0; border-top: 1px solid var(--line); }
+.save-flow strong { color: var(--blue); font-size: 18px; }
+.save-flow span { display: block; margin-top: 8px; color: var(--muted); font-size: 14px; }
+.source-comparison { table-layout: fixed; min-width: 620px; margin-bottom: 32px; }
+.source-comparison th:first-child { width: 22%; }
+.source-comparison td { color: var(--ink); }
+.opensource-page .availability .hero-actions { margin-top: 20px; }
+.opensource-page .availability .hero-actions .button { margin-top: 0; }
+@media (max-width: 700px) {
+  .source-columns { grid-template-columns: 1fr; gap: 24px; }
+  .save-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 24px; }
+  .source-sections { gap: 0 20px; }
+  .source-stack figcaption { font-size: 16px; }
+}

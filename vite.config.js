@@ -11,7 +11,7 @@ const publicPages = ['docs', 'docs/containers', 'docs/execute', 'docs/files', 'd
   'benchmarks', 'integrations', 'trust', 'subprocessors', 'platform',
   'blog', 'blog/account-owned-compute', 'blog/measuring-startup',
   'blog/safe-container-creation', 'blog/interactive-access', 'blog/custom-images',
-  'compare', 'brand', 'careers'];
+  'compare', 'brand', 'careers', 'opensource'];
 
 function checkoutPage(html, plan) {
   return html
