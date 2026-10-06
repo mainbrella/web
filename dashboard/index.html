@@ -9,16 +9,12 @@
     <link rel="canonical" href="https://mainbrella.com/dashboard/" />
     <link rel="icon" href="/images/favicon.png" type="image/png" />
     <link rel="stylesheet" href="/mainbrella.css" />
+    <link rel="stylesheet" href="/app.css" />
     <title>Dashboard · Mainbrella</title>
   </head>
-  <body class="info-body sandbox-home dashboard-body">
+  <body class="info-body sandbox-home app-body dashboard-body">
     <a class="skip-link" href="#main">Skip to content</a>
-    <header class="site-header wrap">
-      <a class="brand" href="/" aria-label="Mainbrella home">
-        <img src="/images/logo.png" alt="" width="44" height="44" /><span>mainbrella</span>
-      </a>
-      <nav aria-label="Main navigation"><a class="button button-small" href="/pricing/">Pricing</a></nav>
-    </header>
+    <!-- app-header -->
     <main id="main" class="dashboard-main" aria-busy="true">
       <h1>Dashboard</h1>
       <p id="dashboard-status" class="dashboard-status" role="status">Checking your session…</p>
@@ -26,29 +22,28 @@
       <button id="dashboard-retry" class="dashboard-retry" type="button" hidden>Retry</button>
       <div id="dashboard-content" hidden>
         <section class="dashboard-subscription" aria-labelledby="subscription-title">
-          <h2 id="subscription-title">Subscription</h2>
+          <h2 id="subscription-title" class="visually-hidden">Subscription</h2>
           <div class="dashboard-plan-row">
             <p id="subscription-level" aria-live="polite">Loading…</p>
             <a id="subscription-manage" class="text-link" href="/pricing/">Plans and billing</a>
           </div>
           <p id="subscription-note" class="dashboard-status" hidden></p>
         </section>
+        <dl id="container-usage" class="container-usage" aria-label="Plan usage" hidden>
+          <div><dt>Containers</dt><dd id="usage-containers">—</dd><dd id="usage-concurrency" class="usage-detail"></dd></div>
+          <div><dt>Compute-unit hours available</dt><dd id="usage-compute">—</dd><dd id="usage-compute-detail" class="usage-detail"></dd></div>
+          <div><dt>Starts remaining this month</dt><dd id="usage-starts">—</dd><dd id="usage-starts-detail" class="usage-detail"></dd></div>
+        </dl>
         <section class="dashboard-containers" aria-labelledby="containers-title">
           <div class="dashboard-section-heading">
-            <h2 id="containers-title">Containers</h2>
-            <button id="container-create" class="button button-small" type="button" disabled aria-describedby="container-limits containers-status">Create container</button>
-          </div>
-          <p id="container-limits" class="dashboard-status">Checking your plan’s container limits…</p>
-          <div class="container-image-picker">
-            <label for="container-image">Image</label>
-            <select id="container-image"><option value="">Node 24 + TypeScript</option></select>
-          </div>
-          <div class="container-image-picker">
-            <label for="container-size">Size</label>
-            <select id="container-size" aria-describedby="container-size-rate"><option value="lite">Lite · 256 MiB RAM</option></select>
-            <span id="container-size-rate" class="dashboard-status"></span>
+            <h2 id="containers-title">Containers <span id="container-count" class="section-count" hidden></span></h2>
+            <div class="container-actions">
+              <button id="containers-refresh" class="dashboard-retry" type="button" disabled>Refresh</button>
+              <button id="container-launch-open" class="button button-small" type="button" disabled>New container</button>
+            </div>
           </div>
           <p id="containers-status" class="dashboard-status" role="status">Loading containers…</p>
+          <p id="containers-empty" class="dashboard-status containers-empty" hidden>You have no active containers.</p>
           <ul id="container-list" class="container-list" aria-label="Containers" hidden></ul>
           <section id="container-observations" class="container-observations" aria-labelledby="history-title" hidden>
             <div class="history-heading"><h3 id="history-title" tabindex="-1">History</h3><div class="container-actions"><button type="button" class="dashboard-retry" data-history-refresh>Refresh history</button><button type="button" class="dashboard-retry" data-history-close>Close</button></div></div>
@@ -84,8 +79,30 @@
             <div class="terminal-output" aria-label="Container terminal"></div>
           </section>
           <p id="containers-error" class="dashboard-error" role="alert" hidden></p>
-          <button id="containers-refresh" class="dashboard-retry" type="button" disabled>Refresh containers</button>
         </section>
+        <dialog id="container-launch-dialog" class="container-launch" aria-labelledby="launch-title">
+          <div class="launch-heading">
+            <h2 id="launch-title">New container</h2>
+            <button id="container-launch-close" class="dashboard-retry" type="button" aria-label="Close new container dialog">Close</button>
+          </div>
+          <div class="container-image-picker">
+            <label for="container-image">Image</label>
+            <select id="container-image" disabled><option value="">Node 24 + TypeScript</option></select>
+          </div>
+          <fieldset id="container-size" class="machine-picker" disabled aria-describedby="container-size-rate">
+            <legend>Machine size</legend>
+            <div id="machine-options" class="machine-options"><p class="dashboard-status">Loading machine sizes…</p></div>
+          </fieldset>
+          <div class="launch-footer">
+            <div class="launch-notes">
+              <p id="container-size-rate" class="dashboard-status"></p>
+              <p id="container-limits" class="dashboard-status">Checking your plan’s container limits…</p>
+            </div>
+            <button id="container-create" class="button button-small" type="button" disabled aria-describedby="container-limits container-size-rate">Create container</button>
+          </div>
+          <p id="container-launch-status" class="dashboard-status" role="status"></p>
+          <p id="container-launch-error" class="dashboard-error" role="alert" hidden></p>
+        </dialog>
         <details id="saved-workspaces" class="dashboard-images" hidden>
           <summary>Saved workspaces</summary>
           <ul class="container-list" aria-label="Saved workspaces"></ul>
@@ -105,10 +122,11 @@
           </form>
         </dialog>
         <details id="custom-images-details" class="dashboard-images">
-          <summary>Upload a custom image</summary>
+          <summary>Custom images</summary>
           <div class="custom-images-content">
           <p id="images-status" class="dashboard-status" role="status">Loading images…</p>
           <ul id="image-list" class="container-list" aria-label="Custom images" hidden></ul>
+            <h3 class="image-form-heading">Build an image</h3>
             <form id="image-form" class="image-form">
               <label for="image-name">Image name</label>
               <input id="image-name" name="name" type="text" required maxlength="80" placeholder="Python workspace" autocomplete="off" />

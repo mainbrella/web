@@ -27,14 +27,29 @@ export function imageSelection(value: string) {
 }
 
 export function createContainersDashboard({ onUnauthenticated }: { onUnauthenticated: () => void }) {
-  const sizeSelect = document.querySelector<HTMLSelectElement>('#container-size')!;
+  const sizePicker = document.querySelector<HTMLFieldSetElement>('#container-size')!;
+  const sizeOptions = document.querySelector<HTMLElement>('#machine-options')!;
+  const selectedSize = () => sizePicker.querySelector<HTMLInputElement>('input:checked')?.value ?? 'lite';
   const sizeRate = document.querySelector<HTMLElement>('#container-size-rate')!;
   let sizeOptionsKey = '';
   const imageSelect = document.querySelector<HTMLSelectElement>('#container-image')!;
   const create = document.querySelector<HTMLButtonElement>('#container-create')!;
+  const launch = document.querySelector<HTMLDialogElement>('#container-launch-dialog')!;
+  const openLaunch = document.querySelector<HTMLButtonElement>('#container-launch-open')!;
+  const launchStatus = document.querySelector<HTMLElement>('#container-launch-status')!;
+  const launchError = document.querySelector<HTMLElement>('#container-launch-error')!;
   const refresh = document.querySelector<HTMLButtonElement>('#containers-refresh')!;
   const list = document.querySelector<HTMLElement>('#container-list')!;
   const status = document.querySelector<HTMLElement>('#containers-status')!;
+  const empty = document.querySelector<HTMLElement>('#containers-empty')!;
+  const count = document.querySelector<HTMLElement>('#container-count')!;
+  const usage = document.querySelector<HTMLElement>('#container-usage')!;
+  const usageContainers = document.querySelector<HTMLElement>('#usage-containers')!;
+  const usageConcurrency = document.querySelector<HTMLElement>('#usage-concurrency')!;
+  const usageCompute = document.querySelector<HTMLElement>('#usage-compute')!;
+  const usageComputeDetail = document.querySelector<HTMLElement>('#usage-compute-detail')!;
+  const usageStarts = document.querySelector<HTMLElement>('#usage-starts')!;
+  const usageStartsDetail = document.querySelector<HTMLElement>('#usage-starts-detail')!;
   const error = document.querySelector<HTMLElement>('#containers-error')!;
   const pagination = document.querySelector<HTMLElement>('#container-pagination')!;
   const previous = document.querySelector<HTMLButtonElement>('#containers-previous')!;
@@ -105,13 +120,21 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   }
 
   function controls() {
-    create.disabled = busy || disposed || !canCreateContainer(data, sizeSelect?.value ?? 'lite') || (!catalog.length && !customImages.length);
+    create.disabled = busy || disposed || !canCreateContainer(data, selectedSize()) || (!catalog.length && !customImages.length);
+    openLaunch.disabled = busy || disposed || !data;
     refresh.disabled = busy || disposed;
     imageSelect.disabled = busy || disposed;
-    if (sizeSelect) sizeSelect.disabled = busy || disposed || !data?.sizes?.length;
+    sizePicker.disabled = busy || disposed || !data?.sizes?.length;
     if (sizeRate) {
-      const size = data?.sizes?.find(item => item.id === sizeSelect.value);
-      sizeRate.textContent = size ? `${size.cpuVcpu} vCPU · ${size.diskGB} GB disk · ${size.computeUnits} compute units/hour` : '';
+      const size = data?.sizes?.find(item => item.id === selectedSize());
+      sizeRate.textContent = size ? `${size.name} uses ${size.computeUnits} compute ${size.computeUnits === 1 ? 'unit' : 'units'} per hour.` : '';
+      if (data?.active && !canCreateContainer(data, selectedSize())) {
+        sizeRate.textContent = data.containers.length >= data.limits.maxContainers
+          ? 'All container slots are in use. Stop a container to free a slot.'
+          : data.usage.starts >= data.limits.maxStartsPerMonth ? 'Your monthly start allowance is used up.'
+          : (data.usage.availableComputeUnitHours ?? 1) <= 0 ? 'Your compute allowance is used or reserved by running containers.'
+          : 'This size exceeds your available concurrent compute. Choose a smaller size or stop a container.';
+      }
     }
     list.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
       button.disabled = busy || !data || disposed || (button.dataset.requiresRunning === 'true' && button.dataset.running !== 'true');
@@ -123,7 +146,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   }
 
   async function request(method: string, id?: string, createdAt?: string) {
-    const image = { ...imageSelection(imageSelect.value), ...(sizeSelect && data?.sizes?.length ? { size: sizeSelect.value } : {}) };
+    const image = { ...imageSelection(imageSelect.value), ...(data?.sizes?.length ? { size: selectedSize() } : {}) };
     const url = new URL(`${API_ORIGIN}/containers`);
     if (id) url.searchParams.set('id', id);
     if (createdAt) url.searchParams.set('createdAt', createdAt);
@@ -154,17 +177,30 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   function render() {
     if (!data) return;
     previews.sync(data.containers, previewsSupported);
-    if (sizeSelect && Array.isArray(data.sizes)) {
+    if (Array.isArray(data.sizes)) {
       const key = JSON.stringify(data.sizes);
       if (key !== sizeOptionsKey) {
-        const selected = sizeSelect.value;
-        sizeSelect.replaceChildren(...data.sizes.map(size => {
-          const option = document.createElement('option');
-          option.value = size.id;
-          option.textContent = `${size.name} · ${size.memoryMiB < 1024 ? `${size.memoryMiB} MiB` : `${size.memoryMiB / 1024} GiB`} RAM`;
+        const selected = selectedSize();
+        const selection = data.sizes.some(size => size.id === selected) ? selected : data.sizes[0]?.id;
+        sizeOptions.replaceChildren(...data.sizes.map(size => {
+          const option = document.createElement('label');
+          option.className = 'machine-option';
+          const radio = document.createElement('input');
+          radio.type = 'radio'; radio.name = 'machine-size'; radio.value = size.id;
+          radio.checked = size.id === selection;
+          const title = document.createElement('span'); title.className = 'machine-name'; title.textContent = size.name;
+          const memory = document.createElement('span'); memory.className = 'machine-memory';
+          memory.textContent = `${size.memoryMiB < 1024 ? `${size.memoryMiB} MiB` : `${size.memoryMiB / 1024} GiB`} RAM`;
+          const specs = document.createElement('span'); specs.className = 'machine-specs';
+          specs.textContent = `${size.cpuVcpu} vCPU · ${size.diskGB} GB disk`;
+          const rate = document.createElement('span'); rate.className = 'machine-rate';
+          rate.textContent = `${size.computeUnits} CU/hr`;
+          const accessibleRate = document.createElement('span'); accessibleRate.className = 'visually-hidden';
+          accessibleRate.textContent = `${size.computeUnits} compute ${size.computeUnits === 1 ? 'unit' : 'units'} per hour`;
+          rate.setAttribute('aria-hidden', 'true');
+          option.append(radio, title, memory, specs, rate, accessibleRate);
           return option;
         }));
-        if (data.sizes.some(size => size.id === selected)) sizeSelect.value = selected;
         sizeOptionsKey = key;
       }
     }
@@ -178,14 +214,25 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     pagination.hidden = data.containers.length <= pageSize;
     range.textContent = `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, data.containers.length)} of ${data.containers.length}`;
     const remaining = Math.max(0, data.limits.maxStartsPerMonth - data.usage.starts);
-    status.textContent = data.active
-      ? `${data.containers.length} of ${data.limits.maxContainers} container slots in use · ${remaining} starts remaining this month.${data.usage.availableComputeUnitHours !== undefined ? ` ${data.usage.computeUnitHours.toFixed(1)} compute-unit hours used; ${data.usage.reservedComputeUnitHours.toFixed(1)} reserved for running sessions; ${data.usage.availableComputeUnitHours.toFixed(1)} available.` : ''}`
-      : 'No active plan. Choose a plan to start containers.';
+    usage.hidden = !data.active;
+    usageContainers.textContent = `${data.containers.length} / ${data.limits.maxContainers.toLocaleString()}`;
+    usageConcurrency.textContent = data.limits.maxConcurrentComputeUnits !== undefined
+      ? `${data.usage.concurrentComputeUnits ?? 0} / ${data.limits.maxConcurrentComputeUnits.toLocaleString()} concurrent compute units` : 'Active container slots';
+    usageCompute.textContent = data.usage.availableComputeUnitHours !== undefined
+      ? `${data.usage.availableComputeUnitHours.toLocaleString(undefined, { maximumFractionDigits: 1 })}${data.limits.maxComputeUnitHours !== undefined ? ` / ${data.limits.maxComputeUnitHours.toLocaleString()}` : ''}` : '—';
+    usageComputeDetail.textContent = data.usage.availableComputeUnitHours !== undefined
+      ? `${data.usage.computeUnitHours.toFixed(1)} used · ${data.usage.reservedComputeUnitHours.toFixed(1)} reserved` : 'Compute usage unavailable';
+    usageStarts.textContent = `${remaining.toLocaleString()} / ${data.limits.maxStartsPerMonth.toLocaleString()}`;
+    usageStartsDetail.textContent = `${data.usage.starts.toLocaleString()} starts used · Resets monthly (UTC)`;
+    status.textContent = '';
+    empty.hidden = data.containers.length !== 0;
+    count.textContent = String(data.containers.length);
+    count.hidden = false;
     const hours = Math.round(data.limits.maxSessionMs / 3600000);
     const idleMinutes = Math.round(data.limits.idleTimeoutMs / 60000);
     document.querySelector<HTMLElement>('#container-limits')!.textContent = data.active
-      ? `${data.limits.maxContainers} concurrent containers${data.limits.maxConcurrentComputeUnits ? ` within ${data.limits.maxConcurrentComputeUnits} compute units` : ""} · Choose your machine size. Sessions last up to ${hours} ${hours === 1 ? 'hour' : 'hours'} and stop after ${idleMinutes} idle minutes. ${data.limits.maxStartsPerMonth} starts per month.`
-      : 'Choose a monthly plan to create containers. All plans offer five machine sizes, with SSH and browser terminal access.';
+      ? `Sessions last up to ${hours} ${hours === 1 ? 'hour' : 'hours'} · Auto-stop after ${idleMinutes} idle minutes.`
+      : 'An active subscription is required to create containers.';
     if (access && (!data.containers.some(c => c.id === access?.id && c.createdAt === access?.createdAt) || access.expiresAt <= Date.now())) access = null;
     const rows = data.containers.slice(page * pageSize, (page + 1) * pageSize);
     const rowVersion = JSON.stringify({ page, rows, access, previewsSupported, observability, persistence, today: new Date().toDateString() });
@@ -201,6 +248,9 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       row.dataset.containerId = container.id;
       row.dataset.createdAt = container.createdAt;
       const details = document.createElement('div');
+      details.className = 'container-details';
+      const heading = document.createElement('div');
+      heading.className = 'container-row-heading';
       const name = document.createElement('strong');
       name.textContent = container.imageName || container.name || container.id;
       const state = document.createElement('p');
@@ -209,18 +259,32 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       const expiryOptions: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit',
         ...(expiry.toDateString() !== new Date().toDateString() ? { month: 'short', day: 'numeric' } : {}) };
       const running = container.status === 'running';
-      const stateLabel = running ? 'Running' : container.status === 'starting' ? 'Starting…' : 'Stopping…';
-      state.textContent = `${stateLabel}${container.size ? ` · ${container.size.toUpperCase()}` : ""} · Stops by ${expiry.toLocaleString([], expiryOptions)}`;
+      const badge = document.createElement('span');
+      badge.className = 'container-state';
+      badge.dataset.state = container.status;
+      badge.textContent = running ? 'Running' : container.status === 'starting' ? 'Starting…' : container.status === 'stopping' ? 'Stopping…' : container.status;
+      heading.append(name, badge);
+      const identity = document.createElement('code');
+      identity.textContent = container.id.slice(0, 8); identity.title = container.id;
+      state.append(identity);
+      if (container.size) {
+        const size = document.createElement('span');
+        size.textContent = data.sizes?.find(item => item.id === container.size)?.name ?? container.size;
+        state.append(size);
+      }
+      const expires = document.createElement('span');
+      expires.textContent = `Stops by ${expiry.toLocaleString([], expiryOptions)}`;
+      state.append(expires);
       const stop = document.createElement('button');
       stop.type = 'button';
-      stop.className = 'dashboard-retry';
+      stop.className = 'dashboard-retry button-danger';
       stop.textContent = 'Stop';
       stop.dataset.action = 'stop';
       stop.setAttribute('aria-label', `Stop ${container.id}`);
       stop.addEventListener('click', () => {
         if (window.confirm(`Stop ${container.name || container.id}? Its files will be lost.`)) mutate('DELETE', container.id, container.createdAt);
       });
-      details.append(name, state);
+      details.append(heading, state);
       const actions = document.createElement('div');
       actions.className = 'container-actions';
       const connect = document.createElement('button');
@@ -233,7 +297,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       connect.addEventListener('click', () => connectSSH(container));
       const shell = document.createElement('button');
       shell.type = 'button';
-      shell.className = 'button button-small';
+      shell.className = 'dashboard-retry container-terminal-action';
       shell.textContent = 'Open terminal';
       shell.dataset.action = 'terminal';
       shell.dataset.requiresRunning = 'true';
@@ -244,6 +308,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       previews.attach(row, actions, container);
       observations.attach(actions, container);
       workspaces.attach(actions,container);
+      actions.append(stop);
       list.append(row);
       if (access?.id === container.id) {
         const connection = document.createElement('li');
@@ -363,6 +428,9 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       // background refresh fails after the last known container stopped.
       data = null;
       list.hidden = true;
+      empty.hidden = true;
+      count.hidden = true;
+      usage.hidden = true;
       pagination.hidden = true;
       status.textContent = 'Container status is unavailable.';
       error.textContent = 'Could not load containers. Refresh to try again.';
@@ -382,19 +450,24 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     stateVersion++;
     clearTimeout(timer);
     error.hidden = true;
+    launchError.hidden = true;
+    let mutationError = method === 'POST' ? launchError : error;
     create.textContent = method === 'POST' ? 'Creating…' : 'Create container';
+    launchStatus.textContent = method === 'POST' ? 'Starting your container…' : '';
     status.textContent = method === 'POST' ? 'Starting your container…' : 'Stopping your container…';
     controls();
     try {
       const result = await request(method, id, createdAt);
       if (disposed) return;
       data = result;
-      if (method === 'POST') trackMachineStart(sizeSelect?.value || 'lite');
+      if (method === 'POST') trackMachineStart(selectedSize());
       render();
+      if (method === 'POST') launch.close();
       if (method === 'DELETE') refresh.focus();
     } catch (caught) {
       const cause = caught instanceof Error ? caught : new Error("Unexpected error");
       if (disposed) return;
+      if (!launch.open) mutationError = error;
       const message = cause.message === 'compute_allowance_exhausted'
         ? 'Your available compute allowance is reserved or used. Stop a session to release unused runtime, or wait for the next UTC month.'
         : cause.message === 'compute_capacity_exceeded'
@@ -416,23 +489,26 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
             : cause.message === 'billing_unavailable'
               ? 'Billing is temporarily unavailable. Try again shortly.'
           : `Could not ${method === 'POST' ? 'create' : 'stop'} your container. Refresh to check its status.`;
-      error.replaceChildren();
-      error.append(document.createTextNode(message));
+      mutationError.replaceChildren();
+      mutationError.append(document.createTextNode(message));
       if (cause.message === 'subscription_required') {
         const link = document.createElement('a');
         link.href = '/pricing/';
         link.textContent = ' View plans';
-        error.append(link);
+        mutationError.append(link);
       }
-      error.hidden = false;
+      mutationError.hidden = false;
       data = null;
+      usage.hidden = true;
+      count.hidden = true;
       status.textContent = 'Refresh containers to check the current state.';
     } finally {
       busy = false;
+      launchStatus.textContent = '';
       create.textContent = 'Create container';
       controls();
       // Leave mutation errors visible until the user reconciles the state.
-      if (error.hidden) schedule();
+      if (mutationError.hidden) schedule();
     }
   }
 
@@ -441,6 +517,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     observations.dispose();
     previews.dispose();
     closeTerminal();
+    launch.close();
     disposed = true;
     clearTimeout(timer);
     data = null;
@@ -450,7 +527,19 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     controls();
   }
 
-  sizeSelect?.addEventListener('change', controls);
+  sizePicker.addEventListener('change', controls);
+  openLaunch.addEventListener('click', () => {
+    launchError.hidden = true;
+    launch.showModal();
+    imageSelect.focus();
+  });
+  document.querySelector<HTMLButtonElement>('#container-launch-close')!.addEventListener('click', () => launch.close());
+  launch.addEventListener('close', () => {
+    if (!launchError.hidden) {
+      error.replaceChildren(...[...launchError.childNodes].map(node => node.cloneNode(true)));
+      error.hidden = false;
+    }
+  });
   create.addEventListener('click', () => mutate('POST'));
   refresh.addEventListener('click', () => load());
   function renderImages() {
@@ -474,7 +563,12 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     imageSelect.value = Array.from(imageSelect.options).some(option => option.value === selected) ? selected : imageSelect.options[0].value;
   }
   function setImages(images: Image[]) { customImages = images; renderImages(); controls(); }
-  function selectImage(id: string) { imageSelect.value = id; imageSelect.focus(); }
+  function selectImage(id: string) {
+    imageSelect.value = id;
+    launchError.hidden = true;
+    launch.showModal();
+    imageSelect.focus();
+  }
   previous.addEventListener('click', () => { if (!previous.disabled) { page--; render(); previous.focus(); } });
   next.addEventListener('click', () => { if (!next.disabled) { page++; render(); next.focus(); } });
   return { load, dispose, setImages, selectImage };

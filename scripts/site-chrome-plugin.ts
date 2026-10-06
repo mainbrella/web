@@ -42,6 +42,19 @@ const cookieDialog = `    <dialog class="cookie-consent" id="cookie-consent" ari
     </dialog>
 `;
 
+function appChrome(path: string) {
+  const pages: [string, string][] = [
+    ['Dashboard', '/dashboard/'], ['API keys', '/api-keys/'], ['Profile', '/profile/'],
+  ];
+  return `<header class="site-header app-header wrap">
+    <a class="brand" href="/" aria-label="Mainbrella home"><img src="/images/logo.png" alt="" width="44" height="44" /><span>mainbrella</span></a>
+    <nav aria-label="Main navigation"><a href="/docs/">Docs</a></nav>
+  </header>
+  <nav class="app-navigation wrap" aria-label="Product navigation">
+    ${pages.map(item => link(item, path)).join('\n    ')}
+  </nav>`;
+}
+
 // Render shared chrome into HTML so navigation works without JavaScript.
 export function siteChromePlugin(): Plugin {
   return {
@@ -51,6 +64,7 @@ export function siteChromePlugin(): Plugin {
       handler(html, context) {
         const { header, footer } = siteChrome(context.path);
         return html.replace('<!-- site-header -->', header).replace('<!-- site-footer -->', footer)
+          .replace('<!-- app-header -->', appChrome(context.path))
           .replace('<!-- cookie-consent -->', cookieDialog)
           .replace('</body>', '<script type="module" src="/src/acquisition.ts"></script>\n  </body>');
       },
