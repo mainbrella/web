@@ -31,7 +31,9 @@
           <button class="text-link billing-link" id="checkout-back" type="button">← Back to plans</button>
           <h1 id="checkout-title" tabindex="-1">Subscribe</h1>
           <p class="pricing-note" id="checkout-summary">Enter your payment details below. Your plan has a fixed monthly price; compute usage charges are not enabled.</p>
-          <div id="checkout-form">
+          <form id="checkout-form">
+            <label for="checkout-email">Email for receipts and billing</label>
+            <input id="checkout-email" name="email" type="email" autocomplete="email" required disabled />
             <div class="checkout-payment-slot" id="checkout-payment-slot" data-loading="true" aria-busy="true">
               <div id="checkout-payment" aria-label="Payment details"></div>
               <div class="checkout-payment-placeholder" aria-hidden="true">
@@ -48,9 +50,21 @@
                 </div>
               </div>
             </div>
+            <p class="pricing-note" id="checkout-total" aria-live="polite"></p>
+            <details class="checkout-promotion">
+              <summary>Promotion code</summary>
+              <label for="checkout-promotion-code">Promotion code</label>
+              <div class="checkout-promotion-controls">
+                <input id="checkout-promotion-code" name="promotion_code" type="text" autocomplete="off" aria-describedby="checkout-promotion-status" disabled />
+                <button class="button" id="checkout-promotion-apply" type="button" disabled>Apply</button>
+                <button class="text-link" id="checkout-promotion-remove" type="button" hidden>Remove</button>
+              </div>
+              <p class="pricing-note" id="checkout-promotion-status" role="status" aria-live="polite"></p>
+            </details>
             <p class="pricing-note">By subscribing, you authorize recurring monthly charges until you cancel and agree to the <a href="/terms/">Terms of Service</a>.</p>
             <p class="pricing-note" id="checkout-status" role="status" aria-live="polite" data-state="pending">Preparing secure payment…</p>
-          </div>
+            <button class="button" id="checkout-submit" type="submit" disabled>Subscribe</button>
+          </form>
         </section>
       </div>
       <div class="billing-controls">

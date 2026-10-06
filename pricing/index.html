@@ -68,11 +68,25 @@
         <button class="text-link billing-link" id="checkout-back" type="button">← Back to plans</button>
         <h2 id="checkout-title" tabindex="-1"></h2>
         <p class="pricing-note" id="checkout-summary"></p>
-        <div id="checkout-form" hidden>
+        <form id="checkout-form" hidden>
+          <label for="checkout-email">Email for receipts and billing</label>
+          <input id="checkout-email" name="email" type="email" autocomplete="email" required />
           <div id="checkout-payment" aria-label="Payment details"></div>
+          <p class="pricing-note" id="checkout-total" aria-live="polite"></p>
+          <details class="checkout-promotion">
+            <summary>Promotion code</summary>
+            <label for="checkout-promotion-code">Promotion code</label>
+            <div class="checkout-promotion-controls">
+              <input id="checkout-promotion-code" name="promotion_code" type="text" autocomplete="off" aria-describedby="checkout-promotion-status" disabled />
+              <button class="button" id="checkout-promotion-apply" type="button" disabled>Apply</button>
+              <button class="text-link" id="checkout-promotion-remove" type="button" hidden>Remove</button>
+            </div>
+            <p class="pricing-note" id="checkout-promotion-status" role="status" aria-live="polite"></p>
+          </details>
           <p class="pricing-note">By subscribing, you authorize recurring monthly charges until you cancel and agree to the <a href="/terms/">Terms of Service</a>.</p>
           <p class="pricing-note" id="checkout-status" role="status" aria-live="polite"></p>
-        </div>
+          <button class="button" id="checkout-submit" type="submit" disabled>Subscribe</button>
+        </form>
       </section>
       <div class="billing-controls">
         <p class="pricing-note" id="pro-status" role="status" aria-live="polite">Checking subscription…</p>

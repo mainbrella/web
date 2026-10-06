@@ -18,8 +18,10 @@ if (selectedPlan) {
 }
 const checkoutView = document.querySelector("#inline-checkout");
 const checkoutForm = document.querySelector("#checkout-form");
+const checkoutEmail = document.querySelector("#checkout-email");
 const checkoutBack = document.querySelector("#checkout-back");
 const checkoutPaymentSlot = document.querySelector("#checkout-payment-slot");
+let checkoutProcessing = false;
 let cleanupCheckout;
 let checkoutVersion = 0;
 let busy = false;
@@ -32,7 +34,13 @@ function showCheckoutShell(plan) {
   checkoutView.hidden = false;
   document.querySelector("#pricing-plans").hidden = true;
   document.querySelector("#checkout-title").textContent = `${plans[plan].name} — $${priceFor(plan)}/month`;
+  checkoutEmail.value = user?.email || "";
+  checkoutEmail.readOnly = false;
+  checkoutEmail.disabled = true;
   checkoutForm.hidden = false;
+  const submit = document.querySelector("#checkout-submit");
+  submit.disabled = true;
+  submit.textContent = `Subscribe for $${priceFor(plan)}/month`;
   const checkoutStatus = document.querySelector("#checkout-status");
   checkoutStatus.textContent = "Preparing secure payment…";
   checkoutStatus.dataset.state = "pending";
@@ -41,11 +49,13 @@ function showCheckoutShell(plan) {
 function closeCheckout() {
   checkoutVersion++;
   busy = false;
+  checkoutProcessing = false;
   cleanupCheckout?.();
   cleanupCheckout = null;
   setPaymentLoading(true);
   checkoutView.hidden = true;
   checkoutForm.hidden = true;
+  document.querySelector("#checkout-total").textContent = "";
   document.querySelector("#pricing-plans").hidden = false;
 }
 function disablePlans(disabled) {
@@ -153,7 +163,7 @@ function render() {
   manage.disabled = busy || !ready;
   if (cancelButton) cancelButton.disabled = busy || !ready;
   if (resumeButton) resumeButton.disabled = busy || !ready;
-  logout.disabled = busy;
+  logout.disabled = busy || checkoutProcessing;
   if (cancelButton) cancelButton.hidden = !subscription
     || Boolean(subscription.cancel_at_period_end || subscriptionState?.cancel_at_period_end);
   if (resumeButton) resumeButton.hidden = !subscription
@@ -302,16 +312,43 @@ async function openCheckout(plan) {
   disablePlans(true);
   try {
     showCheckoutShell(plan);
+    const submit = document.querySelector("#checkout-submit");
     render();
     const data = await api("/subscription/checkout", { plan });
     if (version !== checkoutVersion) return;
     if (!data.client_secret || !data.publishable_key) throw new Error("billing_unavailable");
+    checkoutEmail.disabled = false;
     cleanupCheckout = mountStripeEmbeddedCheckout({
-      container: document.querySelector("#checkout-payment"),
-      statusElement: document.querySelector("#checkout-status"),
+      container: document.querySelector("#checkout-payment"), form: checkoutForm,
+      submitButton: submit, statusElement: document.querySelector("#checkout-status"),
+      emailInput: checkoutEmail, totalElement: document.querySelector("#checkout-total"),
+      promotionInput: document.querySelector("#checkout-promotion-code"),
+      promotionApply: document.querySelector("#checkout-promotion-apply"),
+      promotionRemove: document.querySelector("#checkout-promotion-remove"),
+      promotionStatus: document.querySelector("#checkout-promotion-status"),
       clientSecret: data.client_secret, publishableKey: data.publishable_key,
+      submitLabel: submit.textContent,
       onReady: () => { if (version === checkoutVersion) setPaymentLoading(false); },
       onError: () => { if (version === checkoutVersion) setPaymentLoading(false); },
+      onProcessing: (processing) => {
+        checkoutProcessing = processing;
+        checkoutBack.disabled = processing;
+        logout.disabled = processing;
+        window.dispatchEvent(new CustomEvent('checkout-processing', { detail: { processing } }));
+      },
+      onComplete: async (session) => {
+        if (!session?.id) throw new Error("Unable to confirm your subscription. Please contact support@mainbrella.com.");
+        try {
+          const confirmation = await api("/subscription/complete", { session_id: session.id, client_secret: data.client_secret });
+          if (version !== checkoutVersion) return;
+          applySubscription(confirmation);
+        } catch {
+          throw new Error("Payment was submitted. We couldn’t confirm your subscription. Retry confirmation or contact support@mainbrella.com.");
+        }
+        if (version !== checkoutVersion) return;
+        closeCheckout();
+        render();
+      },
     });
   } catch (error) {
     if (version !== checkoutVersion) return;

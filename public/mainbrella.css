@@ -240,6 +240,7 @@ h3 { font-size: 18px; line-height: 1.4; letter-spacing: -.015em; }
 .checkout-payment-placeholder .checkout-placeholder-label { width: 88px; height: 12px; margin-bottom: 8px; }
 .checkout-placeholder-input { height: 48px; }
 .checkout-placeholder-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-top: 16px; }
+#checkout-total { min-height: 1.6em; }
 #checkout-status { min-height: 3.2em; }
 @media (max-width: 600px) {
   .checkout-page .site-header.platform-header nav > .button { display: none; }
@@ -252,8 +253,19 @@ h3 { font-size: 18px; line-height: 1.4; letter-spacing: -.015em; }
 .subscription-main #pricing-plans .button { margin-top: 20px; }
 #checkout-form { display: grid; gap: 12px; margin-top: 20px; }
 #checkout-form[hidden], .inline-checkout[hidden], .pricing-plans[hidden] { display: none; }
+#checkout-form label { font-size: 14px; }
+#checkout-email, #checkout-promotion-code { min-width: 0; width: 100%; min-height: 48px; padding: 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); font: inherit; }
+#checkout-submit { justify-self: start; }
+.checkout-promotion summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-size: 14px; }
+.checkout-promotion label { display: block; margin-bottom: 8px; }
+.checkout-promotion-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+#checkout-promotion-code { flex: 1 1 160px; width: auto; }
+#checkout-promotion-remove { min-height: 44px; }
+#checkout-promotion-remove[hidden] { display: none; }
+#checkout-promotion-status:not(:empty) { margin-top: 8px; }
 #checkout-form .pricing-note { margin-top: 0; }
 #checkout-status[data-state="error"] { color: #ffb4ab; }
+#checkout-promotion-status[data-state="error"] { color: #ffb4ab; }
 @media (max-width: 800px) { .pricing-plans { grid-template-columns: 1fr; gap: 28px; } .plan + .plan { padding-top: 28px; border-top: 1px solid var(--line); } }
 .rate-list, .cost-list { margin: 16px 0 0; }
 .rate-list div, .cost-list div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; padding: 10px 0; }
