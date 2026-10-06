@@ -13,7 +13,7 @@ Historical prototype startup benchmarks have incomplete original metadata and ra
 - [Overview and plans](https://mainbrella.com/): Product details, benchmarks, and pricing.
 - [About](https://mainbrella.com/about/): Andrew Arrow, founder of Mainbrella Co., and why we are building cloud computers for agents.
 - [Agent setup skill](https://mainbrella.com/SKILL.md): API key handoff, project detection, integration, verification, and troubleshooting.
-- [API reference](https://mainbrella.com/API.md): Capabilities, container lifecycle, foreground and managed execution, streaming, binary files, operational status, SSH, limits, and errors.
+- [API reference](https://mainbrella.com/API.md): Capabilities, container lifecycle, foreground and managed execution, streaming, protected preview contracts, binary files, operational status, SSH, limits, and errors.
 - [OpenAPI schema](https://api.mainbrella.com/docs): Machine-readable API contracts.
 - [Dashboard](https://mainbrella.com/dashboard/): Manage containers and subscriptions.
 - [Platform and availability](https://mainbrella.com/platform/): Compute placement, runtime availability, access, and current limits.
@@ -42,3 +42,5 @@ Historical prototype startup benchmarks have incomplete original metadata and ra
 - [Python SDK reference](https://mainbrella.com/sdk/python.md): Local unpublished SDK; installation requires a backend checkout.
 
 Sizes and units/hour: lite 1 (1/16 vCPU, 256 MiB, 2 GB disk); small 6 (0.5 vCPU, 4 GiB, 8 GB); medium 10 (1 vCPU, 6 GiB, 12 GB); large 16 (2 vCPU, 8 GiB, 16 GB); xl 28 (4 vCPU, 12 GiB, 20 GB). POST /containers accepts size with catalogId or imageId; default lite. Runtime is reserved before start; unused runtime is released on confirmed stop. Sessions stop at their budget deadline or UTC month boundary. No automatic overages or top-ups.
+
+Protected previews are implemented locally but await live qualification. Check previews.supported in /capabilities before issuance. Start your HTTP server first; POST /containers/previews with exact id/createdAt and port returns a one-time bearer URL. GET lists metadata only; DELETE with previewId revokes. Local JS/Python SDKs provide sandbox.previews.create/list/revoke. See https://mainbrella.com/docs/containers/#previews for limits and safe reconciliation.

@@ -32,6 +32,16 @@ Idempotency-Key: &lt;unique-operation-key&gt;
 <h2>Lifecycle</h2>
 <p>Containers end at their plan's hard deadline, the paid period recognized at creation, or their idle timeout. Renewals and upgrades do not extend existing sessions. Commands and terminal activity renew idle time only. A stopped container loses its files.</p>
 <p>Check <a href="/docs/limits/">allowance</a> before launching. Failed starts count toward monthly usage; requests rejected at concurrency capacity do not.</p>
+<h2 id="previews">Protected application previews</h2>
+<p>Preview ingress is implemented locally and awaits isolated-domain configuration and live qualification. Check <code>GET /capabilities</code>; use it only when <code>previews.supported</code> is true. The dashboard then shows a Preview control beside each container. Start your HTTP server first, enter its port, and create a link. The dashboard shows expiration and lets you revoke access.</p>
+<pre class="docs-code"><code>POST /containers/previews?id=&lt;id&gt;&amp;createdAt=&lt;generation&gt;
+Authorization: Bearer mb_&lt;your-key&gt;
+Content-Type: application/json
+
+{"port":3000,"ttlSeconds":900}</code></pre>
+<p>The response contains <code>{id, port, createdAt, expiresAt, url}</code>. The HTTPS URL gives anyone who has it access to the selected port. It is returned once; share deliberately and keep it out of logs and analytics. <code>expiresAt</code> is Unix milliseconds. Links last 60–3600 seconds, default to 15 minutes, and end no later than the container deadline. Ports 1024–65535 are eligible; eight grants can be active per generation.</p>
+<p>List active metadata with <code>GET /containers/previews?id=…&amp;createdAt=…</code>; URLs cannot be recovered after reload. Revoke with <code>DELETE /containers/previews?id=…&amp;createdAt=…&amp;previewId=…</code>. Revocation closes active connections. Stop, expiry, or generation replacement invalidates access. Listing and revocation remain available when new issuance is disabled.</p>
+<p>Creating a link is not idempotent. After a lost response, list and revoke the unwanted grant before creating another. A <code>preview_reconciliation_required</code> error includes <code>previewId</code>; retry DELETE with that ID and the same generation. Requests never start or restart a container. Cookies and Authorization are stripped; cookie sessions, external Host semantics and absolute redirect rewriting are unsupported. See the <a href="/API.md">full contract</a> and local <a href="/sdk/javascript.md">JavaScript</a> / <a href="/sdk/python.md">Python</a> helpers.</p>
 </article></main>
     <!-- site-footer -->
     <script type="module" src="/src/account-menu.js"></script>
