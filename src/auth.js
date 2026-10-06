@@ -33,9 +33,26 @@ export function createAuthClient() {
         method: "POST", body: JSON.stringify({ credential }),
       });
       if (!response.ok || !result?.user) {
-        throw new Error(result?.error === "invalid_google_credential"
+        throw new Error(result?.error === "identity_conflict"
+          ? "This email already has a password account. Continue with email and password."
+          : result?.error === "invalid_google_credential"
           ? "Google could not verify that sign-in. Please try again."
           : "Could not finish signing you in. Please try again.");
+      }
+      return { user: result.user };
+    },
+    async signInWithEmail(email, password) {
+      const { response, result } = await request("/auth/email", {
+        method: "POST", body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      });
+      if (!response.ok || !result?.user) {
+        const messages = {
+          invalid_request: "Enter a valid email and a password of no more than 128 characters.",
+          weak_password: "Use at least 8 characters for a new password.",
+          invalid_credentials: "Email or password is incorrect. If you signed up with Google, continue with Google.",
+          rate_limited: "Too many attempts. Please wait a minute and try again.",
+        };
+        throw new Error(messages[result?.error] || "Could not finish signing you in. Please try again.");
       }
       return { user: result.user };
     },

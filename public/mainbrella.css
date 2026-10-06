@@ -292,6 +292,14 @@ button:disabled { opacity: .65; cursor: wait; }
 .login-error { margin-top: 8px; color: #ffb4ab; font-size: 14px; }
 .login-provider, .login-signed-in { margin-top: 24px; }
 .google-button-host { min-height: 44px; }
+.login-provider { max-width: 360px; }
+.email-login-form { display: grid; gap: 8px; margin-top: 24px; }
+.email-login-form label { font-size: 14px; }
+.email-login-form label:not(:first-child) { margin-top: 8px; }
+.email-login-form input { width: 100%; min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: var(--surface); font: inherit; }
+.email-login-form p { color: var(--muted); font-size: 13px; }
+.email-login-submit { width: 100%; margin-top: 8px; border: 0; font: inherit; font-weight: 600; cursor: pointer; }
+.email-login-submit:disabled { opacity: .65; cursor: wait; }
 .login-provider.is-disabled { pointer-events: none; opacity: .65; }
 .google-loading { color: var(--muted); font-size: 14px; }
 .google-retry, .login-sign-out { display: block; min-height: 44px; margin-top: 12px; padding: 8px 16px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: transparent; font: inherit; cursor: pointer; }

@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0d1014" />
-    <meta name="description" content="Log in to Mainbrella with your Google account." />
+    <meta name="description" content="Log in or create a Mainbrella account with Google or email and password." />
     <link rel="canonical" href="https://mainbrella.com/login/" />
     <link rel="icon" href="/images/favicon.png" type="image/png" />
     <link rel="stylesheet" href="/mainbrella.css" />
@@ -32,8 +32,16 @@
           <div class="google-button-host" aria-label="Continue with Google"></div>
           <p class="google-loading" role="status" hidden>Loading Google sign-in…</p>
           <button class="google-retry" type="button" hidden>Retry Google sign-in</button>
+          <form class="email-login-form">
+            <label for="login-email">Email</label>
+            <input id="login-email" name="email" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="254" required />
+            <label for="login-password">Password</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="128" aria-describedby="email-login-help" required />
+            <p id="email-login-help">New here? We'll create your account. Use at least 8 characters for a new password.</p>
+            <button class="button email-login-submit" type="submit">Continue with email</button>
+          </form>
         </div>
-        <noscript><p>Enable JavaScript to sign in with Google.</p></noscript>
+        <noscript><p>Enable JavaScript to sign in.</p></noscript>
       </section>
     </main>
     <script type="module" src="/src/login.js"></script>

@@ -12,6 +12,11 @@ const signedIn = document.querySelector('.login-signed-in');
 const identity = document.querySelector('.login-identity');
 const signOutButton = document.querySelector('.login-sign-out');
 const profileEmail = document.querySelector('.profile-email');
+const emailForm = document.querySelector('.email-login-form');
+const emailInput = document.querySelector('#login-email');
+const passwordInput = document.querySelector('#login-password');
+const emailSubmit = document.querySelector('.email-login-submit');
+const signInPrompt = 'Continue with Google or email and password.';
 
 let user = null;
 let signingIn = false;
@@ -56,9 +61,9 @@ async function showCurrentState() {
   window.dispatchEvent(new CustomEvent('auth-change', { detail: { user } }));
   signedIn.hidden = !user;
   provider.hidden = Boolean(user);
-  status.textContent = user ? 'You’re signed in.' : 'Use your Google account to continue.';
+  status.textContent = user ? 'You’re signed in.' : signInPrompt;
   if (user) {
-    identity.textContent = user.name || user.email || 'Google account';
+    identity.textContent = user.name || user.email || 'Mainbrella account';
     if (profileEmail) profileEmail.textContent = user.email || 'Not provided';
     if (returnTo) window.location.replace(returnTo);
   } else {
@@ -70,7 +75,8 @@ async function loadGoogleButton() {
   googleHost.replaceChildren();
   googleRetry.hidden = true;
   googleLoading.hidden = false;
-  provider.setAttribute('aria-busy', 'true');
+  googleLoading.textContent = 'Loading Google sign-in…';
+  googleHost.setAttribute('aria-busy', 'true');
   try {
     await loadGoogleIdentityScript();
     if (!window.google?.accounts?.id) throw new Error('Google sign-in is unavailable. Please retry.');
@@ -91,32 +97,51 @@ async function loadGoogleButton() {
     });
     googleLoading.hidden = true;
   } catch {
-    googleLoading.hidden = true;
+    googleLoading.hidden = false;
     googleRetry.hidden = false;
-    showError(new Error('Google sign-in could not load. Check your connection and retry.'));
+    googleLoading.textContent = 'Google sign-in could not load. You can use email below or retry Google.';
   } finally {
-    provider.setAttribute('aria-busy', 'false');
+    googleHost.setAttribute('aria-busy', 'false');
   }
 }
 
 async function handleCredential(credential) {
+  await signIn(() => auth.signInWithGoogle(credential));
+}
+
+emailForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!emailForm.reportValidity()) return;
+  await signIn(() => auth.signInWithEmail(emailInput.value, passwordInput.value));
+});
+
+async function signIn(authenticate) {
   if (signingIn || signingOut || user) return;
   signingIn = true;
   clearError();
   status.textContent = 'Signing in…';
   page.setAttribute('aria-busy', 'true');
   provider.classList.add('is-disabled');
+  emailInput.disabled = true;
+  passwordInput.disabled = true;
+  emailSubmit.disabled = true;
+  emailSubmit.textContent = 'Continuing…';
   try {
-    const session = await auth.signInWithGoogle(credential);
+    const session = await authenticate();
     user = session.user;
+    passwordInput.value = '';
     await showCurrentState();
   } catch (cause) {
-    status.textContent = 'Use your Google account to continue.';
+    status.textContent = signInPrompt;
     showError(cause);
   } finally {
     signingIn = false;
     page.setAttribute('aria-busy', 'false');
     provider.classList.remove('is-disabled');
+    emailInput.disabled = false;
+    passwordInput.disabled = false;
+    emailSubmit.disabled = false;
+    emailSubmit.textContent = 'Continue with email';
   }
 }
 
