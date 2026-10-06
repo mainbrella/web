@@ -174,7 +174,7 @@ test('verification does not start when the selected image is unavailable', async
 test('publication emits source documents and runnable tools; backend docs stay synchronized', async () => {
   const emitted = [];
   await agentDocsPlugin().generateBundle.call({ emitFile: asset => emitted.push(asset) });
-  assert.deepEqual(emitted.map(asset => asset.fileName), ['SKILL.md', 'API.md', 'mainbrella-doctor.mjs', 'mainbrella-verify.mjs', 'mainbrella-benchmark.mjs']);
+  assert.deepEqual(emitted.map(asset => asset.fileName), ['SKILL.md', 'API.md', 'mainbrella-doctor.mjs', 'mainbrella-verify.mjs', 'mainbrella-deploy-static.mjs', 'mainbrella-benchmark.mjs']);
   for (const file of ['SKILL.md', 'API.md']) {
     const source = await readFile(new URL(`../${file}`, import.meta.url), 'utf8');
     assert.equal(emitted.find(asset => asset.fileName === file).source, source);

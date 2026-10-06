@@ -4,6 +4,7 @@ Generated from backend API.md and SDK READMEs. Local implementation does not est
 
 - [Authentication](authentication.md)
 - [Agent setup and verification](agent-setup-and-verification.md)
+- [Static-site deployment over HTTP](static-site-deployment-over-http.md)
 - [Images](images.md)
 - [Endpoints](endpoints.md)
 - [HTTP command execution](http-command-execution.md)

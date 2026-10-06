@@ -20,7 +20,9 @@ Four HTTP commands can run concurrently per container, separately from terminal
 connections. Starting a command counts as idle activity without extending the
 hard deadline or consuming a start. Stopping/replacing a machine revokes commands.
 A disconnect requests cancellation when observable; the timeout still applies
-when the platform does not propagate a disconnect. Background jobs and reconnect
-are not supported. Results are not retained. An HTTP failure can hide a completed
+when the platform does not propagate a disconnect. This foreground route has
+no retained or reconnectable jobs; use `/containers/executions` for managed
+background jobs, streaming and reconnect when advertised by `/capabilities`.
+Foreground results are not retained. An HTTP failure can hide a completed
 command: do not blindly retry commands with side effects. SSH remains available
 for longer-running and interactive workflows.

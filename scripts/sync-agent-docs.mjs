@@ -24,7 +24,7 @@ try {
   for (const [name, hash] of Object.entries(manifest.files)) {
     const source = name === 'llms-full.txt' ? join(bundle, name) : name.startsWith('references/')
       ? join(bundle, 'mainbrella-containers', name) : join(backend, name.replace(/^sdk\/(javascript|python)\.md$/, 'sdk/$1/README.md'));
-    const target = join(root, ['API.md', 'SKILL.md'].includes(name) ? name : `public/${name}`);
+    const target = join(root, (['API.md', 'SKILL.md'].includes(name) || name.startsWith('scripts/')) ? name : `public/${name}`);
     const bytes = await readFile(source);
     if (createHash('sha256').update(bytes).digest('hex') !== hash) throw new Error(`Source hash mismatch: ${name}`);
     if (check) {
@@ -39,7 +39,7 @@ try {
   if (check) {
     if (await readFile(manifestPath, 'utf8') !== manifestText) throw new Error('Reference manifest drift');
     const archive = join(root, 'public/skills', `mainbrella-containers-${manifest.version}.tar.gz`);
-    for (const [name, hash] of Object.entries({ ...Object.fromEntries(Object.entries(manifest.files).filter(([name]) => ['API.md', 'SKILL.md'].includes(name) || name.startsWith('references/'))), LICENSE: manifest.licenseSha256 })) {
+    for (const [name, hash] of Object.entries({ ...Object.fromEntries(Object.entries(manifest.files).filter(([name]) => ['API.md', 'SKILL.md'].includes(name) || name.startsWith('references/') || name.startsWith('scripts/'))), LICENSE: manifest.licenseSha256 })) {
       const bytes = execFileSync('tar', ['-xOzf', archive, `mainbrella-containers/${name}`]);
       if (createHash('sha256').update(bytes).digest('hex') !== hash) throw new Error(`Skill archive drift: ${name}; run npm run docs:sync`);
     }

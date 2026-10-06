@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 test('public reference manifest verifies all canonical contract copies', async () => {
   const manifest = JSON.parse(await readFile(new URL('../public/references/manifest.json', import.meta.url), 'utf8'));
   for (const [name, hash] of Object.entries(manifest.files)) {
-    const path = new URL(['API.md', 'SKILL.md'].includes(name) ? `../${name}` : `../public/${name}`, import.meta.url);
+    const path = new URL((['API.md', 'SKILL.md'].includes(name) || name.startsWith('scripts/')) ? `../${name}` : `../public/${name}`, import.meta.url);
     assert.equal(createHash('sha256').update(await readFile(path)).digest('hex'), hash, `${name} changed without docs:sync`);
   }
   const index = await readFile(new URL('../public/references/index.md', import.meta.url), 'utf8');
@@ -18,7 +18,7 @@ test('installable skill archive contains the public contract and every indexed r
   const manifest = JSON.parse(await readFile(new URL('../public/references/manifest.json', import.meta.url), 'utf8'));
   const archive = new URL(`../public/skills/mainbrella-containers-${manifest.version}.tar.gz`, import.meta.url);
   const listing = execFileSync('tar', ['-tzf', archive.pathname], { encoding: 'utf8' }).split('\n');
-  for (const name of ['API.md', 'SKILL.md', ...Object.keys(manifest.files).filter(file => file.startsWith('references/'))]) {
+  for (const name of ['API.md', 'SKILL.md', ...Object.keys(manifest.files).filter(file => (file.startsWith('references/') || file.startsWith('scripts/')))]) {
     assert.ok(listing.includes(`mainbrella-containers/${name}`));
     const content = execFileSync('tar', ['-xOzf', archive.pathname, `mainbrella-containers/${name}`]);
     assert.equal(createHash('sha256').update(content).digest('hex'), manifest.files[name]);
