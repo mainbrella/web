@@ -99,5 +99,6 @@ if (nav) {
   window.addEventListener('checkout-processing', (event) => {
     signOut.disabled = event.detail.processing;
   });
+  window.addEventListener('cookie-consent-change', refresh);
   refresh();
 }

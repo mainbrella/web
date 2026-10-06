@@ -5,13 +5,17 @@ import { runInNewContext } from 'node:vm';
 import { createRequire, registerHooks } from 'node:module';
 import { pathToFileURL } from 'node:url';
 
-const source = await readFile(new URL('./cookie-consent.js', import.meta.url), 'utf8');
+const preferences = await readFile(new URL('./cookie-preferences.js', import.meta.url), 'utf8');
+const modal = await readFile(new URL('./cookie-consent.js', import.meta.url), 'utf8');
+const source = preferences.replace(/^export /gm, '') + '\n' + modal.replace(/^import .*;\n/m, '');
 const consentKey = 'mainbrella-cookie-consent';
 
 function visit({ local = new Map(), session = new Map(), blockedLocal = false, blockedSession = false } = {}) {
   const scripts = [];
   const cookieWrites = [];
   const listeners = new Map();
+  const settingsListeners = new Map();
+  const settings = { addEventListener: (name, callback) => settingsListeners.set(name, callback), focus() {} };
   const dialog = {
     open: false,
     addEventListener: (name, callback) => listeners.set(name, callback),
@@ -22,16 +26,18 @@ function visit({ local = new Map(), session = new Map(), blockedLocal = false, b
     getItem(key) { if (blocked) throw new Error('Storage blocked'); return values.get(key) ?? null; },
     setItem(key, value) { if (blocked) throw new Error('Storage blocked'); values.set(key, value); },
   });
-  const window = { localStorage: storage(local, blockedLocal), sessionStorage: storage(session, blockedSession) };
+  const window = { localStorage: storage(local, blockedLocal), sessionStorage: storage(session, blockedSession), dispatchEvent() {} };
   const document = {
     querySelector: selector => selector === '#cookie-consent' ? dialog : { focus() {} },
+    querySelectorAll: () => [settings],
     documentElement: { classList: { add() {}, remove() {} } },
     createElement: tag => ({ tag }),
     head: { append: script => scripts.push(script.src) },
     set cookie(value) { cookieWrites.push(value); },
   };
-  runInNewContext(source, { window, document });
-  return { dialog, scripts, cookieWrites, window, local, session,
+  const methods = runInNewContext(source + '\n({ readConsent, needsSignInCookies });', { window, document, CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } } });
+  return { ...methods, dialog, scripts, cookieWrites, window, local, session,
+    reopen() { settingsListeners.get('click')(); },
     choose(choice) { listeners.get('click')({ target: { closest: () => ({ dataset: { consent: choice } }) } }); },
   };
 }
@@ -118,4 +124,24 @@ test('importing payment code does not inject Stripe before checkout opens', asyn
   assert.equal(scripts.length, 1);
   assert.match(scripts[0], /^https:\/\/js\.stripe\.com\//);
   cleanup();
+});
+
+
+test('rejected visitors can reopen the original modal, reject again, or accept to enable login and pixels', () => {
+  const first = visit();
+  first.choose('rejected');
+  const returning = visit({ local: first.local });
+  assert.equal(returning.needsSignInCookies(), true);
+  returning.reopen();
+  assert.equal(returning.dialog.open, true);
+  returning.choose('rejected');
+  assert.equal(returning.needsSignInCookies(), true);
+  assert.deepEqual(returning.scripts, []);
+  returning.reopen();
+  returning.choose('accepted');
+  assert.equal(returning.needsSignInCookies(), false);
+  assert.equal(returning.scripts.length, 2);
+  returning.reopen();
+  returning.choose('accepted');
+  assert.equal(returning.scripts.length, 2);
 });

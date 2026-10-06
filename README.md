@@ -25,6 +25,8 @@ confirmation, while downgrades and cancellations take effect at the next renewal
 For existing guest purchases, contact support@mainbrella.com for billing changes
 or cancellation.
 
+Visitors who reject cookies can browse public pages. Login and account features show a cookie message with a “Change cookie choice” button that reopens the original two-choice dialog. Sign-in providers and advertising pixels wait for “Accept All”; rejection is remembered without a cookie.
+
 Google login is available at `/login` (redirecting to `/login/`), using the same
 credentialed `/auth/me`, `/auth/google`, and `/auth/logout` flow as AHP Tour.
 The default client ID is

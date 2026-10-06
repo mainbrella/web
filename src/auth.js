@@ -1,3 +1,5 @@
+import { needsSignInCookies, signInCookieMessage } from './cookie-preferences.js';
+
 export const GOOGLE_CLIENT_ID = import.meta.env?.VITE_GOOGLE_CLIENT_ID
   || "854186419005-l0u2olqlqe40qmgin0q8tjpvftooi6ac.apps.googleusercontent.com";
 export const API_ORIGIN = import.meta.env?.VITE_API_URL
@@ -22,12 +24,14 @@ export function createAuthClient() {
 
   return {
     async readSession() {
+      if (needsSignInCookies()) return null;
       const { response, result } = await request("/auth/me");
       if (response.status === 401) return null;
       if (!response.ok || !result || !("user" in result)) throw new Error("Could not check your sign-in. Please try again.");
       return result.user ? { user: result.user } : null;
     },
     async signInWithGoogle(credential) {
+      if (needsSignInCookies()) throw new Error(signInCookieMessage);
       if (!credential) throw new Error("Google sign-in could not be completed. Please try again.");
       const { response, result } = await request("/auth/google", {
         method: "POST", body: JSON.stringify({ credential }),
@@ -42,6 +46,7 @@ export function createAuthClient() {
       return { user: result.user };
     },
     async signInWithEmail(email, password) {
+      if (needsSignInCookies()) throw new Error(signInCookieMessage);
       const { response, result } = await request("/auth/email", {
         method: "POST", body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });

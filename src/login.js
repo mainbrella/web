@@ -1,3 +1,5 @@
+import './cookie-consent.js';
+import { needsSignInCookies, signInCookieMessage } from './cookie-preferences.js';
 import { createAuthClient, GOOGLE_CLIENT_ID } from './auth.js';
 
 const auth = createAuthClient();
@@ -16,6 +18,7 @@ const emailForm = document.querySelector('.email-login-form');
 const emailInput = document.querySelector('#login-email');
 const passwordInput = document.querySelector('#login-password');
 const emailSubmit = document.querySelector('.email-login-submit');
+const cookieNotice = document.querySelector('.login-cookie-notice');
 const signInPrompt = 'Continue with Google or email and password.';
 
 let user = null;
@@ -40,6 +43,7 @@ function safeReturnTo(value) {
 start();
 
 async function start() {
+  if (showCookieNotice()) return;
   page.setAttribute('aria-busy', 'true');
   status.textContent = 'Checking your session…';
   try {
@@ -48,6 +52,7 @@ async function start() {
     await showCurrentState();
   } catch (cause) {
     showError(cause);
+    if (showCookieNotice()) return;
     provider.hidden = false;
     status.textContent = 'Could not check your session.';
     loadGoogleButton();
@@ -57,6 +62,7 @@ async function start() {
 }
 
 async function showCurrentState() {
+  if (showCookieNotice()) return;
   clearError();
   window.dispatchEvent(new CustomEvent('auth-change', { detail: { user } }));
   signedIn.hidden = !user;
@@ -72,6 +78,7 @@ async function showCurrentState() {
 }
 
 async function loadGoogleButton() {
+  if (showCookieNotice()) return;
   googleHost.replaceChildren();
   googleRetry.hidden = true;
   googleLoading.hidden = false;
@@ -79,6 +86,7 @@ async function loadGoogleButton() {
   googleHost.setAttribute('aria-busy', 'true');
   try {
     await loadGoogleIdentityScript();
+    if (showCookieNotice()) return;
     if (!window.google?.accounts?.id) throw new Error('Google sign-in is unavailable. Please retry.');
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
@@ -109,27 +117,27 @@ async function handleCredential(credential) {
   await signIn(() => auth.signInWithGoogle(credential));
 }
 
-emailForm.addEventListener('submit', async (event) => {
+emailForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!emailForm.reportValidity()) return;
   await signIn(() => auth.signInWithEmail(emailInput.value, passwordInput.value));
 });
 
 async function signIn(authenticate) {
-  if (signingIn || signingOut || user) return;
+  if (showCookieNotice() || signingIn || signingOut || user) return;
   signingIn = true;
   clearError();
   status.textContent = 'Signing in…';
   page.setAttribute('aria-busy', 'true');
   provider.classList.add('is-disabled');
-  emailInput.disabled = true;
-  passwordInput.disabled = true;
-  emailSubmit.disabled = true;
-  emailSubmit.textContent = 'Continuing…';
+  for (const control of [emailInput, passwordInput, emailSubmit]) {
+    if (control) control.disabled = true;
+  }
+  if (emailSubmit) emailSubmit.textContent = 'Continuing…';
   try {
     const session = await authenticate();
     user = session.user;
-    passwordInput.value = '';
+    if (passwordInput) passwordInput.value = '';
     await showCurrentState();
   } catch (cause) {
     status.textContent = signInPrompt;
@@ -138,10 +146,10 @@ async function signIn(authenticate) {
     signingIn = false;
     page.setAttribute('aria-busy', 'false');
     provider.classList.remove('is-disabled');
-    emailInput.disabled = false;
-    passwordInput.disabled = false;
-    emailSubmit.disabled = false;
-    emailSubmit.textContent = 'Continue with email';
+    for (const control of [emailInput, passwordInput, emailSubmit]) {
+      if (control) control.disabled = false;
+    }
+    if (emailSubmit) emailSubmit.textContent = 'Continue with email';
   }
 }
 
@@ -175,6 +183,24 @@ window.addEventListener('auth-change', (event) => {
   if (event.detail?.user !== null || !user) return;
   user = null;
   showCurrentState();
+});
+
+function showCookieNotice() {
+  const blocked = needsSignInCookies();
+  cookieNotice.hidden = !blocked;
+  if (blocked) {
+    provider.hidden = true;
+    signedIn.hidden = true;
+    status.textContent = signInCookieMessage;
+    clearError();
+    page.setAttribute('aria-busy', 'false');
+  }
+  return blocked;
+}
+
+window.addEventListener('cookie-consent-change', async () => {
+  await start();
+  if (!provider.hidden) emailInput?.focus();
 });
 
 function showError(cause) {

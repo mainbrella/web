@@ -28,6 +28,10 @@
           <a class="text-link" href="/pricing/">Manage subscription</a>
           <button class="login-sign-out" type="button">Sign out</button>
         </div>
+        <div class="login-cookie-notice" hidden>
+          <button class="button" type="button" data-cookie-settings>Change cookie choice</button>
+          <a class="text-link" href="/">Keep browsing</a>
+        </div>
         <div class="login-provider" hidden>
           <div class="google-button-host" aria-label="Continue with Google"></div>
           <p class="google-loading" role="status" hidden>Loading Google sign-in…</p>
@@ -44,6 +48,13 @@
         <noscript><p>Enable JavaScript to sign in.</p></noscript>
       </section>
     </main>
+    <dialog class="cookie-consent" id="cookie-consent" aria-label="Cookie preferences" aria-describedby="cookie-consent-description">
+      <p id="cookie-consent-description">This website uses cookies to measure and improve your experience. Read our <a href="/terms/" target="_blank" rel="noopener">Terms of Service<span class="visually-hidden"> (opens in a new tab)</span></a>.</p>
+      <div class="cookie-consent-actions">
+        <button class="button cookie-consent-reject" type="button" data-consent="rejected" autofocus>Reject All</button>
+        <button class="button" type="button" data-consent="accepted">Accept All</button>
+      </div>
+    </dialog>
     <script type="module" src="/src/login.js"></script>
     <script type="module" src="/src/account-menu.js"></script>
   </body>

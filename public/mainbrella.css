@@ -692,3 +692,5 @@ html.cookie-consent-open { overflow: hidden; }
   .cookie-consent-actions { gap: 12px; }
   .cookie-consent .button { flex: 1; padding-right: 12px; padding-left: 12px; }
 }
+
+.login-cookie-notice .text-link { display: block; width: fit-content; min-height: 44px; margin-top: 8px; padding: 8px 0; }

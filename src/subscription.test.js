@@ -40,7 +40,7 @@ async function fixture(t, current = 'builder', target = 'pro', extra = {}) {
   property('location', { pathname: extra.pathname || `/pricing/${target}`, search: extra.search || '', hash: '', assign: value => redirects.push(value) });
   property('history', { replaceState() {} });
   property('checkoutOptions', null);
-  property('window', { addEventListener: (type, handler) => events.set(type, handler),
+  property('window', { localStorage: { getItem: () => extra.cookieChoice || 'accepted' }, addEventListener: (type, handler) => events.set(type, handler),
     dispatchEvent: event => events.get(event.type)?.(event), confirm: value => { confirmations.push(value); return accept; } });
   property('fetch', async (url, options) => {
     const path = new URL(url).pathname; const body = options.body ? JSON.parse(options.body) : null;
@@ -317,8 +317,6 @@ test('payment checkout failures still allow a valid card-free trial redemption',
   assert.match(f.node('#pro-status').textContent, /Pro free trial ends/);
 });
 
-test.after(() => hooks.deregister());
-
 
 test('pricing overview shows billing controls and navigates to checkout without mounting Stripe', async t => {
   const f = await fixture(t, 'builder', 'pro', { pathname: '/pricing/' });
@@ -335,3 +333,23 @@ test('checkout Back to plans returns to pricing', async t => {
   await f.node('#checkout-back').click();
   assert.deepEqual(f.redirects, ['/pricing/']);
 });
+
+
+test('rejected visitors can browse pricing without authentication cookies or checkout', async t => {
+  const f = await fixture(t, null, 'builder', { pathname: '/pricing/', cookieChoice: 'rejected' });
+  assert.equal(f.calls.some(call => call.path === '/auth/me'), false);
+  assert.equal(f.calls.some(call => call.path === '/subscription'), false);
+  assert.equal(globalThis.checkoutOptions, null);
+  assert.match(f.node('#pro-status').textContent, /Change your cookie choice/);
+  await f.button.click();
+  assert.deepEqual(f.redirects, ['/pricing/builder']);
+});
+
+test('rejected visitors opening a checkout route go to login before Stripe mounts', async t => {
+  const f = await fixture(t, null, 'builder', { cookieChoice: 'rejected' });
+  assert.equal(f.calls.some(call => call.path === '/auth/me'), false);
+  assert.equal(globalThis.checkoutOptions, null);
+  assert.deepEqual(f.redirects, ['/login?returnTo=%2Fpricing%2Fbuilder']);
+});
+
+test.after(() => hooks.deregister());

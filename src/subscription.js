@@ -1,3 +1,4 @@
+import { needsSignInCookies, signInCookieMessage } from './cookie-preferences.js';
 import { mountStripeEmbeddedCheckout } from "./payments/stripeEmbeddedCheckout.js";
 import { API_ORIGIN, createAuthClient } from "./auth.js";
 import { plans } from "./plans.js";
@@ -98,8 +99,12 @@ let ready = false;
 let authVersion = 0;
 
 async function api(path, body) {
+  if (needsSignInCookies()) {
+    if (path === '/auth/me') return { user: null };
+    if (path !== '/subscription/config') throw new Error(signInCookieMessage);
+  }
   const response = await fetch(apiOrigin + path, {
-    credentials: "include",
+    credentials: path === "/subscription/config" ? "omit" : "include",
     method: body === undefined ? "GET" : "POST",
     headers: body === undefined ? {} : { "content-type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -242,7 +247,7 @@ async function initialize() {
       history.replaceState(null, "", `${location.pathname}${params.size ? `?${params}` : ""}${location.hash}`);
     }
     if (user && !completed) await refresh();
-    else if (!user) message("Sign in to subscribe.");
+    else if (!user) message(needsSignInCookies() ? signInCookieMessage : "Sign in to subscribe.");
     if (version !== authVersion) return;
     if (params.get("subscription_return") === "1" && !user) {
       message("You’ve returned from Stripe. For help with your subscription, contact support@mainbrella.com.");
