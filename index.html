@@ -23,15 +23,6 @@
     <link rel="stylesheet" href="/mainbrella.css" />
     <title>Mainbrella — A cloud computer for every AI agent</title>
   </head>
-  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18496708678"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'AW-18496708678');
-  </script>
-  <script>!function(w,d,s,u){if(w.oaiq)return;var q=function(){q.q.push(arguments)};q.q=[];w.oaiq=q;var j=d.createElement(s);j.async=1;j.src=u;var f=d.getElementsByTagName(s)[0];f.parentNode.insertBefore(j,f)}(window,document,"script","https://bzrcdn.openai.com/sdk/oaiq.min.js");oaiq("init",{pixelId:"QeBc7EgP6cvtRWN38MkXjE",debug:true});</script>
   <body class="sandbox-home">
     <a class="skip-link" href="#main">Skip to content</a>
     <!-- site-header -->
@@ -242,6 +233,14 @@ curl -X DELETE &quot;$API/containers?id=$ID&amp;createdAt=$GEN&quot; \
     </main>
 
     <!-- site-footer -->
+    <dialog class="cookie-consent" id="cookie-consent" aria-label="Cookie preferences" aria-describedby="cookie-consent-description">
+      <p id="cookie-consent-description">This website uses cookies to measure and improve your experience. Read our <a href="/terms/" target="_blank" rel="noopener">Terms of Service<span class="visually-hidden"> (opens in a new tab)</span></a>.</p>
+      <div class="cookie-consent-actions">
+        <button class="button cookie-consent-reject" type="button" data-consent="rejected" autofocus>Reject All</button>
+        <button class="button" type="button" data-consent="accepted">Accept All</button>
+      </div>
+    </dialog>
+    <script type="module" src="/src/cookie-consent.js"></script>
     <script type="module" src="/src/subscription.js"></script>
     <script type="module" src="/src/account-menu.js"></script>
     <script type="module" src="/src/agent-setup.js"></script>

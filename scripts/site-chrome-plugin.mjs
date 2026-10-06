@@ -1,5 +1,5 @@
 const navigation = [
-  ['Product', '/#product'], ['Docs', '/docs/'], ['Pricing', '/pricing/'],
+  ['Docs', '/docs/'], ['Pricing', '/pricing/'],
   ['About', '/about/'],
 ];
 
