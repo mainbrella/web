@@ -217,8 +217,11 @@ Keep article claims aligned with the linked guides when contracts change. Add ne
 articles to the blog index, `vite.config.js`, and `public/sitemap.xml`.
 
 `/compare/` is a Mainbrella-authored comparison reviewed October 6, 2026, covering
-dedicated agent sandboxes, elastic compute primitives, raw VMs, app platforms,
-and cloud development workspaces. It cites official sources and does not rank
+remote coding-agent products and phone control planes (Cursor, Codex Cloud, and
+Runloop Reflex), agent hosts and sandboxes, elastic compute primitives, raw VMs,
+app platforms, and cloud development workspaces. It separates today's Mainbrella
+capabilities from the proposed agent-control direction in `../mac.plan2.md`, and
+distinguishes worktree transfer from live session migration. It cites official sources and does not rank
 speed because the platforms lack a common benchmark. Recheck those sources and
 update the review date whenever changing prices or capabilities. Daytona's
 archived public core repository reports that core development moved private in
