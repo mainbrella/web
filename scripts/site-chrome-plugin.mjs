@@ -1,6 +1,6 @@
 const navigation = [
   ['Product', '/#product'], ['Docs', '/docs/'], ['Pricing', '/pricing/'],
-  ['Security', '/security/'], ['Changelog', '/changelog/'], ['Blog', '/blog/'], ['About', '/about/'],
+  ['About', '/about/'],
 ];
 
 function link([label, href], path) {
