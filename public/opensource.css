@@ -8,6 +8,11 @@
 .source-stack strong { font-size: 17px; font-weight: 500; }
 .source-stack li p { margin-top: 4px; color: var(--muted); font-size: 14px; }
 .source-sections { margin-top: 12px; }
+.source-graphic { margin: 32px 0 0; }
+.source-graphic > a { display: block; }
+.source-graphic img { width: 100%; height: auto; }
+.source-graphic figcaption { margin-top: 8px; color: var(--muted); font-size: 13px; }
+.source-graphic figcaption a { display: inline-flex; align-items: center; min-height: 44px; color: var(--blue); }
 .source-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
 .source-columns > *, .generation-example { min-width: 0; }
 .source-columns p { margin-top: 12px; max-width: 68ch; color: var(--muted); font-size: 15px; }

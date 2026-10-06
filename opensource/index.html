@@ -63,6 +63,10 @@
         <li><h3>Run it in your account.</h3><p>Deploy to your Cloudflare account and domain. Use the included web client, API, and SDKs to onboard customers, then handle their support and grow the service.</p></li>
       </ul>
       <div class="provider-details"><h3>The foundation<br />is already built.</h3><div><p>Account management, billing flows, API keys, quota enforcement, machine lifecycle, terminals, and previews take real engineering work. That code is here, along with deployment configs and tests. Put your effort into the audience, experience, and service that make your business worth choosing.</p><p>You're welcome to compete directly with mainbrella.com. Forking the platform and selling your own hosted service is part of the invitation.</p></div></div>
+      <figure class="source-graphic">
+        <a href="/images/mainbrella-business-in-a-box.png" aria-label="View the business-in-a-box diagram at full size"><img src="/images/mainbrella-business-in-a-box.png" width="1600" height="900" loading="lazy" decoding="async" alt="Fork the GPL v3 source, customize your brand and prices, deploy to your own Cloudflare account, and sell to your customers. The platform includes a working SaaS with no Mainbrella software fee." /></a>
+        <figcaption>Example prices in the diagram are illustrative—you choose your own. <a href="/images/mainbrella-business-in-a-box.png">View full size →</a></figcaption>
+      </figure>
     </section>
 
     <section class="workflow wrap" id="architecture" aria-labelledby="architecture-title">
@@ -72,6 +76,10 @@
         <div><h3>Durable Objects coordinate the work.</h3><p>A <code>ContainerAccount</code> object coordinates account reservations, concurrency, and compute budgets. Each machine's runtime has its own state. Cloudflare Containers supply the isolated Linux environment.</p></div>
       </div>
       <div class="provider-details"><h3>Ambiguous response?<br />Keep one launch.</h3><div><p>Creation combines persisted reservations with idempotency keys. If a launch response gets lost, retrying the same request can reconcile the original creation instead of casually starting another paid machine. Commands that may have already run need reconciliation, not blind replay.</p><a class="text-link" href="/blog/safe-container-creation/">How creation and generations work →</a></div></div>
+      <figure class="source-graphic">
+        <a href="/images/mainbrella-control-plane-stack.png" aria-label="View the control-plane stack diagram at full size"><img src="/images/mainbrella-control-plane-stack.png" width="1600" height="900" loading="lazy" decoding="async" alt="Mainbrella connects the web dashboard, billing, developer API, SDKs, SSH, terminals, previews, saved workspaces, and mobile clients to Workers, D1, Durable Objects, and Linux Containers in your Cloudflare account. Customize the brand, prices, and domain." /></a>
+        <figcaption><a href="/images/mainbrella-control-plane-stack.png">View the control-plane diagram at full size →</a></figcaption>
+      </figure>
     </section>
 
     <section class="workflow wrap" id="capabilities" aria-labelledby="capabilities-title">
