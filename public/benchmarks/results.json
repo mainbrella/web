@@ -1,0 +1,1288 @@
+{
+  "formatVersion": 1,
+  "description": "Public timing extract; identifiers, credentials, command output, and private account data omitted. Failed workload phases retained; only valid phases are advertised.",
+  "workloads": {
+    "startedAt": "2026-10-06T06:32:25.953Z",
+    "finishedAt": "2026-10-06T06:36:20.032Z",
+    "revision": "232312921b141335c72637dcc2bc5117b9078a9c",
+    "sources": [
+      {
+        "path": "scripts/benchmark-sizes.mjs",
+        "sha256": "17136bc7b1b818ffe27f5d965200f945165617e9b94d6855587cd517b38fb293"
+      },
+      {
+        "path": "scripts/benchmark-workloads.mjs",
+        "sha256": "e1391901bc1eb39918bce279b17c44dc11fcbab9da55a55a95d96fc69eeba062"
+      },
+      {
+        "path": "containers/plan-policy.js",
+        "sha256": "67814651a360614610568fc110393c53e64e44b913850ee89db1d4cdff65a128"
+      },
+      {
+        "path": "sdk/javascript/index.js",
+        "sha256": "4fed683fc95b9f1c85780b8910d6425cdec0e27b90eb477851b1df74b05e7ade"
+      }
+    ],
+    "methodology": "One fresh generation per language/size; two simultaneous Small Node generations. Empty workload caches. Public API startup includes admission/readiness/polling. Provider image/cache placement is unknown; no cold-cache claim. Single samples do not establish p95. Ten-minute wall deadline per generation. Failures retained. Resource costs are upper bounds assuming fully active allocated CPU, excluding other services.",
+    "startsRequested": 17,
+    "summary": {
+      "attempted": 17,
+      "succeeded": 6,
+      "failed": 11
+    },
+    "releaseQualified": false,
+    "cleanup": "completed",
+    "samples": [
+      {
+        "size": "lite",
+        "catalogId": "node",
+        "startupMs": 1421.311083,
+        "ok": false,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "npm-install",
+            "elapsedMs": 4362.1447499999995,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          },
+          {
+            "name": "typescript-build-test",
+            "elapsedMs": 4486.568458000001,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          },
+          {
+            "name": "browser-install",
+            "elapsedMs": 241987.214958,
+            "status": "timed_out",
+            "exitCode": null,
+            "timedOut": true,
+            "outputTruncated": false
+          }
+        ]
+      },
+      {
+        "size": "lite",
+        "catalogId": "python",
+        "startupMs": 6472.958125000005,
+        "ok": false,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "pip-install",
+            "elapsedMs": 9374.879791999992,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          },
+          {
+            "name": "python-build-test",
+            "elapsedMs": 2229.5939589999616,
+            "status": "failed",
+            "exitCode": 1,
+            "timedOut": false,
+            "outputTruncated": false
+          }
+        ]
+      },
+      {
+        "size": "lite",
+        "catalogId": "rust",
+        "ok": false,
+        "cleanup": "completed",
+        "phases": []
+      },
+      {
+        "size": "small",
+        "catalogId": "node",
+        "startupMs": 1042.180458,
+        "ok": false,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "npm-install",
+            "elapsedMs": 4199.35975,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          },
+          {
+            "name": "typescript-build-test",
+            "elapsedMs": 4087.8439590000007,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          },
+          {
+            "name": "browser-install",
+            "elapsedMs": 49120.307583999995,
+            "status": "output_limit",
+            "exitCode": null,
+            "timedOut": false,
+            "outputTruncated": true
+          }
+        ]
+      },
+      {
+        "size": "small",
+        "catalogId": "python",
+        "startupMs": 965.7465000000011,
+        "ok": true,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "pip-install",
+            "elapsedMs": 9028.731667,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          },
+          {
+            "name": "python-build-test",
+            "elapsedMs": 2692.783666000003,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          }
+        ]
+      },
+      {
+        "size": "small",
+        "catalogId": "rust",
+        "startupMs": 1209.795207999996,
+        "ok": false,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "cargo-fetch",
+            "elapsedMs": 816.6660419999971,
+            "status": "failed",
+            "exitCode": 127,
+            "timedOut": false,
+            "outputTruncated": false
+          }
+        ]
+      },
+      {
+        "size": "medium",
+        "catalogId": "node",
+        "startupMs": 956.3788330000098,
+        "ok": false,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "npm-install",
+            "elapsedMs": 4005.986124999996,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          },
+          {
+            "name": "typescript-build-test",
+            "elapsedMs": 2508.2537500000035,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          },
+          {
+            "name": "browser-install",
+            "elapsedMs": 22558.850791999997,
+            "status": "output_limit",
+            "exitCode": null,
+            "timedOut": false,
+            "outputTruncated": true
+          }
+        ]
+      },
+      {
+        "size": "medium",
+        "catalogId": "python",
+        "startupMs": 1076.9353330000013,
+        "ok": true,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "pip-install",
+            "elapsedMs": 9198.055584000002,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          },
+          {
+            "name": "python-build-test",
+            "elapsedMs": 2394.580667000002,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          }
+        ]
+      },
+      {
+        "size": "medium",
+        "catalogId": "rust",
+        "startupMs": 1033.7835419999901,
+        "ok": false,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "cargo-fetch",
+            "elapsedMs": 697.3901250000054,
+            "status": "failed",
+            "exitCode": 127,
+            "timedOut": false,
+            "outputTruncated": false
+          }
+        ]
+      },
+      {
+        "size": "large",
+        "catalogId": "node",
+        "startupMs": 876.6376659999951,
+        "ok": false,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "npm-install",
+            "elapsedMs": 4098.401833999989,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          },
+          {
+            "name": "typescript-build-test",
+            "elapsedMs": 2309.949666999979,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          },
+          {
+            "name": "browser-install",
+            "elapsedMs": 17352.282584,
+            "status": "output_limit",
+            "exitCode": null,
+            "timedOut": false,
+            "outputTruncated": true
+          }
+        ]
+      },
+      {
+        "size": "large",
+        "catalogId": "python",
+        "startupMs": 1125.105291999993,
+        "ok": true,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "pip-install",
+            "elapsedMs": 9320.687875000003,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          },
+          {
+            "name": "python-build-test",
+            "elapsedMs": 2503.8946250000154,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          }
+        ]
+      },
+      {
+        "size": "large",
+        "catalogId": "rust",
+        "startupMs": 1047.7356670000008,
+        "ok": false,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "cargo-fetch",
+            "elapsedMs": 789.2782080000034,
+            "status": "failed",
+            "exitCode": 127,
+            "timedOut": false,
+            "outputTruncated": false
+          }
+        ]
+      },
+      {
+        "size": "xl",
+        "catalogId": "node",
+        "startupMs": 899.0920420000039,
+        "ok": false,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "npm-install",
+            "elapsedMs": 4034.1971670000057,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          },
+          {
+            "name": "typescript-build-test",
+            "elapsedMs": 2578.598457999993,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          },
+          {
+            "name": "browser-install",
+            "elapsedMs": 17281.239750000008,
+            "status": "output_limit",
+            "exitCode": null,
+            "timedOut": false,
+            "outputTruncated": true
+          }
+        ]
+      },
+      {
+        "size": "xl",
+        "catalogId": "python",
+        "startupMs": 938.4759170000034,
+        "ok": true,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "pip-install",
+            "elapsedMs": 7470.612334000005,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          },
+          {
+            "name": "python-build-test",
+            "elapsedMs": 2339.012875000015,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          }
+        ]
+      },
+      {
+        "size": "xl",
+        "catalogId": "rust",
+        "startupMs": 964.631875000021,
+        "ok": false,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "cargo-fetch",
+            "elapsedMs": 620.0144999999902,
+            "status": "failed",
+            "exitCode": 127,
+            "timedOut": false,
+            "outputTruncated": false
+          }
+        ]
+      },
+      {
+        "size": "small",
+        "catalogId": "node",
+        "startupMs": 901.3815000000177,
+        "ok": true,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "concurrent-build",
+            "elapsedMs": 7493.442624999996,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          }
+        ]
+      },
+      {
+        "size": "small",
+        "catalogId": "node",
+        "startupMs": 1194.4042500000214,
+        "ok": true,
+        "cleanup": "completed",
+        "phases": [
+          {
+            "name": "concurrent-build",
+            "elapsedMs": 7560.406958000007,
+            "status": "succeeded",
+            "exitCode": 0,
+            "timedOut": false,
+            "outputTruncated": false
+          }
+        ]
+      }
+    ]
+  },
+  "prototype": {
+    "startedAt": "2026-10-05T11:43:31.256Z",
+    "finishedAt": "2026-10-05T11:53:50.180Z",
+    "instance": "standard-2",
+    "resources": {
+      "vcpus": 1,
+      "memoryGiB": 6,
+      "diskGB": 12
+    },
+    "methodology": "Nearest-rank percentiles of successful client start-request wall times. Shell verification is separate. Provider cache state and placement unknown.",
+    "create": {
+      "attempted": 30,
+      "succeeded": 30,
+      "successRate": 1,
+      "p50Ms": 381.3319580000002,
+      "p95Ms": 527.7673340000001,
+      "serverP50Ms": 132,
+      "serverP95Ms": 274
+    },
+    "resume": {
+      "attempted": 30,
+      "succeeded": 30,
+      "successRate": 1,
+      "p50Ms": 472.8492499999993,
+      "p95Ms": 788.2746670000015,
+      "serverP50Ms": 229,
+      "serverP95Ms": 365
+    },
+    "scale": {
+      "attempted": 100,
+      "succeeded": 100,
+      "successRate": 1,
+      "p50Ms": 503.44654199999786,
+      "p95Ms": 680.2427499999976,
+      "serverP50Ms": 144,
+      "serverP95Ms": 296,
+      "uniqueHostnames": 100,
+      "dispatchSpreadMs": 4.541209000002709,
+      "observedRunning": 100
+    },
+    "cleanupVerified": true,
+    "cleanedUpMachines": 164,
+    "samples": {
+      "create": [
+        {
+          "ok": true,
+          "wallMs": 312.97229200000004,
+          "durationMs": 99
+        },
+        {
+          "ok": true,
+          "wallMs": 427.46737499999995,
+          "durationMs": 95
+        },
+        {
+          "ok": true,
+          "wallMs": 424.7936249999998,
+          "durationMs": 182
+        },
+        {
+          "ok": true,
+          "wallMs": 460.75941699999976,
+          "durationMs": 219
+        },
+        {
+          "ok": true,
+          "wallMs": 365.19270800000004,
+          "durationMs": 132
+        },
+        {
+          "ok": true,
+          "wallMs": 381.3319580000002,
+          "durationMs": 130
+        },
+        {
+          "ok": true,
+          "wallMs": 275.96199999999953,
+          "durationMs": 61
+        },
+        {
+          "ok": true,
+          "wallMs": 275.2796250000001,
+          "durationMs": 75
+        },
+        {
+          "ok": true,
+          "wallMs": 410.92212500000005,
+          "durationMs": 118
+        },
+        {
+          "ok": true,
+          "wallMs": 411.5506660000001,
+          "durationMs": 179
+        },
+        {
+          "ok": true,
+          "wallMs": 352.48312499999975,
+          "durationMs": 105
+        },
+        {
+          "ok": true,
+          "wallMs": 371.83337500000016,
+          "durationMs": 101
+        },
+        {
+          "ok": true,
+          "wallMs": 402.4893749999992,
+          "durationMs": 195
+        },
+        {
+          "ok": true,
+          "wallMs": 308.66854199999943,
+          "durationMs": 68
+        },
+        {
+          "ok": true,
+          "wallMs": 385.65679099999943,
+          "durationMs": 152
+        },
+        {
+          "ok": true,
+          "wallMs": 327.7680420000015,
+          "durationMs": 142
+        },
+        {
+          "ok": true,
+          "wallMs": 513.3584579999988,
+          "durationMs": 278
+        },
+        {
+          "ok": true,
+          "wallMs": 315.6916659999988,
+          "durationMs": 137
+        },
+        {
+          "ok": true,
+          "wallMs": 636.8485419999997,
+          "durationMs": 178
+        },
+        {
+          "ok": true,
+          "wallMs": 388.97299999999996,
+          "durationMs": 132
+        },
+        {
+          "ok": true,
+          "wallMs": 468.47262500000033,
+          "durationMs": 121
+        },
+        {
+          "ok": true,
+          "wallMs": 350.7200840000005,
+          "durationMs": 152
+        },
+        {
+          "ok": true,
+          "wallMs": 287.1311659999992,
+          "durationMs": 121
+        },
+        {
+          "ok": true,
+          "wallMs": 318.41412500000115,
+          "durationMs": 151
+        },
+        {
+          "ok": true,
+          "wallMs": 510.8507090000003,
+          "durationMs": 274
+        },
+        {
+          "ok": true,
+          "wallMs": 325.7209160000002,
+          "durationMs": 115
+        },
+        {
+          "ok": true,
+          "wallMs": 408.583125000001,
+          "durationMs": 118
+        },
+        {
+          "ok": true,
+          "wallMs": 334.93675000000076,
+          "durationMs": 94
+        },
+        {
+          "ok": true,
+          "wallMs": 511.479041999999,
+          "durationMs": 234
+        },
+        {
+          "ok": true,
+          "wallMs": 527.7673340000001,
+          "durationMs": 259
+        }
+      ],
+      "resume": [
+        {
+          "ok": true,
+          "wallMs": 408.5739160000012,
+          "durationMs": 251
+        },
+        {
+          "ok": true,
+          "wallMs": 1350.2480000000032,
+          "durationMs": 1015
+        },
+        {
+          "ok": true,
+          "wallMs": 480.61816700000054,
+          "durationMs": 293
+        },
+        {
+          "ok": true,
+          "wallMs": 536.5472919999993,
+          "durationMs": 365
+        },
+        {
+          "ok": true,
+          "wallMs": 429.7628330000007,
+          "durationMs": 236
+        },
+        {
+          "ok": true,
+          "wallMs": 431.4447079999991,
+          "durationMs": 245
+        },
+        {
+          "ok": true,
+          "wallMs": 788.2746670000015,
+          "durationMs": 189
+        },
+        {
+          "ok": true,
+          "wallMs": 585.8713339999958,
+          "durationMs": 277
+        },
+        {
+          "ok": true,
+          "wallMs": 292.8417499999996,
+          "durationMs": 194
+        },
+        {
+          "ok": true,
+          "wallMs": 376.080750000001,
+          "durationMs": 203
+        },
+        {
+          "ok": true,
+          "wallMs": 378.89974999999686,
+          "durationMs": 198
+        },
+        {
+          "ok": true,
+          "wallMs": 472.8492499999993,
+          "durationMs": 230
+        },
+        {
+          "ok": true,
+          "wallMs": 563.3900419999991,
+          "durationMs": 200
+        },
+        {
+          "ok": true,
+          "wallMs": 503.9184169999935,
+          "durationMs": 226
+        },
+        {
+          "ok": true,
+          "wallMs": 420.7311249999984,
+          "durationMs": 190
+        },
+        {
+          "ok": true,
+          "wallMs": 486.4310420000038,
+          "durationMs": 230
+        },
+        {
+          "ok": true,
+          "wallMs": 412.89808300000004,
+          "durationMs": 269
+        },
+        {
+          "ok": true,
+          "wallMs": 481.75470900000073,
+          "durationMs": 233
+        },
+        {
+          "ok": true,
+          "wallMs": 468.1872499999954,
+          "durationMs": 237
+        },
+        {
+          "ok": true,
+          "wallMs": 362.79320899999584,
+          "durationMs": 208
+        },
+        {
+          "ok": true,
+          "wallMs": 433.9415000000008,
+          "durationMs": 209
+        },
+        {
+          "ok": true,
+          "wallMs": 414.1933749999953,
+          "durationMs": 180
+        },
+        {
+          "ok": true,
+          "wallMs": 505.7327079999959,
+          "durationMs": 286
+        },
+        {
+          "ok": true,
+          "wallMs": 518.658875000001,
+          "durationMs": 195
+        },
+        {
+          "ok": true,
+          "wallMs": 739.1528330000001,
+          "durationMs": 326
+        },
+        {
+          "ok": true,
+          "wallMs": 470.0160410000026,
+          "durationMs": 241
+        },
+        {
+          "ok": true,
+          "wallMs": 492.890916999997,
+          "durationMs": 211
+        },
+        {
+          "ok": true,
+          "wallMs": 527.0248750000028,
+          "durationMs": 195
+        },
+        {
+          "ok": true,
+          "wallMs": 524.7774169999975,
+          "durationMs": 225
+        },
+        {
+          "ok": true,
+          "wallMs": 455.24691699999676,
+          "durationMs": 229
+        }
+      ],
+      "scale": [
+        {
+          "ok": true,
+          "wallMs": 406.23425000000134,
+          "durationMs": 132
+        },
+        {
+          "ok": true,
+          "wallMs": 366.4951250000013,
+          "durationMs": 123
+        },
+        {
+          "ok": true,
+          "wallMs": 534.965750000003,
+          "durationMs": 273
+        },
+        {
+          "ok": true,
+          "wallMs": 343.9812080000047,
+          "durationMs": 73
+        },
+        {
+          "ok": true,
+          "wallMs": 538.5328330000048,
+          "durationMs": 210
+        },
+        {
+          "ok": true,
+          "wallMs": 381.4181250000038,
+          "durationMs": 95
+        },
+        {
+          "ok": true,
+          "wallMs": 546.3843340000021,
+          "durationMs": 265
+        },
+        {
+          "ok": true,
+          "wallMs": 381.2998340000049,
+          "durationMs": 84
+        },
+        {
+          "ok": true,
+          "wallMs": 802.1100420000002,
+          "durationMs": 537
+        },
+        {
+          "ok": true,
+          "wallMs": 381.1088329999984,
+          "durationMs": 97
+        },
+        {
+          "ok": true,
+          "wallMs": 514.0671660000007,
+          "durationMs": 195
+        },
+        {
+          "ok": true,
+          "wallMs": 380.9807920000021,
+          "durationMs": 99
+        },
+        {
+          "ok": true,
+          "wallMs": 503.44654199999786,
+          "durationMs": 153
+        },
+        {
+          "ok": true,
+          "wallMs": 503.47395900000265,
+          "durationMs": 131
+        },
+        {
+          "ok": true,
+          "wallMs": 380.92870800000674,
+          "durationMs": 138
+        },
+        {
+          "ok": true,
+          "wallMs": 401.8457500000004,
+          "durationMs": 155
+        },
+        {
+          "ok": true,
+          "wallMs": 532.7600420000017,
+          "durationMs": 145
+        },
+        {
+          "ok": true,
+          "wallMs": 407.3163330000025,
+          "durationMs": 152
+        },
+        {
+          "ok": true,
+          "wallMs": 503.84258400000544,
+          "durationMs": 113
+        },
+        {
+          "ok": true,
+          "wallMs": 501.64629199999763,
+          "durationMs": 203
+        },
+        {
+          "ok": true,
+          "wallMs": 501.7199169999949,
+          "durationMs": 118
+        },
+        {
+          "ok": true,
+          "wallMs": 342.8596249999973,
+          "durationMs": 114
+        },
+        {
+          "ok": true,
+          "wallMs": 501.6162919999988,
+          "durationMs": 123
+        },
+        {
+          "ok": true,
+          "wallMs": 380.3993750000009,
+          "durationMs": 94
+        },
+        {
+          "ok": true,
+          "wallMs": 751.192833000001,
+          "durationMs": 421
+        },
+        {
+          "ok": true,
+          "wallMs": 541.8869160000031,
+          "durationMs": 225
+        },
+        {
+          "ok": true,
+          "wallMs": 501.53966700000456,
+          "durationMs": 137
+        },
+        {
+          "ok": true,
+          "wallMs": 373.3543750000026,
+          "durationMs": 129
+        },
+        {
+          "ok": true,
+          "wallMs": 353.41529199999786,
+          "durationMs": 113
+        },
+        {
+          "ok": true,
+          "wallMs": 528.9027500000011,
+          "durationMs": 229
+        },
+        {
+          "ok": true,
+          "wallMs": 503.5497499999983,
+          "durationMs": 174
+        },
+        {
+          "ok": true,
+          "wallMs": 399.76516699999775,
+          "durationMs": 110
+        },
+        {
+          "ok": true,
+          "wallMs": 501.2601250000007,
+          "durationMs": 69
+        },
+        {
+          "ok": true,
+          "wallMs": 637.335500000001,
+          "durationMs": 334
+        },
+        {
+          "ok": true,
+          "wallMs": 503.01945899999555,
+          "durationMs": 112
+        },
+        {
+          "ok": true,
+          "wallMs": 500.9603330000027,
+          "durationMs": 91
+        },
+        {
+          "ok": true,
+          "wallMs": 500.9969159999964,
+          "durationMs": 129
+        },
+        {
+          "ok": true,
+          "wallMs": 359.2882080000054,
+          "durationMs": 101
+        },
+        {
+          "ok": true,
+          "wallMs": 342.08958300000086,
+          "durationMs": 110
+        },
+        {
+          "ok": true,
+          "wallMs": 502.90308399999776,
+          "durationMs": 176
+        },
+        {
+          "ok": true,
+          "wallMs": 502.0583750000005,
+          "durationMs": 107
+        },
+        {
+          "ok": true,
+          "wallMs": 347.88204200000473,
+          "durationMs": 119
+        },
+        {
+          "ok": true,
+          "wallMs": 500.7840830000059,
+          "durationMs": 152
+        },
+        {
+          "ok": true,
+          "wallMs": 545.7070000000022,
+          "durationMs": 163
+        },
+        {
+          "ok": true,
+          "wallMs": 531.6949169999934,
+          "durationMs": 215
+        },
+        {
+          "ok": true,
+          "wallMs": 514.348957999995,
+          "durationMs": 196
+        },
+        {
+          "ok": true,
+          "wallMs": 501.890707999999,
+          "durationMs": 190
+        },
+        {
+          "ok": true,
+          "wallMs": 576.9505830000053,
+          "durationMs": 190
+        },
+        {
+          "ok": true,
+          "wallMs": 502.78204099999857,
+          "durationMs": 153
+        },
+        {
+          "ok": true,
+          "wallMs": 500.7110410000023,
+          "durationMs": 103
+        },
+        {
+          "ok": true,
+          "wallMs": 538.0078330000033,
+          "durationMs": 176
+        },
+        {
+          "ok": true,
+          "wallMs": 521.893415999999,
+          "durationMs": 158
+        },
+        {
+          "ok": true,
+          "wallMs": 502.3259160000016,
+          "durationMs": 154
+        },
+        {
+          "ok": true,
+          "wallMs": 502.3534170000057,
+          "durationMs": 70
+        },
+        {
+          "ok": true,
+          "wallMs": 501.471540999999,
+          "durationMs": 103
+        },
+        {
+          "ok": true,
+          "wallMs": 527.692667000003,
+          "durationMs": 144
+        },
+        {
+          "ok": true,
+          "wallMs": 515.723582999999,
+          "durationMs": 204
+        },
+        {
+          "ok": true,
+          "wallMs": 643.3912500000006,
+          "durationMs": 223
+        },
+        {
+          "ok": true,
+          "wallMs": 500.06612500000483,
+          "durationMs": 126
+        },
+        {
+          "ok": true,
+          "wallMs": 540.4767079999947,
+          "durationMs": 152
+        },
+        {
+          "ok": true,
+          "wallMs": 500.1777909999946,
+          "durationMs": 108
+        },
+        {
+          "ok": true,
+          "wallMs": 381.23866599999747,
+          "durationMs": 78
+        },
+        {
+          "ok": true,
+          "wallMs": 551.2370420000007,
+          "durationMs": 203
+        },
+        {
+          "ok": true,
+          "wallMs": 502.08162500000617,
+          "durationMs": 135
+        },
+        {
+          "ok": true,
+          "wallMs": 398.38524999999936,
+          "durationMs": 90
+        },
+        {
+          "ok": true,
+          "wallMs": 543.7388340000034,
+          "durationMs": 184
+        },
+        {
+          "ok": true,
+          "wallMs": 589.1642500000016,
+          "durationMs": 221
+        },
+        {
+          "ok": true,
+          "wallMs": 864.3440830000036,
+          "durationMs": 472
+        },
+        {
+          "ok": true,
+          "wallMs": 558.7970420000056,
+          "durationMs": 158
+        },
+        {
+          "ok": true,
+          "wallMs": 499.7210829999967,
+          "durationMs": 103
+        },
+        {
+          "ok": true,
+          "wallMs": 499.6099170000016,
+          "durationMs": 87
+        },
+        {
+          "ok": true,
+          "wallMs": 554.6571669999976,
+          "durationMs": 174
+        },
+        {
+          "ok": true,
+          "wallMs": 500.81970900000306,
+          "durationMs": 122
+        },
+        {
+          "ok": true,
+          "wallMs": 730.3377919999984,
+          "durationMs": 318
+        },
+        {
+          "ok": true,
+          "wallMs": 605.335583,
+          "durationMs": 203
+        },
+        {
+          "ok": true,
+          "wallMs": 545.9473750000034,
+          "durationMs": 164
+        },
+        {
+          "ok": true,
+          "wallMs": 563.966124999999,
+          "durationMs": 200
+        },
+        {
+          "ok": true,
+          "wallMs": 517.3689169999998,
+          "durationMs": 141
+        },
+        {
+          "ok": true,
+          "wallMs": 511.1784170000028,
+          "durationMs": 141
+        },
+        {
+          "ok": true,
+          "wallMs": 620.840667000004,
+          "durationMs": 230
+        },
+        {
+          "ok": true,
+          "wallMs": 532.8356669999994,
+          "durationMs": 146
+        },
+        {
+          "ok": true,
+          "wallMs": 506.99358400000347,
+          "durationMs": 112
+        },
+        {
+          "ok": true,
+          "wallMs": 499.22233300000516,
+          "durationMs": 91
+        },
+        {
+          "ok": true,
+          "wallMs": 500.35620899999776,
+          "durationMs": 100
+        },
+        {
+          "ok": true,
+          "wallMs": 680.2427499999976,
+          "durationMs": 296
+        },
+        {
+          "ok": true,
+          "wallMs": 547.2843340000036,
+          "durationMs": 151
+        },
+        {
+          "ok": true,
+          "wallMs": 586.9584160000013,
+          "durationMs": 194
+        },
+        {
+          "ok": true,
+          "wallMs": 668.1922500000001,
+          "durationMs": 203
+        },
+        {
+          "ok": true,
+          "wallMs": 501.02445799999987,
+          "durationMs": 119
+        },
+        {
+          "ok": true,
+          "wallMs": 501.02429100000154,
+          "durationMs": 74
+        },
+        {
+          "ok": true,
+          "wallMs": 586.8723339999997,
+          "durationMs": 184
+        },
+        {
+          "ok": true,
+          "wallMs": 599.4910840000011,
+          "durationMs": 151
+        },
+        {
+          "ok": true,
+          "wallMs": 608.5739170000015,
+          "durationMs": 181
+        },
+        {
+          "ok": true,
+          "wallMs": 683.3772499999977,
+          "durationMs": 183
+        },
+        {
+          "ok": true,
+          "wallMs": 503.5121250000011,
+          "durationMs": 109
+        },
+        {
+          "ok": true,
+          "wallMs": 500.97216599999956,
+          "durationMs": 100
+        },
+        {
+          "ok": true,
+          "wallMs": 583.7335840000014,
+          "durationMs": 161
+        },
+        {
+          "ok": true,
+          "wallMs": 503.4041670000006,
+          "durationMs": 116
+        },
+        {
+          "ok": true,
+          "wallMs": 581.7195410000058,
+          "durationMs": 129
+        },
+        {
+          "ok": true,
+          "wallMs": 619.8944999999949,
+          "durationMs": 138
+        }
+      ]
+    }
+  }
+}

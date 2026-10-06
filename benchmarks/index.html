@@ -3,25 +3,54 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Historical Mainbrella startup results, evidence gaps, and reproducible HTTP benchmark methodology." />
+    <meta name="description" content="Mainbrella workload measurements across five machine sizes, historical startup percentiles, and reproducible benchmark methodology." />
     <meta name="theme-color" content="#0d1014" />
     <link rel="canonical" href="https://mainbrella.com/benchmarks/" />
     <link rel="icon" href="/images/favicon.png" type="image/png" />
     <link rel="stylesheet" href="/mainbrella.css" />
-    <title>Startup benchmarks · Mainbrella</title>
+    <title>Benchmarks · Mainbrella</title>
   </head>
   <body class="info-body">
     <a class="skip-link" href="#main">Skip to content</a>
     <!-- site-header -->
     <main id="main" class="legal-content wrap">
-      <h1>Startup benchmarks</h1>
-      <p>Historical prototype observations: 381 ms P50 and 528 ms P95 for creation, and 680 ms P95 for a 100-machine burst. These results are not a latency or availability guarantee.</p>
-<div class="docs-table-scroll" role="region" aria-label="Historical prototype results" tabindex="0"><table class="docs-table"><thead><tr><th scope="col">Test</th><th scope="col">Samples / successful</th><th scope="col">P50</th><th scope="col">P95</th></tr></thead><tbody><tr><th scope="row">Create</th><td>30 / 30</td><td>381 ms</td><td>528 ms</td></tr><tr><th scope="row">100 concurrent starts</th><td>100 / 100</td><td>Not recorded</td><td>680 ms</td></tr></tbody></table></div>
-      <h2>Original test record</h2>
-      <p>These figures were published on the homepage before this page was added on October 5, 2026. The original harness and raw samples are not available in this repository, so the percentile calculation and timing boundaries cannot be independently audited.</p>
-<div class="docs-table-scroll" role="region" aria-label="Original benchmark metadata" tabindex="0"><table class="docs-table"><thead><tr><th scope="col">Field</th><th scope="col">Recorded evidence</th></tr></thead><tbody><tr><th scope="row">Test date</th><td>Not recorded; page publication date is not the test date.</td></tr><tr><th scope="row">Environment / region</th><td>Cloudflare-backed prototype; deployment configuration, client location, and compute region not recorded.</td></tr><tr><th scope="row">Instance size / image</th><td>Not recorded for the original tests. Current plans offer five machine sizes; that does not establish the prototype configuration.</td></tr><tr><th scope="row">Cold / warm semantics</th><td>Not recorded. A new container identity does not establish a cold host or an uncached image.</td></tr><tr><th scope="row">Concurrency</th><td>Create test: not recorded. Burst test: reported as 100 distinct machines running simultaneously.</td></tr><tr><th scope="row">Raw samples / source</th><td>Only aggregate results remain in the <a href="https://github.com/mainbrella/web/commit/39572aa">website source</a>.</td></tr></tbody></table></div>
+      <h1>Benchmarks</h1>
+      <p>Measured startup, dependency installation, and build/test times across Lite–XL, plus historical prototype startup percentiles. These observations are not latency or availability guarantees.</p>
+      <h2 id="workloads">Five-size workload measurements</h2>
+      <p>October 6, 2026 UTC. Each cell below is a single observed public-API phase time in seconds, including managed execution polling. Workload directories and package caches were fresh; provider host and image-cache placement were unknown. These samples do not establish P50 or P95.</p>
+      <div class="docs-table-scroll" role="region" aria-label="Five-size workload results in seconds" tabindex="0">
+        <table class="docs-table">
+          <thead><tr><th scope="col">Size</th><th scope="col">Node startup</th><th scope="col">npm install</th><th scope="col">TypeScript build/test</th><th scope="col">pip install</th><th scope="col">Python build/numeric test</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Lite</th><td>1.42 s</td><td>4.36 s</td><td>4.49 s</td><td>9.38 s</td><td>Invalid fixture</td></tr>
+            <tr><th scope="row">Small</th><td>1.04 s</td><td>4.20 s</td><td>4.09 s</td><td>9.03 s</td><td>2.69 s</td></tr>
+            <tr><th scope="row">Medium</th><td>0.96 s</td><td>4.01 s</td><td>2.51 s</td><td>9.20 s</td><td>2.40 s</td></tr>
+            <tr><th scope="row">Large</th><td>0.88 s</td><td>4.10 s</td><td>2.31 s</td><td>9.32 s</td><td>2.50 s</td></tr>
+            <tr><th scope="row">XL</th><td>0.90 s</td><td>4.03 s</td><td>2.58 s</td><td>7.47 s</td><td>2.34 s</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The Node workload installs TypeScript 5.9.3 and esbuild 0.25.11, then compiles, bundles, and verifies 200 generated modules. The Python workload installs requests 2.32.5 and NumPy 2.3.4, compiles 200 modules, and checks a 200 × 200 matrix calculation.</p>
+      <p>Two simultaneous Small Node generations started in 0.90 and 1.19 seconds, then completed combined npm installation/build/test in 7.49 and 7.56 seconds. This is a two-generation observation, not a concurrency saturation result.</p>
+      <p>The batch requested 17 customer starts; all recorded generations were cleaned up. Six complete generation workflows succeeded and eleven failed; successful Node/Python phases from workflows with later failures are included above. Browser installer output exceeded the managed-output limit on Small–XL and timed out on Lite. Rust environment failures and a Lite Python fixture bug invalidate those workload results. Corrected fixtures still require live replay.</p>
+      <p><a href="/benchmarks/results.json">Download timing samples and run metadata</a> (identifiers, credentials, and command output omitted). The qualification record was added in <a href="https://github.com/mainbrella/backend/blob/8c79fd5be780394880dfac0a63be0a1eef5bb34f/docs/size-benchmarks.md">backend commit 8c79fd5</a>; recorded runner revision: <code>2323129</code>. See the <a href="https://github.com/mainbrella/backend/blob/8c79fd5be780394880dfac0a63be0a1eef5bb34f/scripts/benchmark-sizes.mjs">size runner</a> and <a href="https://github.com/mainbrella/backend/blob/8c79fd5be780394880dfac0a63be0a1eef5bb34f/scripts/benchmark-workloads.mjs">corrected workload definitions</a>.</p>
+      <h2 id="prototype">Historical prototype startup</h2>
+      <p>October 5, 2026, 11:43–11:53 UTC. A separate Cloudflare-backed prototype used <code>standard-2</code>: 1 vCPU, 6 GiB RAM, and 12 GB disk. Its startup protocol differs from the current authenticated API; these timings are not directly comparable with the five-size workload run.</p>
+      <div class="docs-table-scroll" role="region" aria-label="Historical prototype results" tabindex="0">
+        <table class="docs-table">
+          <thead><tr><th scope="col">Test</th><th scope="col">Attempted / successful</th><th scope="col">P50</th><th scope="col">P95</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Create</th><td>30 / 30</td><td>381 ms</td><td>528 ms</td></tr>
+            <tr><th scope="row">Snapshot restore</th><td>30 / 30</td><td>473 ms</td><td>788 ms</td></tr>
+            <tr><th scope="row">100 concurrent starts</th><td>100 / 100</td><td>503 ms</td><td>680 ms</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The original harness and report were recovered from the prototype reference files. P50/P95 use nearest rank over successful client start-request wall times, including response decoding. A separate shell check confirmed usability after each start; that check is excluded from the reported startup latency.</p>
+      <p>The create test ran sequentially. Snapshot restores used 30 new identities and verified a marker plus the SHA-256 of a 30 MiB random asset alongside 300 source files. The burst issued 100 starts within 4.54 ms, confirmed unique hostnames, and observed all 100 running simultaneously. All 164 machines created across the full suite were confirmed stopped.</p>
+      <p>Fresh identities do not prove cold hosts or uncached images. Client location, compute region, and exact image digest were not recorded. Snapshot restoration here describes the prototype experiment, not a customer feature availability claim. <a href="/benchmarks/results.json">Download timing samples</a> · <a href="/benchmarks/prototype-benchmark.mjs">Original prototype harness</a>.</p>
       <h2 id="methodology">Reproducible HTTP methodology</h2>
-      <p>The runner below measures the current authenticated API, using the same lifecycle, foreground execution, binary files, managed streaming and cancellation, and generation-qualified cleanup as the <a href="/docs/">Quickstart</a>. It is a new protocol, not a reconstruction of the original prototype test.</p>
+      <p>The runner below measures the current authenticated API, using the same lifecycle, foreground execution, binary files, managed streaming and cancellation, and generation-qualified cleanup as the <a href="/docs/">Quickstart</a>. This startup runner is a separate protocol from both the five-size workload runner and the historical prototype harness.</p>
       <dl class="contact-list">
         <div><dt>Create latency</dt><dd>Client wall-clock time from the first creation POST to a confirmed running response, including response decoding, retries, and polling with the same idempotency key.</dd></div>
         <div><dt>First-command latency</dt><dd>Time from that first POST to a validated hello command response. Includes creation and the HTTP execution round trip; excludes preflight, file verification, managed execution/cancellation checks, and cleanup.</dd></div>

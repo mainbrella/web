@@ -608,6 +608,33 @@ button:disabled { opacity: .65; cursor: wait; }
 /* Pricing and purchase evidence reuse the public site's compact hierarchy. */
 .hero-plan-note { margin-top: 16px; color: var(--muted); font-size: 14px; }
 .hero-plan-note a, .purchase-questions a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+
+.agent-copy-cta { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 0; border: 0; background: transparent; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; transition: color 180ms ease; }
+.agent-copy-cta[hidden] { display: none; }
+.agent-copy-cta:hover { color: var(--ink); }
+.agent-copy-cta svg { flex-shrink: 0; }
+.agent-copy-status { min-height: 22px; margin-top: 4px; color: var(--muted); font-size: 13px; }
+.hero-benchmarks { min-width: 0; margin: 0; }
+.hero-benchmarks figcaption { margin-bottom: 16px; font-size: 18px; font-weight: 600; }
+.hero-benchmark-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.hero-benchmark-table th, .hero-benchmark-table td { padding: 12px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+.hero-benchmark-table th:first-child { padding-left: 0; text-align: left; }
+.hero-benchmark-table th:last-child, .hero-benchmark-table td:last-child { padding-right: 0; }
+.hero-benchmark-table thead th { padding-top: 0; color: var(--muted); font-size: 12px; font-weight: 400; line-height: 1.5; }
+.hero-benchmark-table tbody th { font-weight: 500; }
+.hero-benchmark-table td { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hero-benchmarks .text-link { margin-top: 8px; }
+@media (max-width: 800px) {
+  .hero-benchmarks { width: 100%; max-width: 650px; }
+}
+@media (max-width: 420px) {
+  .hero-benchmark-table { font-size: 13px; }
+  .hero-benchmark-table th, .hero-benchmark-table td { padding-right: 4px; padding-left: 4px; }
+  .hero-benchmark-table thead th { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-copy-cta { transition: none; }
+}
 .trust-operator { margin-top: 16px; }
 .purchase-questions details { border-bottom: 1px solid var(--line); }
 .purchase-questions summary { min-height: 44px; padding: 12px 0; cursor: pointer; font-size: 16px; font-weight: 500; }
