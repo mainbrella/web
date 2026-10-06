@@ -3,10 +3,10 @@
   "source": "mainbrella/backend",
   "licenseSha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
   "files": {
-    "API.md": "554a55fd780dc1084288a557d0e8562c4f806b9644aa787821dc6ce13154a489",
+    "API.md": "8e653ae361cb5f0bc41205ee710c46559ac6f082dbdb7f9f73ee830459f44af2",
     "SKILL.md": "bef1866f3c7acc45c50aa459d8e6d4f38b2f2e45b868471138b8e8552c7dc2b0",
-    "sdk/javascript.md": "9dcba51dbf4f87828ea8f31688fb927e6fc6c8cae05ebc886d51e093a6d2310e",
-    "sdk/python.md": "bbd6487cb7a7ddf3639c78e9fe4212d182d1a2b23535d620ea20f15001d2378f",
+    "sdk/javascript.md": "d31092b61089c8854b56c085b9835c480f26978447da34a62e30ac5f25d8b310",
+    "sdk/python.md": "e416795f8fddf1a3ba869af2320ddcfd3ba9708708c51daabfb17ea03f99fbb8",
     "references/authentication.md": "a8f04f7b5abfe904a5b01525f062795dd0e7fd0d2bfcd3a6c3662e392939c8bb",
     "references/agent-setup-and-verification.md": "8b95b47057e523e95b7ab3ed0d683beca69e6596c00c280e7ca218ab8c13daf5",
     "references/images.md": "c750445141ebd12cff4679f39ee508afb2d4ede05b1e63ae098915980093e2e4",
@@ -18,16 +18,16 @@
     "references/errors-and-retry-behavior.md": "b3ab328b07df20a4a0847ff1c9c804e436021149de79d5f8b6f0cb28a2c15b25",
     "references/card-free-trial-coupons.md": "5c228f4848d0bf549d514064c5f09a8f753ba65e1caaf26cea7ef2fbfaddf47b",
     "references/capability-discovery.md": "5dcfa49adf239acc2d4f9deceb39ef55f3ee2aa780a7393eb7ef87e2ab466cd5",
-    "references/protected-application-previews.md": "7d7990c56e5f62993e9f10bbd69798161a9ad03c235e8617ca5a7ed0e3b8f651",
+    "references/protected-application-previews.md": "70243cd906e90357b97c4168baca585f0282f58855fcbc06e7d27d8ca7297b47",
     "references/managed-execution-and-streaming.md": "60f46dc155aa5113ad3b48e97295650d7a964eb3f62c79f50dd08b92e0a86e9b",
     "references/outbound-internet-selection.md": "dcbf60557da894edab61bb3a78f1adcf00d5dd92319a28184b6d9eb9c0dcef5b",
     "references/workload-metrics-and-lifecycle-history.md": "2b8df35247c4c8f2030700f5809c8a2e7a7577f8a65f0ab1417f5183e7d0d131",
     "references/lifecycle-webhooks.md": "d53567686481e7deee6d65f85afd035312469e8130fdfb0c965b6e2365c6326a",
     "references/public-operational-status.md": "f8e868f8232ff37fd56da2432535accad59b309a641aa12855aad5983ff4a23a",
     "references/machine-sizes-and-compute-allowance.md": "ed636389603026b455ae85a5f0c19634d406ece64c1b1b03b40ef5efaaf25159",
-    "references/javascript-sdk.md": "9dcba51dbf4f87828ea8f31688fb927e6fc6c8cae05ebc886d51e093a6d2310e",
-    "references/python-sdk.md": "bbd6487cb7a7ddf3639c78e9fe4212d182d1a2b23535d620ea20f15001d2378f",
+    "references/javascript-sdk.md": "d31092b61089c8854b56c085b9835c480f26978447da34a62e30ac5f25d8b310",
+    "references/python-sdk.md": "e416795f8fddf1a3ba869af2320ddcfd3ba9708708c51daabfb17ea03f99fbb8",
     "references/index.md": "71875b454bf3fcd5a0a505f6e3f1b7646b798c633213457ed07bebb9dc0fd27d",
-    "llms-full.txt": "d0be004f2575974cc4c90c020bd57d9f02becf4387d4aee322eb81e131e705af"
+    "llms-full.txt": "746bf17b9547295ae5f2d76fc2e69586f8d74090d1f613574e36356364e198cb"
   }
 }
