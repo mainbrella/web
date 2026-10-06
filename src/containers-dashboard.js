@@ -1,5 +1,6 @@
 import { API_ORIGIN } from './auth.js';
 import { createContainerPreviews } from './container-previews.js';
+import { createContainerObservations } from './container-observations.js';
 
 export function canCreateContainer(data, size = 'lite') {
   return Boolean(data && (!data.active || (
@@ -45,6 +46,8 @@ export function createContainersDashboard({ onUnauthenticated }) {
   let imageOptionsKey = '';
   const terminalHost = document.querySelector('#container-terminal');
   let previewsSupported = false;
+  let observability = {};
+  const observations = createContainerObservations({ onUnauthenticated: () => { dispose(); onUnauthenticated(); } });
   const previews = createContainerPreviews({ onUnauthenticated: () => { dispose(); onUnauthenticated(); } });
 
   function closeTerminal(stopped = false) {
@@ -171,7 +174,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
       : 'Choose a monthly plan to create containers. All plans offer five machine sizes, with SSH and browser terminal access.';
     if (access && (!data.containers.some(c => c.id === access.id && c.createdAt === access.createdAt) || access.expiresAt <= Date.now())) access = null;
     const rows = data.containers.slice(page * pageSize, (page + 1) * pageSize);
-    const rowVersion = JSON.stringify({ page, rows, access, previewsSupported, today: new Date().toDateString() });
+    const rowVersion = JSON.stringify({ page, rows, access, previewsSupported, observability, today: new Date().toDateString() });
     if (rowVersion === renderedRows) { controls(); return; }
     const focused = list.contains(document.activeElement) ? document.activeElement : null;
     const focusedRow = focused?.closest('[data-container-id]');
@@ -225,6 +228,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
       actions.append(shell, connect, stop);
       row.append(details, actions);
       previews.attach(row, actions, container);
+      observations.attach(actions, container);
       list.append(row);
       if (access?.id === container.id) {
         const connection = document.createElement('li');
@@ -330,6 +334,8 @@ export function createContainersDashboard({ onUnauthenticated }) {
           .then(response => response.ok ? response.json() : null).catch(() => null)]);
       if (disposed || version !== stateVersion) return;
       previewsSupported = capabilities?.previews?.supported === true;
+      observability = capabilities?.observability ?? {};
+      observations.configure(observability);
       data = result;
       render();
       error.hidden = true;
@@ -411,6 +417,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
   }
 
   function dispose() {
+    observations.dispose();
     previews.dispose();
     closeTerminal();
     disposed = true;

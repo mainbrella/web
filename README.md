@@ -50,10 +50,7 @@ Containers have outbound internet access for package installation and no persist
 refreshes status every 15 seconds while visible; status reads do not renew the
 idle lease. Subscription failures do not prevent container management.
 
-Run `npm run deploy` in `../backend` to deploy the API first, then the private
-`UserContainer` Worker in `mainbrella-containers` with its account coordinator.
-This order ensures the API supplies paid entitlements before the private workers
-start enforcing them. Deploy this website afterward. Container IDs and configuration come from the backend, never the
+Run `npm run deploy:preflight` in `../backend` before rollout. Its default `npm run deploy` gates and deploys the private `UserContainer` Worker with its account coordinator first, then the API. This ensures runtime support exists before API capability advertisement. Follow [the backend release runbook](../backend/docs/deployment.md), including migrations and explicit paid verification scope. Deploy this website afterward. Container IDs and configuration come from the backend, never the
 browser; the machine test token is not needed for this private binding.
 The benchmark API remains separate. SSH access requires migrations `005_ssh_access.sql` and `007_ssh_container_id.sql`.
 Cloudflare's included allowances are shared across the entire account, rather
@@ -129,8 +126,7 @@ runtime testing can run on Cloudflare without local Docker or OrbStack.
 
 API automation instructions are in [API.md](API.md), with a reusable agent skill
 in [SKILL.md](SKILL.md). Lifecycle, execution, images, and SSH issuance accept named `mb_` API keys as Bearer credentials. The backend enforces the same paid tier limits for
-UI and API calls. Keep these two
-files synchronized with their copies in `../backend` when the API changes.
+UI and API calls. The backend API.md/SKILL.md and SDK READMEs are authoritative. Run `npm run docs:sync` after changing them; `npm run docs:check` validates the public copies, indexed reference tree, llms-full.txt and installable skill archive. Both repository CI workflows check agreement.
 
 The homepage's five-step agent setup prompt links to `/SKILL.md` and `/API.md`.
 Vite serves these source files in development and emits them verbatim into `dist/`,
@@ -141,9 +137,7 @@ active access, and available allowance. Avoid concurrent launches during setup.
 Production verification must confirm hello output, exit code 0, and cleanup;
 mocked tests do not satisfy that live release gate.
 
-To install the skill in Codex, copy `SKILL.md` and `API.md` into
-`.agents/skills/mainbrella-containers/` (or the equivalent skills directory for
-your agent), then invoke `$mainbrella-containers`. Provision `MAINBRELLA_API_KEY`
+To install the skill in Codex, extract `public/skills/mainbrella-containers-0.1.0.tar.gz` into `.agents/skills/` (or the agent’s equivalent directory), then invoke `$mainbrella-containers`. The archive includes canonical instructions and indexed API/SDK references. Provision `MAINBRELLA_API_KEY`
 separately using the instructions in `API.md`.
 
 ## Public website
@@ -164,10 +158,7 @@ implemented controls and the reporting address. Renew the security.txt expiry
 before October 1, 2027. Company and legal pages identify Andrew Arrow, doing
 business as Mainbrella Co., a sole proprietorship, and the supplied notice address.
 
-`/status/` is a manually maintained, timestamped record. Its first observations
-only checked the public homepage and API health endpoint; they do not establish
-healthy provisioning, SSH, builds, billing, or authentication. Record future
-checks and incidents with their times and scope, keeping the history intact.
+`/status/` reads bounded observations and incident history from the API. The scheduled collector observes website/API reachability and authentication-database availability; this does not establish successful login, provisioning, SSH, builds or billing. Unobserved or stale components remain unknown. Synthetic provisioning requires a dedicated account, monitoring secret and explicit start budget.
 `/changelog/` records dated, source-linked product updates.
 
 All plans support five sizes through 4 vCPU and 12 GiB RAM. Runtime is reserved before launch, unused runtime is released on stop, and machine deadlines enforce the account budget. See API.md for the compute contract.

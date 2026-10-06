@@ -1,3 +1,9 @@
+# Mainbrella full agent reference
+
+Generated from the backend's authoritative API, skill and SDK instructions. SDKs are unpublished; deployment capabilities must be checked independently.
+
+<!-- Source: https://mainbrella.com/API.md -->
+
 # Container automation API
 
 Base URL: `https://api.mainbrella.com` (local API: `http://localhost:8787`).
@@ -616,3 +622,486 @@ Builder includes 250 compute-unit hours/month and 28 concurrent units; Pro 9,000
 Create with `{"catalogId":"node","size":"medium"}`. `GET /containers` returns `sizes`, `limits.maxComputeUnitHours`, `limits.maxConcurrentComputeUnits`, and `usage.computeUnitHours`, `reservedComputeUnitHours`, `availableComputeUnitHours`, and `concurrentComputeUnits`. Runtime is reserved durably before provisioning; unused runtime is released on a reconciled stop. Used hours include provisioning and idle time. Ambiguous starts retain reservations until reconciliation. Capacity rejection does not reserve usage. Machines receive an immutable budget deadline and stop at the earliest of that deadline, idle/session/paid-access expiry, or the UTC month boundary. Clients must honor returned `expiresAt`.
 
 Errors: 400 `invalid_size`; 409 `compute_capacity_exceeded`; 429 `compute_allowance_exhausted`. A changed size with an existing creation key returns 409 `idempotency_key_conflict`. No automatic overages or top-ups are enabled.
+
+
+<!-- Source: https://mainbrella.com/SKILL.md -->
+
+---
+name: mainbrella-containers
+description: Set up Mainbrella API access, integrate account-owned Linux containers into agent projects, verify HTTP execution and file transfer, and clean up containers created for the task.
+---
+
+# Mainbrella container automation
+
+Use this workflow when asked to set up Mainbrella or execute work in its containers.
+Read [API.md](API.md) for endpoint contracts, images, quotas, and billing rules.
+The installable archive also includes an [indexed reference tree](references/index.md)
+for individual API topics and the JavaScript/Python SDK instructions. Read only
+the relevant topic when the full contract is unnecessary.
+Use `https://api.mainbrella.com` unless the user specifies another environment.
+Mainbrella uses REST for lifecycle, foreground command execution, and file transfer. No published
+SDK is available. Do not install invented SDK packages.
+Local SDKs exist under `sdk/javascript` and `sdk/python` when this backend checkout
+is available. Install from those paths only; see their READMEs for the actual API.
+Use public `GET /capabilities` to discover deployment support before choosing an
+execution mode. Obtain account allowances and deployed images from `/containers`.
+
+## Quick Setup
+
+1. Read `MAINBRELLA_API_KEY` from the project's existing environment loading or
+   secret manager. It starts with `mb_`. If missing, ask the user to sign in at
+   `https://mainbrella.com/api-keys/`, create a named key, and provision it locally
+   as `MAINBRELLA_API_KEY`. Do not ask them to paste the secret into chat. A key
+   grants no compute allowance by itself; paid access or a coupon trial is required.
+2. Detect the project without asking: `package.json` means JavaScript/TypeScript;
+   `pyproject.toml` or `requirements.txt` means Python; `Cargo.toml` means Rust;
+   `go.mod` means Go. Preserve the existing package manager, lockfile, environment
+   loading, and module format. For an empty directory, use a minimal Python project
+   in a new `mainbrella-example` subdirectory unless the user named a language.
+3. The supplied check and verification tools need Node 22+. HTTP execution needs
+   no local SSH tools. Use existing tools first; install missing prerequisites with
+   the environment's established package manager.
+   There are no project SDK dependencies to install. Node tools use `.mjs` so they
+   also work in CommonJS projects; do not change the project's module type.
+4. Download `https://mainbrella.com/mainbrella-doctor.mjs` and
+   `https://mainbrella.com/mainbrella-verify.mjs` into the same local directory.
+   Inspect them, then run `node mainbrella-doctor.mjs` from the project directory.
+   The doctor prints JSON diagnostics without secrets and performs only GETs.
+   Exit 0 means ready for a new verification container; exit 1 identifies blockers.
+   `MAINBRELLA_API_URL` optionally selects a different HTTPS origin (HTTP localhost
+   is allowed for development). It must not contain a credential, path, or query.
+5. Choose an image from the returned `GET /containers` `imageCatalog`: prefer
+   `node`, `python`, `rust`, or `go` for the detected language, and `devops` for
+   infrastructure tasks. Only choose IDs actually advertised by this deployment.
+   For user-requested custom environments, read `/images` and use an owned `ready`
+   image. `buildsEnabled` determines whether new builds can be submitted.
+
+## Integrate
+
+Use native HTTP facilities (`fetch` in Node, `urllib.request` in Python). Follow [API.md](API.md) for authenticated
+create, status, HTTP execution, file read/write, and deletion. Keep credentials server-side.
+If agent/tool-calling code already exists, add Mainbrella where execution occurs;
+otherwise add a small example matching the detected language.
+
+Create with a unique `Idempotency-Key` header (UUID recommended). Retry the same
+key and image selection within 24 hours after an ambiguous result. Use the
+returned `creation.containerId` and `creation.createdAt` once its status is
+`running`; account status may also include other tasks' containers.
+
+Capture each container's `id` **and** `createdAt`, and pass both to HTTP execution
+and cleanup. Preserve the idempotency key until startup and cleanup are resolved.
+Use `POST /containers/exec?id=<id>&createdAt=<generation>` with
+`{"command":"<shell command>","timeoutMs":30000}`. Collect stdout, stderr and
+exitCode. Check timedOut and outputTruncated; either means incomplete execution
+with a null exitCode. Timeout is at most 60 seconds and output at most 1 MiB.
+Commands are not idempotent; reconcile effects before retrying after a transport
+failure. For work beyond a foreground request, use managed execution if advertised
+by `/capabilities`; use SSH when the task needs interactive access.
+
+Managed jobs use `POST /containers/executions?id=<id>&createdAt=<generation>` with
+a required unique `Idempotency-Key` and a command/timeout body. Preserve the returned
+execution ID. Poll GET for results, use DELETE to cancel, or stream `/events` and
+reconnect with the last received sequence as `cursor`. Disconnect only detaches.
+Matching retries resolve the original job for one hour; never retry beyond that
+window. Maximum timeout is 15 minutes within the hard lease. Runtime restart
+marks unfinished jobs interrupted and stops their matching container generation,
+so choose a dedicated container when unrelated work must remain independent.
+
+Use `GET` and `PUT /containers/files?id=<id>&createdAt=<generation>&path=<absolute-path>`
+for file transfer up to 1 MiB. URL-encode query values. Send raw bytes with
+`Content-Type: application/octet-stream`; read the download as bytes, not JSON.
+The parent directory must exist. Writes replace regular files atomically and reject
+symlinks/directories. New files use mode 0600. File operations share the command
+concurrency pool and have a 30-second runtime limit. Reconcile an uncertain write
+by reading before retrying. Check the corresponding `files` capability flags
+before using list/stat/mkdir/remove/move/chmod; read the
+[filesystem reference](references/filesystem-metadata-and-directories.md) for
+pagination, symlinks and mutation reconciliation. Recursive deletion is explicit,
+moves never overwrite, and root cannot be mutated. Watchers remain unsupported.
+
+For an application preview, first check `previews.supported` in `/capabilities`.
+Public previews are disabled in the checked-in configuration. When enabled,
+start the server on an eligible application port, then POST
+`/containers/previews?id=<id>&createdAt=<generation>` with `{"port":3000}`.
+The returned URL is a bearer credential: share only as requested and keep it out
+of logs/public artifacts. It expires within the hard lease. GET the same endpoint
+for metadata and DELETE with `previewId` to revoke. A lost creation response
+requires listing/revoking before issuing another link; a 503
+`preview_reconciliation_required` includes the ID to retry revocation.
+Cookies and account credentials are stripped from app traffic. See API.md for
+limits and framework restrictions. Local SDKs provide `sandbox.previews.create`,
+`list` and `revoke`; they remain unpublished.
+
+## Verify
+
+Run `node mainbrella-verify.mjs` with the provisioned key in the environment.
+Set `MAINBRELLA_CATALOG_ID` to the available image selected for the project;
+without it the script selects `node`. This verification consumes one monthly start.
+It creates a new container, runs `echo "hello from mainbrella"` through HTTP, checks
+stdout and exit code, writes and reads a binary probe under `/tmp`, compares every
+byte, and deletes **only that container generation** in a `finally` block.
+
+Pass requires `ok: true`, `stdout: "hello from mainbrella"`, `exitCode: 0`,
+`files: "verified"`, and `cleanup: "completed"`. Never report success without all five. On a failure, use
+Troubleshooting to fix the demonstrated cause and re-run at most once **only after
+cleanup is confirmed and allowance permits**. If creation was ambiguous or cleanup
+failed, reconcile first and report any remaining machine; do not blindly re-run.
+
+Preserve containers that existed before setup. Reuse one only when authorized for
+the task; never stop it just to free a slot or satisfy a verification gate. Export
+needed artifacts before cleanup: files are lost on stop. Status polling does not
+renew idle time, and SSH issuance does not extend the hard deadline.
+
+## Troubleshooting
+
+| Symptom | Action |
+| --- | --- |
+| Missing key / 401 | Provision or renew a named API key; never print it. |
+| 402 / inactive access | Report the paid-access or trial requirement. Do not purchase or change billing as part of setup. |
+| Missing catalog image / `image_not_available` | Refresh status and choose an advertised suitable image. |
+| 409 `container_limit_exceeded` | Inspect status; reuse only authorized work or wait. Do not evict existing machines. |
+| 429 `container_quota_exceeded` | Wait for the next UTC month; stop launch attempts. |
+| 429 `ssh_token_limit` / `terminal_limit` | Reuse authorized access, close an authorized connection, or wait for expiry. |
+| `execution_failed` / `timedOut` / `outputTruncated` | Inspect exit status and execution flags. Reduce the job or use authorized SSH access for longer tasks. |
+| 429 `execution_limit` | Wait for an active command/file operation to finish; do not stop unrelated work. |
+| `file_verification_failed` / `files_unavailable` | Check deployment alignment and image utilities. Preserve unexpected file contents and diagnostics outside shared logs. |
+| `file_too_large` / `invalid_file_path` | Use files up to 1 MiB and valid absolute paths; use authorized SSH for larger transfers. |
+| `file_not_found` / `not_regular_file` / `file_access_denied` | Check the path, parent directory and guest permissions. Writes need a regular file or an unused path. |
+| `idempotency_key_conflict` | The key belongs to a different image selection. Use the original request to reconcile it; use a new key only for an intentional new launch. |
+| `creation_no_longer_running` | The original operation stopped or failed. Do not touch a replacement in its slot. |
+| `creation_ambiguous` / launch timeout / 503 | Retry the same creation key and image selection within 24 hours; `starting` means wait and retry. Preserve `creationKey` if verification remains unresolved. Failed starts may consume quota. |
+| `cleanup: "failed"` | Retry generation-qualified DELETE for the reported container; cleanup remains available during billing outages. Confirm absence with GET. |
+| 409 `container_not_running` | Refresh status; a stopped or replaced generation must not be targeted. |
+
+## Report
+
+One paragraph: which integration changed, what command ran, stdout, exit code,
+whether the binary file round trip passed, and whether cleanup completed. State any blocker or remaining container plainly.
+Offer one relevant next step: an owned custom image, an LLM tool that runs commands,
+or a coding agent inside a container. Do not start that additional work unasked.
+
+For managed stdin, literal argv, signals, retained-job listing and programmatic PTY resize, read [Managed execution and streaming](references/managed-execution-and-streaming.md). Gate each control on `/capabilities`; preserve exact generation/job identities. Input bytes are not retained or retried. Environment values enter the guest and are not protected secrets. Closing an output stream only detaches.
+
+The local npm SDK archive also installs `mainbrella`; read its [JavaScript reference](references/javascript-sdk.md#command-line) for lifecycle CLI usage. Creation/start require a stable explicit idempotency key. Every workload action requires both ID and generation; preserve returned identity before further actions.
+
+For generation-bound lifecycle history, provider metric evidence and signed callback delivery, read [Workload observations](references/workload-metrics-and-lifecycle-history.md) and [Lifecycle webhooks](references/lifecycle-webhooks.md). Gate controls on observability capabilities. Missing observations are unknown, not zero/healthy. Callback delivery is at least once; verify raw-body signatures, enforce freshness and deduplicate stable event IDs. Store one-time signing secrets outside the guest and logs.
+
+
+<!-- Source: https://mainbrella.com/sdk/javascript.md -->
+
+# Mainbrella JavaScript SDK
+
+Local package, not published to npm yet. Requires Node 22+; no dependencies.
+
+```sh
+npm install /absolute/path/to/backend/sdk/javascript
+```
+
+```js
+import { Mainbrella } from '@mainbrella/sdk';
+
+const client = new Mainbrella({ apiKey: process.env.MAINBRELLA_API_KEY });
+console.log(await client.capabilities());
+const sandbox = await client.create({ catalogId: 'node' });
+try {
+  const result = await sandbox.commands.run('printf hello');
+  await sandbox.files.write('/tmp/probe.bin', new Uint8Array([0, 128, 255]));
+  const bytes = await sandbox.files.read('/tmp/probe.bin');
+  console.log(result.exitCode, bytes.length);
+} finally {
+  await sandbox.kill();
+}
+```
+
+Creation retries use the same key until the bounded wait expires. An ambiguous
+creation error contains `idempotencyKey`; preserve it and retry the same selection.
+Commands and file writes are never automatically retried. Inspect the file or
+application state after a lost response. `connect({id, createdAt})` attaches to
+an explicit existing generation without creating or stopping anything.
+
+The richer filesystem helpers require the corresponding `capabilities.files`
+flags. They operate on absolute UTF-8 guest paths:
+
+```js
+await sandbox.files.mkdir('/workspace/output', { recursive: true, mode: '0700' });
+const page = await sandbox.files.list('/workspace', { limit: 100 });
+// Pass page.nextOffset as offset for the next page, if it is not null.
+const metadata = await sandbox.files.stat('/workspace/output');
+await sandbox.files.move('/tmp/probe.bin', '/workspace/output/probe.bin');
+await sandbox.files.chmod('/workspace/output/probe.bin', '0640');
+await sandbox.files.remove('/workspace/output', { recursive: true });
+```
+
+Lists contain one level, sorted by UTF-8 filename bytes, with up to 1,000 entries
+per page. Pagination rescans; directory changes can duplicate or omit entries.
+Metadata includes type, size, mode, uid/gid, second-precision modification time
+and symlink target. `stat` inspects a symlink itself unless `followSymlinks: true`.
+Moves never overwrite an existing destination. Removal defaults to files or empty
+directories and removes a symlink itself. Mutation paths cannot be root. These
+operations share the four-operation pool and 30-second file deadline. Recursive
+deletion and moves across filesystems may partly complete before interruption;
+inspect state before retrying a mutation. Watchers remain unsupported.
+
+Versioned local archives can be built and checked with backend `npm run sdk:qualify`.
+Install its `.tgz` with `npm install /path/to/mainbrella-sdk-0.1.0.tgz`; this remains
+an archive installation, not an npm registry release. See the backend
+[SDK release runbook](https://github.com/mainbrella/backend/blob/main/docs/sdk-release.md)
+for artifact and deployed-workflow gates.
+
+Keep the API key in a secret store or environment, never in code or logs. The
+client rejects credential-bearing URLs, redirects, and HTTP except loopback.
+Nonzero command exit codes are returned normally. API failures raise
+`MainbrellaError` with a sanitized code and HTTP status.
+
+Managed execution separates process lifetime from a request:
+
+```js
+const job = await sandbox.commands.start('npm test', { timeoutMs: 300_000 });
+for await (const event of job.events()) {
+  if (event.type === 'stdout') process.stdout.write(event.data);
+}
+const result = await job.get();
+// await job.cancel(); // Explicit cancellation; closing events only detaches.
+```
+
+`events()` reconnects on normal stream rotation and tracks `job.cursor`; a transport
+failure exposes its cursor for explicit reconnect. `job.wait()` polls to terminal
+state. A wait timeout leaves the job running. `new Execution(sandbox, id)` reconnects
+to a known job. Preserve the idempotency key from a failed `commands.start()` call
+and retry the same options within the one-hour retention window. Runtime restart
+interrupts unfinished jobs and stops their matching container generation.
+
+For richer process control, check `execution.argv`, `stdin`, `signals`, `managedProcessListing`, `programmaticPty` and `ptyResize` in `client.capabilities()`:
+
+```js
+const job = await sandbox.commands.start(['cat'], { stdin: true, cwd: '/tmp', env: { TASK: 'probe' } });
+await job.stdin.write(new TextEncoder().encode('hello\n'));
+await job.stdin.close(); // Pipe EOF; no automatic input retry.
+const result = await job.wait();
+const attached = sandbox.commands.attach(job.id);
+const { executions } = await sandbox.commands.list(); // Retained managed jobs.
+const terminal = await sandbox.commands.start(['/bin/sh'], { stdin: true, pty: { cols: 80, rows: 24 } });
+await terminal.resize(132, 40);
+await terminal.stdin.write(new TextEncoder().encode('exit\n'));
+await terminal.wait();
+// await terminal.signal('SIGTERM'); // Delivery request; inspect state afterward.
+```
+
+An array starts the executable directly; a string uses `/bin/sh -lc`. Environment values go into the guest and are not protected secrets. Input caps are 64 KiB per write, 1 MiB accepted per job and 256 KiB pending. Ambiguous writes stay counted and are never retried. PTY output merges stderr into stdout with terminal line discipline; input closure may hang up the terminal. Cancellation targets the operation process group; deliberately detached processes remain bounded by the machine lease. These local helpers require corresponding deployed capabilities. Guest-wide process listing and filesystem watching remain unsupported.
+
+Protected application previews are available only when
+`(await client.capabilities()).previews.supported` is true. Start your application's
+HTTP server in the sandbox first, then create a link for its listening port:
+
+```js
+const preview = await sandbox.previews.create(3000, { ttlSeconds: 900 });
+// Give preview.url to the intended recipient through a private channel.
+const { previews } = await sandbox.previews.list(); // Metadata only, no URLs.
+await sandbox.previews.revoke(preview.id);
+```
+
+Ports are 1024–65535, TTL is 60–3600 seconds (default 900), and at most eight
+grants are active per generation. `expiresAt` is Unix milliseconds, clipped to
+the container deadline. The URL is a bearer credential returned once; keep it
+out of logs and analytics. Listing and revocation work when new issuance is disabled.
+Creation is never retried automatically. After a lost response, list and revoke
+the unwanted grant before creating another link. A `preview_reconciliation_required`
+error exposes `error.previewId`; retry `sandbox.previews.revoke(error.previewId)`.
+Revocation closes active connections. Stopping or replacing the generation
+invalidates its links. Application cookies are stripped; cookie sessions, external
+Host semantics and absolute redirect rewriting are unsupported. Public previews
+remain disabled pending isolated-domain configuration and live qualification.
+
+## Command line
+
+The same local npm archive installs the dependency-free `mainbrella` command. Set `MAINBRELLA_API_KEY` in your environment; optional `MAINBRELLA_API_URL` selects a trusted API origin. Credentials are never CLI arguments. From the project where the archive is installed:
+
+```sh
+./node_modules/.bin/mainbrella --help
+./node_modules/.bin/mainbrella create --size small --idempotency-key stable-create-key
+# Preserve the returned id/createdAt before issuing another command.
+./node_modules/.bin/mainbrella run --id <id> --created-at <generation> --command 'printf hello'
+./node_modules/.bin/mainbrella kill --id <id> --created-at <generation>
+```
+
+`create` and `start` require an explicit stable idempotency key. Errors include it after an ambiguous response. Repeat the same options within retention; never issue a new key to resolve uncertainty. Every workload action requires both container ID and exact generation. There is no bulk-stop command. `job` controls inspect/cancel/stream/signal/resize/send input to known execution IDs; `jobs` lists retained managed jobs. Results are JSON and streamed events are newline-delimited JSON. `run` returns the guest exit code (124 on timeout, 125 on truncated output); API/CLI errors exit 1 and emit sanitized JSON on stderr.
+
+`file read --path /guest/file --output /local/new-file` creates a new local file without overwriting. `file write --path /guest/file --source /local/file` transfers binary bytes up to 1 MiB. `job input --source /local/chunk` accepts up to 64 KiB. CLI input writes never retry automatically. Registry publication and live qualification remain pending.
+
+## Workload observations and webhooks
+
+Check `observability.lifecycleEvents`, `metrics` and `webhooks` first. Lifecycle history belongs to one generation, survives stop, and is bounded to seven days/256 events per slot. Deduplicate stable IDs and order by sequence. Metrics are provider workload observations, separate from billing allocations and public service health; missing evidence remains unobserved/null. Metrics and webhook delivery remain disabled until operator configuration and live qualification.
+
+```js
+const page = await sandbox.events({ cursor: 0, limit: 100 });
+if (page.hasMore) await sandbox.events({ cursor: page.nextCursor });
+const capabilities = await client.capabilities();
+if (capabilities.observability.metrics) {
+  const observations = await sandbox.metrics();
+}
+if (capabilities.observability.webhooks) {
+  const configured = await sandbox.webhook.configure('https://trusted-relay.example/callback', { replayFromCursor: 0 });
+  // Store configured.signingSecret securely, outside guest files/env and logs.
+  const { deliveries } = await sandbox.webhook.deliveries();
+  // await sandbox.webhook.retry(exhaustedEventId);
+  await sandbox.webhook.remove();
+}
+```
+
+For a receiving server, import `verifyWebhookSignature` and call `await verifyWebhookSignature(rawBodyBytes, signatureHeader, signingSecret)` before parsing JSON. It authenticates the exact bytes and a five-minute timestamp window. Persist received event IDs to reject duplicates; delivery can be out of order. The CLI also exposes generation-bound `events` and `metrics` reads.
+
+Targets must be operator-controlled trusted HTTPS relay hosts; arbitrary customer domains, IPs, credentials, ports and redirects are unsupported. Configuration is per generation and expires after seven days. PUT rotates the secret and clears old attempts; it is never retried automatically. Reconcile lost responses, then rotate explicitly if the one-time secret is unavailable. Eight automatic attempts use bounded backoff; exhausted deliveries allow at most three manual retry cycles. Removing configuration cancels future attempts but cannot undo requests a receiver already accepted. See [API.md](https://mainbrella.com/API.md#lifecycle-webhooks) for retention and signature details. OTLP remains unsupported.
+
+## Outbound internet selection
+
+Internet defaults to enabled. Offline creation is immutable for that generation and requires the advertised `networking.internetControl` capability. The SDK checks discovery before admission, fails if a runtime cannot enforce the policy, and confirms the returned selection. It never coerces a string to a boolean. This flag does not configure domain/CIDR allowlists or mediated secrets. Keep the same creation key on ambiguous transport failure; live provider isolation remains a release gate.
+
+```js
+const offline = await client.create({ internet: false, idempotencyKey: "offline-workspace" });
+```
+
+The CLI accepts `create --idempotency-key offline-workspace --internet false`.
+
+The CLI also supports generation-bound `file list/stat/mkdir/remove/move/chmod`. Directory removal is nonrecursive unless `--recursive` is explicit; move refuses replacement. Permission modes use four octal digits (`0640`). Listing accepts `--limit` up to 1000 and `--offset` up to 1000000.
+
+
+<!-- Source: https://mainbrella.com/sdk/python.md -->
+
+# Mainbrella Python SDK
+
+Local package, not published to PyPI yet. Python 3.10+; standard-library runtime.
+
+```sh
+python -m pip install /absolute/path/to/backend/sdk/python
+```
+
+```python
+import os
+from mainbrella import Mainbrella
+
+client = Mainbrella(os.environ["MAINBRELLA_API_KEY"])
+print(client.capabilities())
+with client.create(catalog_id="python") as sandbox:
+    result = sandbox.commands.run("python --version")
+    sandbox.files.write("/tmp/probe.bin", bytes([0, 128, 255]))
+    assert sandbox.files.read("/tmp/probe.bin") == bytes([0, 128, 255])
+```
+
+The context manager cleans up only its returned generation. `connect(id, created_at)`
+uses an existing generation without provisioning. Creation retries one idempotency
+key; ambiguous errors expose `idempotency_key` for reconciliation. Commands and
+writes are never retried automatically. API errors expose sanitized `code` and
+`status`. Nonzero shell exit codes remain normal command results.
+
+The richer filesystem helpers require the corresponding `client.capabilities()["files"]`
+flags. They operate on absolute UTF-8 guest paths:
+
+```python
+sandbox.files.mkdir("/workspace/output", recursive=True, mode="0700")
+page = sandbox.files.list("/workspace", limit=100)
+# Pass page["nextOffset"] as offset for the next page, if it is not None.
+metadata = sandbox.files.stat("/workspace/output")
+sandbox.files.move("/tmp/probe.bin", "/workspace/output/probe.bin")
+sandbox.files.chmod("/workspace/output/probe.bin", "0640")
+sandbox.files.remove("/workspace/output", recursive=True)
+```
+
+Lists contain one level, sorted by UTF-8 filename bytes, with up to 1,000 entries
+per page. Pagination rescans; directory changes can duplicate or omit entries.
+Metadata includes type, size, mode, uid/gid, second-precision modification time
+and symlink target. `stat` inspects a symlink itself unless `follow_symlinks=True`.
+Moves never overwrite an existing destination. Removal defaults to files or empty
+directories and removes a symlink itself. Mutation paths cannot be root. These
+operations share the four-operation pool and 30-second file deadline. Recursive
+deletion and moves across filesystems may partly complete before interruption;
+inspect state before retrying a mutation. Watchers remain unsupported.
+
+Versioned local archives can be built and checked with backend `npm run sdk:qualify`.
+Install its wheel with `python -m pip install /path/to/mainbrella-0.1.0-py3-none-any.whl`;
+this remains an archive installation, not a PyPI release. See the backend
+[SDK release runbook](https://github.com/mainbrella/backend/blob/main/docs/sdk-release.md)
+for artifact and deployed-workflow gates.
+
+Credentials belong in your environment or secret manager. HTTPS is required
+except loopback development URLs. HTTP redirects are refused.
+
+`sandbox.commands.start(command, timeout_ms=300000)` returns a managed job with
+`get()`, `wait()`, `cancel()` and `events()`. `events()` yields stdout/stderr chunks
+and status updates, reconnects on normal stream rotation and tracks `job.cursor`.
+Closing the iterator detaches; cancellation is explicit. `Execution(sandbox, id)`
+reconnects to a retained job. Preserve `idempotency_key` on start errors and retry
+the same options within one hour. Runtime restart interrupts unfinished managed
+jobs and stops their matching container generation.
+
+Check `client.capabilities()["execution"]` for `argv`, `stdin`, `signals`, `managedProcessListing`, `programmaticPty` and `ptyResize` before using richer process control:
+
+```python
+job = sandbox.commands.start(["cat"], stdin=True, cwd="/tmp", env={"TASK": "probe"})
+job.stdin.write(b"hello\n")
+job.stdin.close()  # Pipe EOF; no automatic input retry.
+result = job.wait()
+attached = sandbox.commands.attach(job.id)
+executions = sandbox.commands.list()["executions"]  # Retained managed jobs.
+terminal = sandbox.commands.start(["/bin/sh"], stdin=True, pty={"cols": 80, "rows": 24})
+terminal.resize(132, 40)
+terminal.stdin.write(b"exit\n")
+terminal.wait()
+# terminal.signal("SIGTERM")  # Delivery request; inspect state afterward.
+```
+
+A list starts argv directly; a string uses `/bin/sh -lc`. Environment values go into the guest and are not protected secrets. Input caps are 64 KiB per write, 1 MiB accepted per job and 256 KiB pending. Ambiguous writes stay counted and are never retried. PTY output combines stderr on stdout with terminal line discipline; input closure may hang up the terminal. Cancellation targets the operation process group; deliberately detached processes remain bounded by the machine lease. Local helpers require corresponding deployed capabilities. Guest-wide process listing and filesystem watching remain unsupported.
+
+Protected application previews require
+`client.capabilities()["previews"]["supported"]` to be true. Start your application's
+HTTP server in the sandbox first, then create a link for its listening port:
+
+```python
+preview = sandbox.previews.create(3000, ttl_seconds=900)
+# Give preview["url"] to the intended recipient through a private channel.
+previews = sandbox.previews.list()["previews"]  # Metadata only, no URLs.
+sandbox.previews.revoke(preview["id"])
+```
+
+Ports are 1024–65535, TTL is 60–3600 seconds (default 900), and at most eight
+grants are active per generation. `expiresAt` is Unix milliseconds, clipped to
+the container deadline. The URL is a bearer credential returned once; keep it
+out of logs and analytics. Listing and revocation work when new issuance is disabled.
+Creation is never retried automatically. After a lost response, list and revoke
+the unwanted grant before creating another link. A `preview_reconciliation_required`
+error exposes `error.preview_id`; retry `sandbox.previews.revoke(error.preview_id)`.
+Revocation closes active connections. Stopping or replacing the generation
+invalidates its links. Application cookies are stripped; cookie sessions, external
+Host semantics and absolute redirect rewriting are unsupported. Public previews
+remain disabled pending isolated-domain configuration and live qualification.
+
+## Workload observations and webhooks
+
+Check `observability.lifecycleEvents`, `metrics` and `webhooks` first. Lifecycle history belongs to one generation, survives stop, and is bounded to seven days/256 events per slot. Deduplicate stable IDs and order by sequence. Metrics are provider workload observations, separate from billing allocations and public service health; missing evidence remains unobserved/null. Metrics and webhook delivery remain disabled until operator configuration and live qualification.
+
+```python
+page = sandbox.events(cursor=0, limit=100)
+if page["hasMore"]:
+    page = sandbox.events(cursor=page["nextCursor"])
+capabilities = client.capabilities()
+if capabilities["observability"]["metrics"]:
+    observations = sandbox.metrics()
+if capabilities["observability"]["webhooks"]:
+    configured = sandbox.webhook.configure("https://trusted-relay.example/callback", replay_from_cursor=0)
+    # Store configured["signingSecret"] securely, outside guest files/env and logs.
+    deliveries = sandbox.webhook.deliveries()["deliveries"]
+    # sandbox.webhook.retry(exhausted_event_id)
+    sandbox.webhook.remove()
+```
+
+Receiving servers import `verify_webhook_signature` and call `verify_webhook_signature(raw_body, signature_header, signing_secret)` before JSON parsing. It authenticates exact bytes and a five-minute timestamp window. Persist received IDs to reject duplicates; delivery can arrive out of order.
+
+Targets must be operator-controlled trusted HTTPS relay hosts; arbitrary customer domains, IPs, credentials, ports and redirects are unsupported. Configuration is per generation and expires after seven days. PUT rotates the secret and clears old attempts; it is never retried automatically. Reconcile lost responses, then rotate explicitly if the one-time secret is unavailable. Eight automatic attempts use bounded backoff; exhausted deliveries allow at most three manual retry cycles. Removing configuration cancels future attempts but cannot undo requests a receiver already accepted. See [API.md](https://mainbrella.com/API.md#lifecycle-webhooks) for retention and signature details. OTLP remains unsupported.
+
+## Outbound internet selection
+
+Internet defaults to enabled. Offline creation is immutable for that generation and requires the advertised `networking.internetControl` capability. The SDK checks discovery before admission, fails if a runtime cannot enforce the policy, and confirms the returned selection. Keep the same creation key on ambiguous transport failure. This does not configure allowlists or secrets; live provider isolation remains a release gate.
+
+```python
+offline = client.create(internet=False, idempotency_key="offline-workspace")
+```
+

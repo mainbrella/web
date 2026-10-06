@@ -362,6 +362,25 @@ button:disabled { opacity: .65; cursor: wait; }
 .terminal-heading .dashboard-retry { margin: 0; }
 .terminal-output { height: clamp(240px, 45vh, 440px); padding: 8px; background: #0d1014; overflow: hidden; }
 .container-actions { flex-wrap: wrap; }
+.container-observations { margin: 16px 0; }
+.history-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.history-heading h3 { margin: 0; font-size: 16px; overflow-wrap: anywhere; }
+.container-observations .dashboard-retry { margin-top: 0; }
+.container-observations > p { margin: 8px 0; }
+.container-observations > p:empty { display: none; }
+.lifecycle-list { padding: 0; margin: 8px 0; list-style: none; }
+.lifecycle-list li { display: flex; gap: 8px 16px; flex-wrap: wrap; padding: 4px 0; font-size: 14px; }
+.lifecycle-list time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.container-webhooks { margin-top: 8px; max-width: 640px; font-size: 14px; }
+.container-webhooks summary { min-height: 44px; align-content: center; cursor: pointer; }
+.container-webhooks label { display: block; margin: 8px 0 4px; }
+.container-webhooks input { box-sizing: border-box; width: 100%; min-height: 44px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; }
+.container-webhooks input[readonly] { font-family: monospace; }
+.container-webhooks input:focus-visible, .container-webhooks summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.container-webhooks .container-actions { margin-top: 8px; }
+.container-webhooks ul { list-style: none; padding: 0; margin: 8px 0; }
+.container-webhooks li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0; overflow-wrap: anywhere; }
+.container-webhooks p { margin: 8px 0; }
 .container-actions button, .terminal-heading button { min-height: 44px; }
 .container-previews { flex-basis: 100%; min-width: 0; font-size: 14px; }
 .container-previews form, .container-previews label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }

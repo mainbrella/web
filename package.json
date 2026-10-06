@@ -8,6 +8,8 @@
     "preview": "wrangler dev",
     "deploy": "npm run build && wrangler deploy",
     "test": "node --test src/*.test.js scripts/*.test.mjs",
+    "docs:sync": "node scripts/sync-agent-docs.mjs",
+    "docs:check": "node scripts/sync-agent-docs.mjs --check",
     "doctor": "node scripts/mainbrella-doctor.mjs",
     "verify:agent": "node scripts/mainbrella-verify.mjs"
   },

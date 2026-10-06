@@ -1,0 +1,24 @@
+# Mainbrella reference index
+
+Generated from backend API.md and SDK READMEs. Local implementation does not establish deployed support; read /capabilities before using a feature.
+
+- [Authentication](authentication.md)
+- [Agent setup and verification](agent-setup-and-verification.md)
+- [Images](images.md)
+- [Endpoints](endpoints.md)
+- [HTTP command execution](http-command-execution.md)
+- [HTTP files](http-files.md)
+- [Filesystem metadata and directories](filesystem-metadata-and-directories.md)
+- [Browser billing endpoints](browser-billing-endpoints.md)
+- [Errors and retry behavior](errors-and-retry-behavior.md)
+- [Card-free trial coupons](card-free-trial-coupons.md)
+- [Capability discovery](capability-discovery.md)
+- [Protected application previews](protected-application-previews.md)
+- [Managed execution and streaming](managed-execution-and-streaming.md)
+- [Outbound internet selection](outbound-internet-selection.md)
+- [Workload metrics and lifecycle history](workload-metrics-and-lifecycle-history.md)
+- [Lifecycle webhooks](lifecycle-webhooks.md)
+- [Public operational status](public-operational-status.md)
+- [Machine sizes and compute allowance](machine-sizes-and-compute-allowance.md)
+- [Mainbrella JavaScript SDK](javascript-sdk.md)
+- [Mainbrella Python SDK](python-sdk.md)

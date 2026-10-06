@@ -50,6 +50,26 @@
           </div>
           <p id="containers-status" class="dashboard-status" role="status">Loading containers…</p>
           <ul id="container-list" class="container-list" aria-label="Containers" hidden></ul>
+          <section id="container-observations" class="container-observations" aria-labelledby="history-title" hidden>
+            <div class="history-heading"><h3 id="history-title" tabindex="-1">History</h3><div class="container-actions"><button type="button" class="dashboard-retry" data-history-refresh>Refresh history</button><button type="button" class="dashboard-retry" data-history-close>Close</button></div></div>
+            <p class="dashboard-status" data-history-identity></p>
+            <p class="dashboard-status" data-history-metrics hidden></p>
+            <ol class="lifecycle-list" aria-label="Lifecycle events"></ol>
+            <p class="dashboard-status" role="status"></p><p class="dashboard-error" role="alert" hidden></p>
+            <button type="button" class="dashboard-retry" data-history-more hidden>More events</button>
+            <details class="container-webhooks" data-container-webhooks hidden>
+              <summary>Lifecycle webhook</summary>
+              <form>
+                <label for="webhook-url">Approved HTTPS relay URL</label>
+                <input id="webhook-url" type="url" maxlength="2048" required autocomplete="off" placeholder="https://relay.example.com/events">
+                <div class="container-actions"><button type="submit" class="dashboard-retry" data-webhook-save>Save webhook</button><button type="button" class="dashboard-retry" data-webhook-remove hidden>Remove webhook</button><button type="button" class="dashboard-retry" data-webhook-refresh>Refresh webhook</button></div>
+              </form>
+              <p class="dashboard-status">Saving replaces the signing key and clears previous deliveries.</p>
+              <div data-webhook-secret hidden><label for="webhook-signing-secret">Signing key · shown once</label><input id="webhook-signing-secret" readonly autocomplete="off" spellcheck="false"><p class="dashboard-status">Copy this key to your receiver before closing history.</p></div>
+              <p class="dashboard-status" role="status"></p><p class="dashboard-error" role="alert" hidden></p>
+              <ul aria-label="Webhook deliveries"></ul>
+            </details>
+          </section>
           <nav id="container-pagination" class="container-pagination" aria-label="Container pages" hidden>
             <button id="containers-previous" class="dashboard-retry" type="button">Previous</button>
             <span id="containers-range" aria-live="polite"></span>

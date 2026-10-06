@@ -34,8 +34,19 @@ const download = await fetch(url, { headers });
 if (!download.ok) throw new Error(`Download failed: ${download.status}`);
 const bytes = new Uint8Array(await download.arrayBuffer());</code></pre>
 <h2>Paths and writes</h2>
-<p>Paths must be absolute, at most 4,096 UTF-8 bytes, and contain no NUL, empty, <code>.</code>, or <code>..</code> segments. Parent directories must already exist; create them through <a href="/docs/execute/">Execute</a>. Paths refer to the guest filesystem; <code>/workspace</code> is a convention, not a security boundary.</p>
+<p>Paths must be absolute, at most 4,096 UTF-8 bytes, and contain no NUL, empty, <code>.</code>, or <code>..</code> segments. Parent directories must already exist; use the capability-gated directory API below or <a href="/docs/execute/">Execute</a>. Paths refer to the guest filesystem; <code>/workspace</code> is a convention, not a security boundary.</p>
 <p>GET reads regular files and follows guest symlinks. PUT writes a temporary file beside the destination, then replaces it atomically; directories and existing symlinks are rejected. New files use mode <code>0600</code>, while replacements preserve permissions.</p>
+<h2 id="directories">Directories and metadata</h2>
+<p>Check the corresponding <code>files</code> flags in <a href="https://api.mainbrella.com/capabilities">capabilities</a> first. These additive routes require the same exact container identity and share the file-operation deadline and pool.</p>
+<div class="docs-table-scroll" tabindex="0" role="region" aria-label="Filesystem API routes"><table class="docs-table"><thead><tr><th scope="col">Operation</th><th scope="col">HTTP route</th><th scope="col">Behavior</th></tr></thead><tbody>
+<tr><td>List</td><td><code>GET /containers/files/list</code></td><td>One sorted page: <code>entries</code> and <code>nextOffset</code>. Default 100 entries, maximum 1,000.</td></tr>
+<tr><td>Stat</td><td><code>GET /containers/files/stat</code></td><td>Type, size, permissions, owner IDs, modification time and symlink target. Inspects the link itself by default.</td></tr>
+<tr><td>Create directory</td><td><code>POST /containers/files/mkdir</code></td><td>JSON <code>{path, recursive?, mode?}</code>; default mode <code>0700</code>.</td></tr>
+<tr><td>Remove</td><td><code>DELETE /containers/files/remove</code></td><td>Query <code>path</code>; nonempty directories require <code>recursive=true</code>. Removes a link itself.</td></tr>
+<tr><td>Move</td><td><code>POST /containers/files/move</code></td><td>JSON <code>{path, destination}</code>; destination must be unused.</td></tr>
+<tr><td>Permissions</td><td><code>PATCH /containers/files/chmod</code></td><td>Query <code>path</code>, JSON <code>{mode: "0644"}</code>. Rejects leaf symlinks.</td></tr>
+</tbody></table></div>
+<p>Listing rescans between pages, so directory changes can duplicate or omit entries. Root is accepted for list/stat only. Watchers remain unsupported. Recursive removal and moves across filesystems may partly complete before interruption; inspect state before retrying. See the <a href="/references/filesystem-metadata-and-directories.md">filesystem contract</a> and <a href="/sdk/javascript.md">JavaScript</a> or <a href="/sdk/python.md">Python SDK</a> helpers.</p>
 <h2>Limits and persistence</h2>
 <p>Uploads and downloads are each limited to 1 MiB. Operations are bounded by 30 seconds and the hard container deadline, share the four-command pool, and renew idle activity. For larger files, use authorized SSH access.</p>
 <p>A lost write response may hide a completed upload; read to reconcile before retrying. Export needed files before stopping: workspace storage is ephemeral.</p>

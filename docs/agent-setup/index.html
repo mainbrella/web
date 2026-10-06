@@ -23,7 +23,7 @@ Verify foreground and managed execution, cancellation and binary file transfer, 
 container created by the verification. Preserve existing containers.</code></pre>
 <p>Provision <code>MAINBRELLA_API_KEY</code> separately through your secret manager or environment loader. Do not paste a key into the prompt.</p>
 <h2>Install locally</h2>
-<p>For an agent that supports local skills, put both <a href="/SKILL.md">SKILL.md</a> and <a href="/API.md">API.md</a> in its Mainbrella skill directory. See the <a href="/integrations/">Codex, Claude Code, and HTTP tool recipes</a> for setup and verification.</p>
+<p>Download and inspect the <a href="/skills/mainbrella-containers-0.1.0.tar.gz">Mainbrella skill archive (0.1.0)</a>, then extract its <code>mainbrella-containers</code> folder into your agent’s skills directory. It contains <a href="/SKILL.md">SKILL.md</a>, <a href="/API.md">API.md</a>, and an <a href="/references/index.md">indexed reference tree</a>. See the <a href="/integrations/">Codex, Claude Code, and HTTP tool recipes</a> for setup and verification.</p>
 <h2>Verify the integration</h2>
 <p>Follow the <a href="/docs/">Quickstart</a>. The doctor makes read-only checks; verification consumes one start and must report matching hello output, exit code zero, verified binary transfer, managed streaming, cancellation, and completed cleanup. Keep a failed or ambiguous creation key for reconciliation before trying again.</p>
 </article></main>

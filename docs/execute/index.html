@@ -32,7 +32,7 @@ Content-Type: application/json
 <p>HTTP 200 means the execution request completed; check <code>exitCode</code> and both flags to decide whether the command succeeded. A nonzero exit is a command failure. A timeout or output limit returns partial output with <code>exitCode: null</code>.</p>
 <h2>Execution limits</h2>
 <p>Commands run through <code>/bin/sh -lc</code> with closed stdin. Timeout defaults to 30 seconds and accepts 1–60,000 milliseconds, including startup, bounded by the container deadline. Command text is limited to 16 KiB of UTF-8; the JSON body to 32 KiB; combined stdout and stderr to 1 MiB.</p>
-<p>Foreground commands, managed jobs, and file operations share four concurrent operations per container. They have a separate pool from interactive terminals. For retained jobs, streaming and reconnect, use managed execution below; use <a href="/docs/ssh/">SSH or the browser terminal</a> for interactive sessions.</p>
+<p>Foreground commands, managed jobs, and file operations share four concurrent operations per container. They have a separate pool from interactive terminals. For retained jobs, streaming and reconnect, use managed execution below; use managed stdin/PTY controls below or <a href="/docs/ssh/">SSH and the browser terminal</a> for interactive sessions.</p>
 <h2>Failures and retries</h2>
 <p>A lost HTTP response can hide a command that already ran. Reconcile its effects before retrying commands that write, send, charge, or otherwise change state. Results are not retained. Stop or generation replacement revokes active commands.</p>
 <h2>Managed execution</h2>
@@ -43,9 +43,26 @@ Idempotency-Key: &lt;unique-operation-key&gt;
 Content-Type: application/json
 
 {"command":"npm test","timeoutMs":300000}</code></pre>
-<p>The 202 response contains an execution ID. Preserve it and the creation key. Matching key, command and timeout retries resolve the original job within its one-hour retention window. Never retry an old key beyond that window.</p>
+<p>The 202 response contains an execution ID. Preserve it and the creation key. Matching key and all creation-option retries resolve the original job within its one-hour retention window. Never retry an old key beyond that window.</p>
 <ul><li><code>GET /containers/executions/&lt;execution-id&gt;?id=&lt;id&gt;&amp;createdAt=&lt;generation&gt;</code> reads state and retained stdout/stderr.</li><li><code>DELETE</code> at the same URL requests cancellation; poll until terminal.</li><li><code>GET /containers/executions/&lt;execution-id&gt;/events?id=&lt;id&gt;&amp;createdAt=&lt;generation&gt;&amp;cursor=0</code> streams SSE. Resume with the last output sequence as cursor. Streams rotate after 30 seconds; reconnect after nonterminal status.</li></ul>
 <p>Stop streaming on succeeded, failed, canceled, timed_out, output_limit or interrupted status. Disconnecting only detaches; it does not cancel. Managed timeouts default to 30 seconds and allow up to 15 minutes within the container deadline. Each container retains up to 32 records for one hour; output is bounded to 1 MiB and a limited event count. Up to eight streams attach per container.</p>
+<h2>Input and process controls</h2>
+<p>Check <code>execution.argv</code>, <code>stdin</code>, <code>signals</code>, <code>managedProcessListing</code>, <code>programmaticPty</code> and <code>ptyResize</code> before using these controls. A command string runs through <code>/bin/sh -lc</code>; an <code>argv</code> array starts literal executable arguments. Optional <code>cwd</code> and <code>env</code> go into the guest. Environment values are not protected secrets.</p>
+<pre class="docs-code"><code>const job = await sandbox.commands.start(['cat'], { stdin: true });
+await job.stdin.write(new TextEncoder().encode('hello\n'));
+await job.stdin.close();
+const result = await job.wait();
+const attached = sandbox.commands.attach(job.id);
+const { executions } = await sandbox.commands.list();</code></pre>
+<p>Input defaults to EOF. With <code>stdin:true</code>, writes accept raw bytes, up to 64 KiB per request, 1 MiB accepted per job and 256 KiB pending. Writes stay ordered and respect pipe backpressure. Ambiguous writes remain counted and are never retried automatically. Close input to send pipe EOF; inspect application state before repeating a lost write.</p>
+<p><code>job.signal('SIGINT')</code>, <code>SIGTERM</code> and <code>SIGKILL</code> signal the managed operation's process group. Delivery does not prove exit; inspect retained state. SIGKILL requests cancellation. Deliberately detached processes remain bounded by the machine lease. Listing returns retained managed jobs; it is not a guest-wide process table.</p>
+<pre class="docs-code"><code>const terminal = await sandbox.commands.start(['/bin/sh'], {
+  stdin: true, pty: { cols: 80, rows: 24 }
+});
+await terminal.resize(132, 40);
+await terminal.stdin.write(new TextEncoder().encode('exit\n'));
+await terminal.wait();</code></pre>
+<p>PTY dimensions are 1–1000. Terminal output combines stdout and stderr, including line endings and possible input echo. Closing PTY input may hang up the terminal; send application-appropriate bytes or an explicit exit command. Disconnecting output only detaches. Input and resize require the exact live paid generation; cancellation and retained results remain available during billing outages. See the <a href="/sdk/javascript.md">JavaScript</a> and <a href="/sdk/python.md">Python</a> references.</p>
 <p>A runtime restart interrupts unfinished managed jobs and stops their matching container generation to revoke orphan processes. This can interrupt other work in that generation; use a dedicated generation when that matters. Commands are never replayed automatically. See the <a href="/API.md#managed-execution-and-streaming">full contract</a>.</p>
 </article></main>
     <!-- site-footer -->
