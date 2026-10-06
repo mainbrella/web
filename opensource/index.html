@@ -3,24 +3,24 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Run your own GPL v3.0 AI sandbox control plane on Cloudflare. Linux Containers, Workers, Durable Objects, and D1—with no Mainbrella software fee." />
+  <meta name="description" content="Fork Mainbrella, set your own prices, and run an AI sandbox business in your Cloudflare account. Accounts, billing, quotas, SDKs, and Linux machines under GPL v3.0." />
   <meta name="theme-color" content="#0d1014" />
   <link rel="canonical" href="https://mainbrella.com/opensource/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Mainbrella" />
   <meta property="og:url" content="https://mainbrella.com/opensource/" />
-  <meta property="og:title" content="Mainbrella open source — Your Cloudflare account. Your agent machines." />
-  <meta property="og:description" content="A complete GPL v3.0 sandbox control plane built on Cloudflare. Fork it, inspect it, and run it yourself." />
+  <meta property="og:title" content="Open Source Business in a Box" />
+  <meta property="og:description" content="Your brand. Your prices. Your customers. Fork Mainbrella's GPL v3.0 sandbox platform and run your own service on Cloudflare." />
   <meta property="og:image" content="https://mainbrella.com/images/logo.png" />
   <meta property="og:image:alt" content="Mainbrella umbrella logo" />
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Mainbrella open source" />
-  <meta name="twitter:description" content="Linux machines for agents, built on Cloudflare. GPL v3.0. No Mainbrella software fee." />
+  <meta name="twitter:title" content="Open Source Business in a Box" />
+  <meta name="twitter:description" content="Fork Mainbrella, set your own prices, and serve your own customers from your Cloudflare account. GPL v3.0. No Mainbrella software fee." />
   <meta name="twitter:image" content="https://mainbrella.com/images/logo.png" />
   <link rel="icon" href="/images/favicon.png" type="image/png" />
   <link rel="stylesheet" href="/mainbrella.css" />
   <link rel="stylesheet" href="/opensource.css" />
-  <title>Open source · Mainbrella</title>
+  <title>Open Source Business in a Box</title>
 </head>
 <body class="sandbox-home opensource-page">
   <a class="skip-link" href="#main">Skip to content</a>
@@ -30,13 +30,13 @@
       <div class="wrap hero">
         <div class="hero-copy">
           <p class="source-label">Mainbrella open source · GPL v3.0</p>
-          <h1 id="site-title">Your Cloudflare account.<br />Your agent machines.</h1>
-          <p class="hero-description">A complete sandbox control plane built on Cloudflare. Give humans and AI agents isolated Linux machines, with the lifecycle, execution, and access tools already built.</p>
+          <h1 id="site-title">Open Source<br />Business in a Box</h1>
+          <p class="hero-description">Fork Mainbrella. Make it your own. Set your prices and sell Linux workspaces for AI agents from your own Cloudflare account. Accounts, billing, quotas, and customer access are already built.</p>
           <div class="hero-actions">
-            <a class="button" href="https://github.com/mainbrella/backend">Explore the source <span aria-hidden="true">↗</span></a>
-            <a class="text-link" href="#self-host">Run it yourself <span aria-hidden="true">↓</span></a>
+            <a class="button" href="https://github.com/mainbrella/backend">Fork the platform <span aria-hidden="true">↗</span></a>
+            <a class="text-link" href="#self-host">Launch your own service <span aria-hidden="true">↓</span></a>
           </div>
-          <p class="hero-plan-note">Free software. No Mainbrella subscription to self-host.<br />Existing Workers Paid allowances may cover a small deployment.</p>
+          <p class="hero-plan-note">GPL v3.0. No Mainbrella software fee.<br />Existing Workers Paid allowances may cover a small deployment.</p>
         </div>
         <figure class="source-stack">
           <figcaption>A control plane on the stack you already use.</figcaption>
@@ -52,8 +52,18 @@
     </section>
 
     <nav class="wrap recipe-links source-sections" aria-label="On this page">
-      <a href="#architecture">Architecture</a><a href="#capabilities">Capabilities</a><a href="#generations">Generation safety</a><a href="#persistence">Persistence</a><a href="#self-host">Self-hosting</a><a href="#computer">Cloudflare Computer</a>
+      <a href="#business">Your business</a><a href="#architecture">Architecture</a><a href="#capabilities">Capabilities</a><a href="#generations">Generation safety</a><a href="#persistence">Persistence</a><a href="#self-host">Self-hosting</a><a href="#computer">Cloudflare Computer</a>
     </nav>
+
+    <section class="workflow wrap" id="business" aria-labelledby="business-title">
+      <div class="section-heading"><div><h2 id="business-title">Your brand. Your prices. Your customers.</h2><p>Start with a working platform, then build a service for the people you want to serve.</p></div></div>
+      <ul class="workflow-steps">
+        <li><h3>Make the product yours.</h3><p>Fork the code, change the branding, and shape the experience around your customers. Focus on coding agents, classroom labs, evaluation workloads, or a community you know well.</p></li>
+        <li><h3>Choose your business model.</h3><p>Change subscription prices, compute allowances, and account limits. Connect your own billing integrations and charge your customers for the service you operate.</p></li>
+        <li><h3>Run it in your account.</h3><p>Deploy to your Cloudflare account and domain. Use the included web client, API, and SDKs to onboard customers, then handle their support and grow the service.</p></li>
+      </ul>
+      <div class="provider-details"><h3>The foundation<br />is already built.</h3><div><p>Account management, billing flows, API keys, quota enforcement, machine lifecycle, terminals, and previews take real engineering work. That code is here, along with deployment configs and tests. Put your effort into the audience, experience, and service that make your business worth choosing.</p><p>You're welcome to compete directly with mainbrella.com. Forking the platform and selling your own hosted service is part of the invitation.</p></div></div>
+    </section>
 
     <section class="workflow wrap" id="architecture" aria-labelledby="architecture-title">
       <div class="section-heading"><div><h2 id="architecture-title">What if your sandbox infrastructure was mostly Cloudflare?</h2><p>Linux machines on demand, without assembling a Kubernetes cluster, an EC2 fleet, Redis, and Postgres.</p></div></div>
@@ -126,9 +136,9 @@ POST /containers/exec
     </section>
 
     <section class="availability wrap" aria-labelledby="contribute-title">
-      <h2 id="contribute-title">Fork it. Run it. Help make it better.</h2>
-      <p>How far can this Cloudflare stack go? We'd love feedback on Durable Object boundaries, lifecycle races, and primitives that could simplify the system. Bring a workload, inspect the tests, or open an issue.</p>
-      <div class="hero-actions"><a class="button" href="https://github.com/orgs/mainbrella/repositories">Browse the repositories <span aria-hidden="true">↗</span></a><a class="text-link" href="https://github.com/mainbrella/backend/issues">Discuss the architecture →</a></div>
+      <h2 id="contribute-title">Build a business on it.</h2>
+      <p>Choose your audience, make the platform your own, and offer a service people want to use. The code is open, the pricing is yours to change, and your customers are yours to serve.</p>
+      <div class="hero-actions"><a class="button" href="https://github.com/orgs/mainbrella/repositories">Get the code <span aria-hidden="true">↗</span></a><a class="text-link" href="https://github.com/mainbrella/backend/blob/main/docs/deployment.md">Start with the deployment guide →</a></div>
     </section>
   </main>
   <!-- site-footer -->
