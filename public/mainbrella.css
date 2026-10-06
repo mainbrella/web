@@ -292,6 +292,7 @@ button:disabled { opacity: .65; cursor: wait; }
 .login-error { margin-top: 8px; color: #ffb4ab; font-size: 14px; }
 .login-provider, .login-signed-in { margin-top: 24px; }
 .google-button-host { min-height: 44px; }
+.google-button-host > div { border-radius: 6px; overflow: hidden; }
 .login-provider { max-width: 360px; }
 .email-login-form { display: grid; gap: 8px; margin-top: 24px; }
 .email-login-form label { font-size: 14px; }

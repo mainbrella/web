@@ -88,7 +88,7 @@ async function loadGoogleButton() {
     });
     window.google.accounts.id.renderButton(googleHost, {
       type: 'standard',
-      theme: 'outline',
+      theme: 'outline_dark',
       size: 'large',
       text: 'continue_with',
       shape: 'rectangular',
