@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { agentDocsPlugin } from './agent-docs-plugin.mjs';
+import { agentDocsPlugin } from './agent-docs-plugin.ts';
 import { runDoctor } from './mainbrella-doctor.mjs';
 import { verify, verifyManaged, executionEvents, createRequester } from './mainbrella-verify.mjs';
 

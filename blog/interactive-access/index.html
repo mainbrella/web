@@ -35,11 +35,11 @@
 <p>Terminal input and output renew the idle lease. Requesting an SSH token and reading container status do not. Neither activity nor reconnection extends the independent hard deadline. An agent cannot keep a one-hour Builder session alive indefinitely by sending periodic commands.</p>
 <p>There are four combined browser and SSH terminal connections per container and ten live SSH tokens per account. HTTP commands have their own concurrent-operation pool. These are distinct limits, so a client should report which operation failed rather than treating every capacity error as a full account.</p>
 <p>Use <a href="/docs/execute/">HTTP execution</a> for bounded foreground commands and structured stdout, stderr, and exit status. Use <a href="/docs/ssh/">SSH or the browser terminal</a> when the work needs interaction. Both still require exporting any result that must outlive the container.</p>
-<p>Client implementation: <a href="https://github.com/mainbrella/web/blob/main/src/container-terminal.js">browser terminal source</a>. Current connection and session bounds: <a href="/docs/limits/">Limits</a>.</p>
+<p>Client implementation: <a href="https://github.com/mainbrella/web/blob/main/src/container-terminal.ts">browser terminal source</a>. Current connection and session bounds: <a href="/docs/limits/">Limits</a>.</p>
 
 </article>
     </main>
     <!-- site-footer -->
-    <script type="module" src="/src/account-menu.js"></script>
+    <script type="module" src="/src/account-menu.ts"></script>
   </body>
 </html>

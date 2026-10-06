@@ -3,13 +3,20 @@
 ```sh
 npm ci
 npm run dev       # Vite development server
-npm test          # Browser client tests (Node 22.15+)
-npm run build     # Build the static site into dist/
+npm test          # Browser client and tool tests (Node 22.15+)
+npm run type-check # Strict TypeScript checks, including browser tests
+npm run build     # Type-check, then build the static site into dist/
 npm run preview   # Preview the built site with Wrangler
 npm run deploy    # Build, then deploy dist/ with Wrangler
 npm run doctor    # Read-only agent setup diagnostics (MAINBRELLA_API_KEY)
 npm run verify:agent # Create, execute hello over HTTP, and clean up; consumes one start
 ```
+
+Browser code in `src/`, its tests, the Vite configuration, and build plugins use
+strict TypeScript. Vite compiles browser modules to JavaScript; `tsx` runs the
+TypeScript tests. The public `/homepage.js` asset is compiled from
+`src/homepage.ts`. Downloadable `.mjs` tools and their Node scripts remain
+JavaScript so users can run them directly without a TypeScript toolchain.
 
 Builder ($5/month), Pro ($180/month), and Scale ($999/month) use Stripe's
 inline Payment Element, adapted from Cubacadabra's checkout helper. Customers
@@ -31,7 +38,7 @@ Google login is available at `/login` (redirecting to `/login/`), using the same
 credentialed `/auth/me`, `/auth/google`, and `/auth/logout` flow as AHP Tour.
 The default client ID is
 `854186419005-l0u2olqlqe40qmgin0q8tjpvftooi6ac.apps.googleusercontent.com`
-in `src/auth.js` and `../backend/wrangler.jsonc`. Optional `VITE_GOOGLE_CLIENT_ID`
+in `src/auth.ts` and `../backend/wrangler.jsonc`. Optional `VITE_GOOGLE_CLIENT_ID`
 and `VITE_API_URL` overrides support other environments; the backend client ID
 must match. Plan-specific billing login returns to the selected plan after sign-in.
 Other logins default to `/dashboard/`; safe same-site `returnTo` destinations
@@ -146,7 +153,7 @@ separately using the instructions in `API.md`.
 ## Public website
 
 Public pages use shared static navigation and footer markup from
-`scripts/site-chrome-plugin.mjs`, rendered by Vite in development and production.
+`scripts/site-chrome-plugin.ts`, rendered by Vite in development and production.
 Use `<!-- site-header -->` and `<!-- site-footer -->` in public HTML pages.
 Authenticated application screens retain their existing navigation.
 
@@ -154,7 +161,7 @@ The human-facing documentation starts at `/docs/`, with guides for containers,
 execution, files, images, SSH, authentication, limits, errors, API reference, and
 agent setup. `API.md`, `SKILL.md`, OpenAPI, and the onboarding scripts remain the
 technical sources; update the corresponding HTML guides when contracts change.
-New routes must also appear in `vite.config.js` and `public/sitemap.xml`.
+New routes must also appear in `vite.config.ts` and `public/sitemap.xml`.
 
 `/security/`, `/security/disclosure/`, and `/.well-known/security.txt` publish
 implemented controls and the reporting address. Renew the security.txt expiry
@@ -214,7 +221,7 @@ compute, startup measurement, idempotency and generations, browser/SSH access,
 and custom images. Articles describe the existing web API documentation and
 client code; publication dates do not establish feature release or benchmark dates.
 Keep article claims aligned with the linked guides when contracts change. Add new
-articles to the blog index, `vite.config.js`, and `public/sitemap.xml`.
+articles to the blog index, `vite.config.ts`, and `public/sitemap.xml`.
 
 `/compare/` is a Mainbrella-authored comparison reviewed October 6, 2026, covering
 remote coding-agent products and phone control planes (Cursor, Codex Cloud, and

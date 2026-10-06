@@ -48,6 +48,6 @@ Content-Type: application/json
 <p>Creating a link is not idempotent. After a lost response, list and revoke the unwanted grant before creating another. A <code>preview_reconciliation_required</code> error includes <code>previewId</code>; retry DELETE with that ID and the same generation. Requests never start or restart a container. Cookies and Authorization are stripped; cookie sessions, external Host semantics and absolute redirect rewriting are unsupported. See the <a href="/API.md">full contract</a> and local <a href="/sdk/javascript.md">JavaScript</a> / <a href="/sdk/python.md">Python</a> helpers.</p>
 </article></main>
     <!-- site-footer -->
-    <script type="module" src="/src/account-menu.js"></script>
+    <script type="module" src="/src/account-menu.ts"></script>
   </body>
 </html>
