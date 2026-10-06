@@ -3,25 +3,104 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="A dated, source-linked comparison of Mainbrella, E2B, and Daytona: billing, machine sizes, persistence, SDKs, source availability, and deployment." />
+    <meta name="description" content="Compare Mainbrella with 14 agent sandbox alternatives, including E2B, Daytona, Modal, Blaxel, Fly Sprites, AWS, and DigitalOcean, plus raw VM and container platforms." />
     <meta name="theme-color" content="#0d1014" />
     <link rel="canonical" href="https://mainbrella.com/compare/" />
-    <meta property="og:title" content="Mainbrella vs E2B vs Daytona · Mainbrella" />
-    <meta property="og:description" content="A dated, source-linked comparison of Mainbrella, E2B, and Daytona: billing, machine sizes, persistence, SDKs, source availability, and deployment." />
+    <meta property="og:title" content="Compare agent sandboxes and compute platforms · Mainbrella" />
+    <meta property="og:description" content="A source-linked comparison of agent sandboxes, elastic compute, raw VMs, application platforms, and cloud development workspaces." />
     <meta property="og:url" content="https://mainbrella.com/compare/" />
     <meta property="og:type" content="website" />
     <link rel="icon" href="/images/favicon.png" type="image/png" />
     <link rel="stylesheet" href="/mainbrella.css" />
-    <title>Mainbrella vs E2B vs Daytona · Mainbrella</title>
+    <title>Compare agent sandboxes and compute platforms · Mainbrella</title>
   </head>
   <body class="info-body">
     <a class="skip-link" href="#main">Skip to content</a>
     <!-- site-header -->
     <main id="main" class="legal-content comparison-content wrap">
 
-<h1>Mainbrella vs E2B vs Daytona</h1>
-<p>Mainbrella offers small, temporary Linux workspaces with fixed monthly allowances. E2B and Daytona offer broader machine configurations and persistence options with usage billing. The differences below help you check whether your workload fits.</p>
-<p class="legal-updated">Reviewed <time datetime="2026-10-05">October 5, 2026</time>. Published by Mainbrella; competitor details come from their official pages, not independent runtime tests.</p>
+<h1>Compare agent sandboxes and compute platforms</h1>
+<p>An agent sandbox gives a session its own environment to run commands, work with files, and execute generated code. A VM cloud supplies the machine underneath. Both can serve the same workload; the difference is how much orchestration you build.</p>
+<p class="legal-updated">Market overview reviewed <time datetime="2026-10-06">October 6, 2026</time>. Published by Mainbrella. Provider links are official sources; categories and workload fit are our interpretation, not independent runtime tests.</p>
+<nav class="recipe-links" aria-label="Comparison sections">
+  <a href="#agent-sandboxes">Agent sandboxes</a>
+  <a href="#compute-primitives">Elastic compute</a>
+  <a href="#raw-vms">Raw VMs</a>
+  <a href="#app-platforms">Application platforms</a>
+  <a href="#cloud-workspaces">Development workspaces</a>
+</nav>
+
+<h2 id="agent-sandboxes">Agent sandboxes and computers</h2>
+<p>These products expose environments for programmatic code execution or agent sessions. Some specialize in disposable jobs; others preserve a computer between sessions. Compare the product, rather than treating every service from the same cloud as equivalent.</p>
+<p class="comparison-scroll-note">Scroll tables horizontally on smaller screens.</p>
+<div class="docs-table-scroll" role="region" aria-label="Agent sandbox comparison; scroll horizontally on small screens" tabindex="0">
+<table class="docs-table market-table">
+  <caption class="comparison-caption">Mainbrella and 14 alternatives. Published capabilities, with workload fit assessed by Mainbrella.</caption>
+  <thead><tr><th scope="col">Provider</th><th scope="col">Environment and workflow</th><th scope="col">State and lifecycle</th><th scope="col">Consider it for</th></tr></thead>
+  <tbody>
+    <tr><th scope="row"><a href="/platform/">Mainbrella</a></th><td>Temporary Linux workspaces on Cloudflare Containers. HTTP execution, files, browser terminal, and SSH.</td><td><a href="/docs/containers/">Ephemeral files</a>; lost after stop. No snapshots, pause/resume, or persistent volumes.</td><td>Small, temporary tasks with <a href="/pricing/">fixed monthly allowances</a> and hard caps. Up to 4 vCPU and 12 GiB RAM; no published SDK or BYOC.</td></tr>
+    <tr><th scope="row"><a href="https://e2b.dev/">E2B</a></th><td>Firecracker microVM per session, with SDK access to shell, files, networking, and metrics.</td><td><a href="https://docs.e2b.dev/sandbox/persistence">Pause/resume retains disk and memory</a>. Templates provide reusable starting environments.</td><td>A general agent computer with SDKs and managed or customer-cloud deployment. <a href="https://e2b.dev/pricing">Plan fees plus usage</a>.</td></tr>
+    <tr><th scope="row"><a href="https://www.daytona.io/docs/en/">Daytona</a></th><td>Agent sandboxes with filesystem/process APIs, previews, and OCI-compatible environments.</td><td><a href="https://www.daytona.io/docs/en/volumes/">Persistent volumes</a> and snapshots. <a href="https://www.daytona.io/docs/en/secrets/">Secret proxy</a> keeps real credentials outside the sandbox.</td><td>Agent workflows that need persistence, preview access, and credential controls. <a href="https://www.daytona.io/pricing">Usage billing; enterprise BYOC</a>.</td></tr>
+    <tr><th scope="row"><a href="https://modal.com/docs/guide/sandboxes">Modal Sandboxes</a></th><td>Isolated execution with custom images, process/file APIs, and configurable CPU, memory, and GPUs.</td><td>Bounded sandbox lifetime; filesystem snapshots preserve work for a subsequent sandbox. Volumes support persistent data.</td><td>Parallel code execution, evaluations, and ML workloads alongside Modal compute. <a href="https://modal.com/pricing">Resource usage billing</a>.</td></tr>
+    <tr><th scope="row"><a href="https://docs.blaxel.ai/Sandboxes/Overview">Blaxel</a></th><td>Agent VMs with filesystem/process APIs, SDKs, and an MCP interface.</td><td>Automatic standby retains memory, processes, and files. Standby snapshot storage is still billed; retention depends on quotas.</td><td>Stateful agents that wait between bursts of work and resume their computer. Check standby storage and expiration policies.</td></tr>
+    <tr><th scope="row"><a href="https://runloop.ai/">Runloop</a></th><td>Devboxes for software engineering agents, with repository setup, templates, and interactive connections.</td><td>Disk snapshots and branches, plus suspend/resume for continuing workflows.</td><td>Agents working across repositories and reproducible development environments. Usage billing; customer-cloud deployment offered.</td></tr>
+    <tr><th scope="row"><a href="https://vercel.com/docs/sandbox">Vercel Sandbox</a></th><td>Isolated Linux environments for generated code, with command execution, previews, SDKs, and custom images.</td><td>Persistent sandboxes save state on stop; snapshots can restore environments. Persistent drives are in beta.</td><td>Programmatic code execution within Vercel’s ecosystem. Check <a href="https://vercel.com/docs/sandbox/pricing">resource billing and plan quotas</a>.</td></tr>
+    <tr><th scope="row"><a href="https://developers.cloudflare.com/sandbox/">Cloudflare Sandboxes</a></th><td>Worker-controlled Linux containers in microVMs, with commands, files, previews, and network controls.</td><td>Workspace save/restore is documented in beta. Backups and R2 mounts support data beyond an instance.</td><td>A sandbox layer integrated with Workers, Durable Objects, and R2. Requires Workers Paid; container scheduling is in public beta.</td></tr>
+    <tr><th scope="row"><a href="https://docs.digitalocean.com/products/managed-agents/">DigitalOcean Harness Runtime</a></th><td>Hardware-isolated microVMs for agent harnesses or standalone code execution. Custom OCI templates supported.</td><td>Pause, resume, and fork with working state and conversation history preserved.</td><td>Managed agent sessions and lifecycle APIs in DigitalOcean. Managed Agents entered public preview September 21, 2026.</td></tr>
+    <tr><th scope="row"><a href="https://aws.amazon.com/about-aws/whats-new/2026/06/aws-lambda-microvms/">AWS Lambda MicroVMs</a></th><td>A Firecracker compute primitive for user- or AI-generated code, with Dockerfile-based images and per-environment HTTPS URLs.</td><td>State retention with suspend/resume for up to eight hours, as documented at launch.</td><td>Isolated sessions inside AWS. Launched June 22, 2026; check supported regions and baseline versus additional-resource billing.</td></tr>
+    <tr><th scope="row"><a href="https://fly.io/sprites/">Fly Sprites</a></th><td>Persistent Linux computers for agents, with execution APIs, services, and private or public URLs.</td><td>Sleep/wake and filesystem checkpoints. Checkpoints rewind disk; they do not restore a process mid-instruction.</td><td>A continuing agent computer. CPU, memory, and storage are billed by actual usage; compare active and idle storage costs.</td></tr>
+    <tr><th scope="row"><a href="https://northflank.com/product/sandboxes">Northflank Sandboxes</a></th><td>Isolated execution with microVM-backed Kata Containers or gVisor, depending on deployment configuration.</td><td>Ephemeral environments and managed lifecycle. Runs on Northflank infrastructure or in your own VPC.</td><td>Agent execution with BYOC and a broader application platform. Confirm the isolation model for your chosen configuration.</td></tr>
+    <tr><th scope="row"><a href="https://www.koyeb.com/docs/sandboxes">Koyeb Sandboxes</a></th><td>Programmatic execution with Python/JavaScript SDKs, filesystem/process APIs, and port exposure.</td><td><a href="https://www.koyeb.com/docs/sandboxes/sandbox-lifecycle">Create, execute, and delete</a> ephemeral environments. Public preview.</td><td>Disposable code execution alongside Koyeb services. Check preview limits and the resource costs of the selected instance.</td></tr>
+    <tr><th scope="row"><a href="https://github.com/codesandbox/codesandbox-sdk">CodeSandbox SDK</a></th><td>Programmatically provision development microVMs, run Dockerfiles, and work with source control.</td><td>VM snapshots, restore, cloning, and hibernation for reuse across jobs.</td><td>Agent development environments and CI workflows that need reusable repository state. Check VM concurrency and creation quotas.</td></tr>
+    <tr><th scope="row"><a href="https://cloud.morph.so/docs/developers">Morph Cloud</a></th><td>Programmable VMs and devboxes, with Python/TypeScript SDKs and SSH or preview access.</td><td>Snapshots and branches preserve a running computational environment; devboxes have sleep and TTL policies.</td><td>Parallel experiments, branching agent workflows, and restoring earlier VM states. Evaluate storage and retention alongside compute.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2 id="compute-primitives">Elastic compute primitives</h2>
+<p>These give you dynamic compute and lifecycle controls to build on. Your application still supplies the agent-facing execution, file, credential, quota, and cleanup policies. AWS Lambda MicroVMs, listed above, also fits this layer.</p>
+<div class="docs-table-scroll" role="region" aria-label="Elastic compute comparison; scroll horizontally on small screens" tabindex="0">
+<table class="docs-table market-table">
+  <caption class="comparison-caption">The underlying compute product is distinct from its agent sandbox offering.</caption>
+  <thead><tr><th scope="col">Product</th><th scope="col">What it supplies</th><th scope="col">What you build around it</th></tr></thead>
+  <tbody>
+    <tr><th scope="row"><a href="https://docs.fly.io/machines">Fly Machines</a></th><td>API-managed virtual machines and their lifecycle.</td><td>Per-session execution and file tooling, credentials, tenancy, metering, and cleanup. Sprites adds an agent-computer product above this layer.</td></tr>
+    <tr><th scope="row"><a href="https://developers.cloudflare.com/containers/">Cloudflare Containers</a></th><td>Container images running in microVMs, coordinated through Workers and Durable Objects.</td><td>The application control plane. Cloudflare Sandboxes provides additional execution and workspace tooling; Mainbrella packages temporary workspaces with account allowances.</td></tr>
+    <tr><th scope="row"><a href="https://modal.com/docs/guide">Modal compute</a></th><td>Serverless functions and containers with CPU/GPU resource configuration.</td><td>Agent session policy and application integration. Modal Sandboxes supplies the isolated execution interface when a session needs a computer.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2 id="raw-vms">Raw programmable VMs</h2>
+<p>Vultr, Hetzner, and the major VM clouds are valid substitutes when you want to own the orchestration. Provision a machine, install your runtime, run the job, and destroy it. A general VM API does not by itself provide an agent sandbox control plane.</p>
+<div class="docs-table-scroll" role="region" aria-label="Raw virtual machine alternatives; scroll horizontally on small screens" tabindex="0">
+<table class="docs-table market-table">
+  <caption class="comparison-caption">General infrastructure alternatives, grouped for browsing. This is not a price or performance ranking.</caption>
+  <thead><tr><th scope="col">VM platforms</th><th scope="col">Official products</th><th scope="col">Work you retain</th></tr></thead>
+  <tbody>
+    <tr><th scope="row">Large cloud platforms</th><td><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html">AWS EC2</a>, <a href="https://docs.cloud.google.com/compute/docs/overview">Google Compute Engine</a>, <a href="https://learn.microsoft.com/en-us/azure/virtual-machines/overview">Azure VMs</a>, and <a href="https://docs.oracle.com/en-us/iaas/Content/Compute/Concepts/computeoverview.htm">Oracle OCI Compute</a>.</td><td>Image preparation, session assignment, command/file access, network policy, and resource accounting in your cloud account.</td></tr>
+    <tr><th scope="row">Developer VM clouds</th><td><a href="https://docs.digitalocean.com/products/droplets/">DigitalOcean Droplets</a>, <a href="https://docs.vultr.com/reference">Vultr Cloud Compute</a>, and <a href="https://techdocs.akamai.com/linode-api/reference/api-summary">Akamai / Linode</a>.</td><td>Runtime setup and your session control plane. DigitalOcean’s Harness Runtime is a separate agent-oriented product, not a Droplet feature.</td></tr>
+    <tr><th scope="row">Further VM alternatives</th><td><a href="https://docs.hetzner.cloud/">Hetzner Cloud</a>, <a href="https://www.scaleway.com/en/docs/instances/">Scaleway Instances</a>, <a href="https://www.ovhcloud.com/en/public-cloud/compute/">OVHcloud</a>, and <a href="https://upcloud.com/products/cloud-servers/">UpCloud</a>.</td><td>Pooling, session timeouts, quotas, logs, failed-machine cleanup, and the tenant boundaries required by your workload.</td></tr>
+  </tbody>
+</table>
+</div>
+<p>Compare the complete bill: allocated compute, minimum billing duration, disk, snapshots, traffic, warm capacity, and engineering time. A low VM hourly price is useful evidence, but it does not price the service you build on top.</p>
+
+<h2 id="app-platforms">Application and container platforms</h2>
+<p><a href="https://docs.railway.com/integrations/api">Railway</a>, <a href="https://render.com/docs/api">Render</a>, <a href="https://docs.cloud.google.com/run/docs/overview/what-is-cloud-run">Google Cloud Run</a>, <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html">AWS ECS / Fargate</a>, and <a href="https://learn.microsoft.com/en-us/azure/container-apps/overview">Azure Container Apps</a> provide application deployment or managed container execution. <a href="https://kubernetes.io/docs/concepts/workloads/">Kubernetes</a> and <a href="https://developer.hashicorp.com/nomad/docs">Nomad</a> let you operate the scheduler yourself.</p>
+<p>These are candidates for running your agent service or building a sandbox service. Plan for per-session provisioning, interactive execution, isolation, and cleanup. Northflank and Koyeb span both categories: their sandbox products appear in the direct comparison above.</p>
+
+<h2 id="cloud-workspaces">Cloud development workspaces</h2>
+<p><a href="https://docs.github.com/en/codespaces/about-codespaces/what-are-codespaces">GitHub Codespaces</a>, <a href="https://github.com/codesandbox/codesandbox-sdk">CodeSandbox</a>, <a href="https://coder.com/docs">Coder</a>, <a href="https://devpod.sh/docs/what-is-devpod">DevPod</a>, and <a href="https://ona.com/docs/ona/getting-started">Ona</a> provide development environments or tooling to create them. DevPod and self-hosted workspace tools still need an underlying compute provider.</p>
+<p>Consider this layer when the workspace is organized around a repository and ongoing developer or agent work. Check programmatic creation, headless access, cloning, idle behavior, and quotas. CodeSandbox’s SDK crosses directly into the agent sandbox category.</p>
+
+<h2>What the sandbox layer adds</h2>
+<p>Creating a VM is the first step. An agent-facing service also needs command streaming, terminals, file transfer, previews, lifecycle controls, credential handling, egress policy, observability, automatic cleanup, and per-customer quotas. Providers implement different subsets; a sandbox label alone does not establish every capability.</p>
+<p>Mainbrella focuses on temporary workspaces with fixed monthly allowances. Persistence, snapshots, a published SDK, and BYOC are current gaps. Choose a broader sandbox product when those capabilities are required, or a VM platform when you want to build and operate the control plane.</p>
+
+<details class="comparison-detail">
+<summary>Mainbrella, E2B, and Daytona in detail</summary>
+<p>This narrower capability comparison was reviewed October 5, 2026. Sources and prices are linked in each row.</p>
 <div class="docs-table-scroll" role="region" aria-label="Platform comparison; scroll horizontally on small screens" tabindex="0">
 <table class="docs-table"><caption class="comparison-caption">Published capabilities as of October 5, 2026. Prices in USD; verify current terms with each provider.</caption>
 <thead><tr><th scope="col">Capability</th><th scope="col">Mainbrella</th><th scope="col">E2B</th><th scope="col">Daytona</th></tr></thead>
@@ -33,6 +112,7 @@
 <tr><th scope="row">Source availability</th><td><a href="https://github.com/mainbrella/web">Website and client tools source</a> available. This does not establish a self-hostable compute platform.</td><td><a href="https://e2b.dev/open-source">Runtime and platform repositories published under Apache-2.0</a>.</td><td><a href="https://github.com/daytonaio/daytona">Former core repository archived October 3, 2026</a>; its notice says core development moved private in June 2026.</td></tr>
 <tr><th scope="row">Deployment options</th><td><a href="/platform/">Hosted on Cloudflare</a>. No offered BYOC, self-hosted deployment, or customer-selected compute region.</td><td><a href="https://e2b.dev/open-source">Managed cloud, BYOC, and self-hosted stack</a> advertised; check commercial terms.</td><td><a href="https://www.daytona.io/docs/en/regions/">Managed US/EU regions</a>; <a href="https://www.daytona.io/pricing">enterprise BYOC</a> advertised.</td></tr>
 <tr><th scope="row">Startup evidence</th><td><a href="/benchmarks/">Historical prototype</a>: 381 ms P50 / 528 ms P95 (30 creates); 680 ms P95 (100-machine burst). Original methodology incomplete.</td><td>No comparable timed test reviewed for this page. Use the <a href="https://docs.e2b.dev/quickstart">Quickstart</a> to measure your own workload.</td><td><a href="https://www.daytona.io/pricing">Millisecond startup claim</a>; no comparable timed test reviewed for this page.</td></tr></tbody></table></div>
+</details>
 <h2>Compare the workload, not just the monthly price</h2>
 <p>A plan fee is not a total-cost estimate for a usage-billed service. Compare the machine resources, runtime, concurrency, starts, and stored data your application needs. All Mainbrella plans offer machines up to 4 vCPU and 12 GiB RAM. Persistent volumes, snapshots, and a published SDK remain capability gaps. Mainbrella’s concurrency ceiling also depends on machine size.</p>
 <h2>Measure startup on equal terms</h2>

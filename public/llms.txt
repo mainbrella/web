@@ -33,7 +33,7 @@ Historical prototype startup benchmarks have incomplete original metadata and ra
 - [Providers and subprocessors](https://mainbrella.com/subprocessors/): Provider purposes, data categories, and processing-location disclosures.
 
 - [Engineering blog](https://mainbrella.com/blog/): Technical notes on lifecycle, startup measurements, safe creation, interactive access, and images.
-- [Mainbrella vs E2B vs Daytona](https://mainbrella.com/compare/): Dated comparison with official sources and explicit capability gaps.
+- [Sandbox and compute platform comparison](https://mainbrella.com/compare/): Dated comparison with official sources and explicit capability gaps.
 - [Brand assets](https://mainbrella.com/brand/): Logo, wordmarks, public website screenshots, and usage guidance.
 - [Careers](https://mainbrella.com/careers/): Founder contact for interest in building agent infrastructure; no advertised open roles.
 

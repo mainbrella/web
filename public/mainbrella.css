@@ -546,6 +546,13 @@ button:disabled { opacity: .65; cursor: wait; }
 .comparison-content .docs-table td { color: var(--ink); }
 .comparison-content .docs-table th[scope="row"] { overflow-wrap: anywhere; }
 .comparison-caption { margin-bottom: 12px; text-align: left; color: var(--muted); }
+.comparison-content .market-table { min-width: 800px; }
+.comparison-content .market-table th:first-child { width: 20%; }
+.comparison-content .comparison-scroll-note { margin-top: 16px; color: var(--muted); font-size: 13px; }
+.comparison-scroll-note + .docs-table-scroll { margin-top: 8px; }
+.comparison-detail { margin-top: 24px; }
+.comparison-detail > summary { min-height: 44px; padding: 8px 0; cursor: pointer; font-weight: 500; }
+.comparison-detail > summary:hover { color: var(--blue); }
 .brand-variants { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 24px; }
 .brand-variants figure { margin: 0; min-width: 0; }
 .brand-preview { display: flex; justify-content: center; align-items: center; min-height: 144px; padding: 24px; background: var(--surface); }

@@ -214,12 +214,13 @@ client code; publication dates do not establish feature release or benchmark dat
 Keep article claims aligned with the linked guides when contracts change. Add new
 articles to the blog index, `vite.config.js`, and `public/sitemap.xml`.
 
-`/compare/` is a Mainbrella-authored comparison reviewed October 5, 2026, with
-official sources beside competitor claims. Recheck those sources and update the
-review date whenever changing prices or capabilities. Startup observations and
-marketing claims are not a common benchmark. Daytona's archived public core
-repository reports that core development moved private in June 2026; do not
-describe it as the current open-source hosted platform.
+`/compare/` is a Mainbrella-authored comparison reviewed October 6, 2026, covering
+dedicated agent sandboxes, elastic compute primitives, raw VMs, app platforms,
+and cloud development workspaces. It cites official sources and does not rank
+speed because the platforms lack a common benchmark. Recheck those sources and
+update the review date whenever changing prices or capabilities. Daytona's
+archived public core repository reports that core development moved private in
+June 2026; do not describe it as the current open-source hosted platform.
 
 `/brand/` exports the existing transparent umbrella PNG and light/dark wordmarks,
 with SVG and PNG downloads, usage guidance, and a ZIP under `public/brand/assets/`.
