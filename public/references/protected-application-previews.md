@@ -1,8 +1,8 @@
 <!-- Generated from backend/API.md; edit the source and run docs:package. -->
 ## Protected application previews
 
-These endpoints are implemented locally; public previews remain disabled until
-the isolated gateway/domain is configured and qualified. Check
+Protected previews are enabled on the isolated `mainbrella.dev` gateway after
+live transport, Next.js/browser and account/generation isolation qualification. Check
 `/capabilities` and use previews only when `previews.supported` is true.
 
 Start the application's HTTP server in an owned container first. Then use
