@@ -20,16 +20,39 @@ const checkoutView = document.querySelector("#inline-checkout");
 const checkoutForm = document.querySelector("#checkout-form");
 const checkoutEmail = document.querySelector("#checkout-email");
 const checkoutBack = document.querySelector("#checkout-back");
+const checkoutPaymentSlot = document.querySelector("#checkout-payment-slot");
 let checkoutProcessing = false;
 let cleanupCheckout;
 let checkoutVersion = 0;
 let busy = false;
+function setPaymentLoading(loading) {
+  if (!checkoutPaymentSlot) return;
+  checkoutPaymentSlot.dataset.loading = String(loading);
+  checkoutPaymentSlot.ariaBusy = String(loading);
+}
+function showCheckoutShell(plan) {
+  checkoutView.hidden = false;
+  document.querySelector("#pricing-plans").hidden = true;
+  document.querySelector("#checkout-title").textContent = `${plans[plan].name} — $${priceFor(plan)}/month`;
+  checkoutEmail.value = user?.email || "";
+  checkoutEmail.readOnly = false;
+  checkoutEmail.disabled = true;
+  checkoutForm.hidden = false;
+  const submit = document.querySelector("#checkout-submit");
+  submit.disabled = true;
+  submit.textContent = `Subscribe for $${priceFor(plan)}/month`;
+  const checkoutStatus = document.querySelector("#checkout-status");
+  checkoutStatus.textContent = "Preparing secure payment…";
+  checkoutStatus.dataset.state = "pending";
+  setPaymentLoading(true);
+}
 function closeCheckout() {
   checkoutVersion++;
   busy = false;
   checkoutProcessing = false;
   cleanupCheckout?.();
   cleanupCheckout = null;
+  setPaymentLoading(true);
   checkoutView.hidden = true;
   checkoutForm.hidden = true;
   document.querySelector("#checkout-total").textContent = "";
@@ -128,7 +151,10 @@ function periodEnd() {
 }
 function render() {
   const checkoutStage = document.querySelector("#checkout-stage");
-  if (checkoutStage) checkoutStage.dataset.reserve = String(!ready || !checkoutView.hidden);
+  if (checkoutStage) {
+    checkoutStage.dataset.reserve = String(!ready || !checkoutView.hidden);
+    checkoutStage.dataset.checkout = String(!checkoutView.hidden);
+  }
   account.hidden = !user;
   account.textContent = user ? `Signed in as ${user.email || user.name}` : "";
   logout.hidden = !user;
@@ -255,12 +281,22 @@ async function initialize() {
       history.replaceState(null, "", `${location.pathname}${params.size ? `?${params}` : ""}${location.hash}`);
     }
     ready = true;
-    render();
-    if (selectedPlan && user && !subscription && !subscriptionState?.active && !returningFromCheckout) await openCheckout(selectedPlan);
+    if (selectedPlan && user && !subscription && !subscriptionState?.active && !returningFromCheckout) {
+      await openCheckout(selectedPlan);
+    } else {
+      if (selectedPlan) closeCheckout();
+      render();
+    }
   } catch {
     if (version !== authVersion) return;
     ready = false;
     message("Subscriptions are temporarily unavailable. Please try again.", true);
+    if (selectedPlan && !checkoutView.hidden) {
+      const checkoutStatus = document.querySelector("#checkout-status");
+      checkoutStatus.textContent = "Subscriptions are temporarily unavailable. Refresh to try again.";
+      checkoutStatus.dataset.state = "error";
+      setPaymentLoading(false);
+    }
     disablePlans(false);
   }
 }
@@ -274,24 +310,9 @@ async function openCheckout(plan) {
   busy = true;
   render();
   disablePlans(true);
-  const details = plans[plan];
   try {
-    checkoutView.hidden = false;
-    document.querySelector("#pricing-plans").hidden = true;
-    const title = document.querySelector("#checkout-title");
-    title.textContent = `${details.name} — $${details.price}/month`;
-    title.focus();
-    document.querySelector("#checkout-summary").textContent = "Enter your payment details below. Your plan has a fixed monthly price; compute usage charges are not enabled.";
-    checkoutEmail.value = user.email || "";
-    checkoutEmail.readOnly = false;
-    checkoutEmail.disabled = true;
-    checkoutForm.hidden = false;
+    showCheckoutShell(plan);
     const submit = document.querySelector("#checkout-submit");
-    submit.disabled = true;
-    submit.textContent = `Subscribe for $${priceFor(plan)}/month`;
-    const checkoutStatus = document.querySelector("#checkout-status");
-    checkoutStatus.textContent = "Preparing secure payment…";
-    checkoutStatus.dataset.state = "pending";
     render();
     const data = await api("/subscription/checkout", { plan });
     if (version !== checkoutVersion) return;
@@ -303,6 +324,8 @@ async function openCheckout(plan) {
       emailInput: checkoutEmail, totalElement: document.querySelector("#checkout-total"),
       clientSecret: data.client_secret, publishableKey: data.publishable_key,
       submitLabel: submit.textContent,
+      onReady: () => { if (version === checkoutVersion) setPaymentLoading(false); },
+      onError: () => { if (version === checkoutVersion) setPaymentLoading(false); },
       onProcessing: (processing) => {
         checkoutProcessing = processing;
         checkoutBack.disabled = processing;
@@ -328,6 +351,7 @@ async function openCheckout(plan) {
     const checkoutStatus = document.querySelector("#checkout-status");
     checkoutStatus.textContent = "Payment details are temporarily unavailable. Refresh to try again.";
     checkoutStatus.dataset.state = "error";
+    setPaymentLoading(false);
     if (error.message === "subscription_exists") {
       closeCheckout();
       await refresh().catch(() => {});
@@ -511,4 +535,5 @@ window.addEventListener("auth-change", (event) => {
   message("Signed out.");
   render();
 });
+if (selectedPlan) showCheckoutShell(selectedPlan);
 initialize();

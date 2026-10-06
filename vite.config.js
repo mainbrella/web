@@ -13,6 +13,13 @@ const publicPages = ['docs', 'docs/containers', 'docs/execute', 'docs/files', 'd
   'blog/safe-container-creation', 'blog/interactive-access', 'blog/custom-images',
   'compare', 'brand', 'careers'];
 
+function checkoutPage(html, plan) {
+  return html
+    .replaceAll("Subscribe · Mainbrella", `${plan.name} subscription · Mainbrella`)
+    .replace('<h1 id="checkout-title" tabindex="-1">Subscribe</h1>', `<h1 id="checkout-title" tabindex="-1">${plan.name} — $${plan.price}/month</h1>`)
+    .replace('id="checkout-submit" type="submit" disabled>Subscribe</button>', `id="checkout-submit" type="submit" disabled>Subscribe for $${plan.price}/month</button>`);
+}
+
 export default defineConfig({
   base: "/",
   publicDir: "public",
@@ -21,6 +28,13 @@ export default defineConfig({
     agentDocsPlugin(),
     {
       name: "pricing-routes",
+      transformIndexHtml: {
+        order: "pre",
+        handler(html, context) {
+          const slug = context.originalUrl?.match(/^\/pricing\/([^/?]+)\/?(?:\?|$)/)?.[1];
+          return Object.hasOwn(plans, slug) ? checkoutPage(html, plans[slug]) : html;
+        },
+      },
       configureServer(server) {
         server.middlewares.use((request, response, next) => {
           const match = request.url?.match(/^\/pricing\/([^/?]+)\/?(\?.*)?$/);
@@ -37,7 +51,7 @@ export default defineConfig({
         const html = await readFile(`${output}checkout.html`, "utf8");
         for (const [slug, plan] of Object.entries(plans)) {
           await mkdir(`${output}${slug}`, { recursive: true });
-          await writeFile(`${output}${slug}/index.html`, html.replaceAll("Subscribe · Mainbrella", `${plan.name} subscription · Mainbrella`));
+          await writeFile(`${output}${slug}/index.html`, checkoutPage(html, plan));
         }
         await rm(`${output}checkout.html`);
       },

@@ -80,6 +80,7 @@ export function mountStripeEmbeddedCheckout({
   onProcessing,
   onComplete,
   onError,
+  onReady,
 }) {
   let destroyed = false;
   let checkoutActions = null;
@@ -128,6 +129,11 @@ export function mountStripeEmbeddedCheckout({
       if (typeof checkout.on === "function") checkout.on("change", syncSession);
 
       paymentElement = checkout.createPaymentElement(PAYMENT_ELEMENT_OPTIONS);
+      paymentElement.on?.("ready", () => {
+        if (destroyed) return;
+        if (statusElement.dataset.state === "pending") setStatus(statusElement, "");
+        onReady?.();
+      });
       paymentElement.on?.("loaderror", (event) => {
         if (destroyed) return;
         const message = event?.error?.message || "Unable to load the payment form.";
@@ -137,7 +143,6 @@ export function mountStripeEmbeddedCheckout({
       });
       paymentElement.mount(container);
       syncSession(checkoutActions.getSession?.());
-      setStatus(statusElement, "", "");
       if (!fixedEmail && emailInput.value) await updateEmail();
     } catch (error) {
       if (destroyed) return;

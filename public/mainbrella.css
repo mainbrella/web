@@ -225,8 +225,23 @@ h3 { font-size: 18px; line-height: 1.4; letter-spacing: -.015em; }
    Minimum heights let extra payment fields and validation messages grow safely. */
 .checkout-stage { display: flow-root; width: 100%; max-width: 580px; }
 .checkout-stage[data-reserve="true"] { min-height: 860px; }
+.checkout-stage[data-checkout="true"] + .billing-controls > :is(#pro-status, #pro-account, .billing-link) { display: none; }
+/* Keep the same navigation slot while Sign in becomes Account. */
+.checkout-page .site-header nav .login-link, .checkout-page .account-menu { order: 1; width: 88px; margin-left: 0; }
+.checkout-page .site-header nav .login-link, .checkout-page .account-toggle { justify-content: center; }
+.checkout-page .account-toggle { width: 100%; }
 #checkout-payment { min-width: 0; width: 100%; min-height: 400px; }
-#checkout-total, #checkout-status { min-height: 1.6em; }
+.checkout-payment-slot { position: relative; min-width: 0; }
+.checkout-payment-slot[data-loading="true"] #checkout-payment { visibility: hidden; }
+.checkout-payment-placeholder { display: none; position: absolute; inset: 0; padding: 16px; border: 1px solid var(--line); border-radius: 4px; background: #111315; }
+.checkout-payment-slot[data-loading="true"] .checkout-payment-placeholder { display: block; }
+.checkout-payment-placeholder span { display: block; border-radius: 4px; background: #252a30; }
+.checkout-placeholder-method { width: 88px; height: 20px; margin-bottom: 24px; }
+.checkout-payment-placeholder .checkout-placeholder-label { width: 88px; height: 12px; margin-bottom: 8px; }
+.checkout-placeholder-input { height: 48px; }
+.checkout-placeholder-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-top: 16px; }
+#checkout-total { min-height: 1.6em; }
+#checkout-status { min-height: 3.2em; }
 @media (max-width: 600px) {
   .checkout-page .site-header.platform-header nav > .button { display: none; }
   .checkout-stage[data-reserve="true"] { min-height: 900px; }

@@ -13,8 +13,8 @@
     <a class="skip-link" href="#main">Skip to content</a>
     <!-- site-header -->
     <main id="main" class="subscription-main wrap">
-      <div class="checkout-stage" id="checkout-stage" data-reserve="true">
-        <div id="pricing-plans">
+      <div class="checkout-stage" id="checkout-stage" data-reserve="true" data-checkout="true">
+        <div id="pricing-plans" hidden>
           <h1 id="plan-title">Subscribe</h1>
           <p class="pricing-note">All plans offer five machine sizes, from 256 MiB to 12 GiB RAM. Your subscription includes a fixed monthly compute allowance, with no automatic overage charges.</p>
           <p id="selected-plan-limits" class="pricing-note" hidden></p>
@@ -27,17 +27,32 @@
             <p>Upgrades require payment through Stripe. Downgrades and cancellation take effect at renewal; lower limits may stop containers. <a href="/docs/limits/">Read all platform limits</a>.</p>
           </details>
         </div>
-        <section class="inline-checkout" id="inline-checkout" aria-labelledby="checkout-title" hidden>
+        <section class="inline-checkout" id="inline-checkout" aria-labelledby="checkout-title">
           <button class="text-link billing-link" id="checkout-back" type="button">← Back to plans</button>
-          <h1 id="checkout-title" tabindex="-1"></h1>
-          <p class="pricing-note" id="checkout-summary"></p>
-          <form id="checkout-form" hidden>
+          <h1 id="checkout-title" tabindex="-1">Subscribe</h1>
+          <p class="pricing-note" id="checkout-summary">Enter your payment details below. Your plan has a fixed monthly price; compute usage charges are not enabled.</p>
+          <form id="checkout-form">
             <label for="checkout-email">Email for receipts and billing</label>
-            <input id="checkout-email" name="email" type="email" autocomplete="email" required />
-            <div id="checkout-payment" aria-label="Payment details"></div>
+            <input id="checkout-email" name="email" type="email" autocomplete="email" required disabled />
+            <div class="checkout-payment-slot" id="checkout-payment-slot" data-loading="true" aria-busy="true">
+              <div id="checkout-payment" aria-label="Payment details"></div>
+              <div class="checkout-payment-placeholder" aria-hidden="true">
+                <span class="checkout-placeholder-method"></span>
+                <span class="checkout-placeholder-label"></span>
+                <span class="checkout-placeholder-input"></span>
+                <div class="checkout-placeholder-row">
+                  <div><span class="checkout-placeholder-label"></span><span class="checkout-placeholder-input"></span></div>
+                  <div><span class="checkout-placeholder-label"></span><span class="checkout-placeholder-input"></span></div>
+                </div>
+                <div class="checkout-placeholder-row">
+                  <div><span class="checkout-placeholder-label"></span><span class="checkout-placeholder-input"></span></div>
+                  <div><span class="checkout-placeholder-label"></span><span class="checkout-placeholder-input"></span></div>
+                </div>
+              </div>
+            </div>
             <p class="pricing-note" id="checkout-total" aria-live="polite"></p>
             <p class="pricing-note">By subscribing, you authorize recurring monthly charges until you cancel and agree to the <a href="/terms/">Terms of Service</a>.</p>
-            <p class="pricing-note" id="checkout-status" role="status" aria-live="polite"></p>
+            <p class="pricing-note" id="checkout-status" role="status" aria-live="polite" data-state="pending">Preparing secure payment…</p>
             <button class="button" id="checkout-submit" type="submit" disabled>Subscribe</button>
           </form>
         </section>

@@ -214,6 +214,41 @@ test('successful payment applies the verified completion state without a second 
   assert.equal(f.node('#inline-checkout').hidden, true);
 });
 
+test('checkout keeps its form visible while authentication and billing load', async t => {
+  let release;
+  const sessionGate = new Promise(resolve => { release = resolve; });
+  const f = await fixture(t, null, 'pro', { active: false, subscription: null, sessionGate });
+  assert.equal(f.node('#pricing-plans').hidden, true);
+  assert.equal(f.node('#inline-checkout').hidden, false);
+  assert.equal(f.node('#checkout-form').hidden, false);
+  assert.equal(f.node('#checkout-email').disabled, true);
+  assert.equal(f.node('#checkout-submit').disabled, true);
+  assert.equal(f.node('#checkout-payment-slot').dataset.loading, 'true');
+  assert.equal(f.node('#checkout-title').textContent, 'Pro — $180/month');
+  assert.equal(globalThis.checkoutOptions, null);
+  release();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.node('#checkout-form').hidden, false);
+  assert.equal(f.node('#checkout-payment-slot').dataset.loading, 'true');
+  assert.ok(globalThis.checkoutOptions);
+});
+
+test('the payment placeholder stays until ready and ignores callbacks from closed checkout', async t => {
+  const f = await fixture(t, null, 'pro', { active: false, subscription: null });
+  const options = globalThis.checkoutOptions;
+  const slot = f.node('#checkout-payment-slot');
+  assert.equal(slot.dataset.loading, 'true');
+  options.onReady();
+  assert.equal(slot.dataset.loading, 'false');
+  assert.equal(slot.ariaBusy, 'false');
+  f.signOutExternally();
+  assert.equal(slot.dataset.loading, 'true');
+  options.onReady();
+  options.onError();
+  assert.equal(slot.dataset.loading, 'true');
+  assert.equal(f.node('#inline-checkout').hidden, true);
+});
+
 test('returning from payment applies completion state even when subscription lookup is unavailable', async t => {
   const f = await fixture(t, null, 'scale', { active: false, subscription: null, failRead: true,
     search: '?subscription_return=1&session_id=cs_owned' });
