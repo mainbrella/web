@@ -6,7 +6,7 @@
     "API.md": "ca5414748f5c17161c143cc1c56f0ec27fc9375755781239773c5cb73fe8ac9a",
     "SKILL.md": "fc2f77d0fd64c1cc50527dfae34f8a32a451781768d0c0ed3676df45e66252d6",
     "sdk/javascript.md": "3fb021251a243f5171003d3ab4dd870596487288689672db591ad40a3a773fab",
-    "sdk/python.md": "fdca068929fd30d303283a0600c6508af9762dfb057f71c9b328d93bd14b6f43",
+    "sdk/python.md": "658f27e8165e2821e171a176d0ddab4ac48448963a4a6d9f3c0585dc2cb1fcbe",
     "references/authentication.md": "a8f04f7b5abfe904a5b01525f062795dd0e7fd0d2bfcd3a6c3662e392939c8bb",
     "references/agent-setup-and-verification.md": "8b95b47057e523e95b7ab3ed0d683beca69e6596c00c280e7ca218ab8c13daf5",
     "references/images.md": "c750445141ebd12cff4679f39ee508afb2d4ede05b1e63ae098915980093e2e4",
@@ -27,8 +27,8 @@
     "references/machine-sizes-and-compute-allowance.md": "ed636389603026b455ae85a5f0c19634d406ece64c1b1b03b40ef5efaaf25159",
     "references/saved-workspaces-and-portable-export.md": "d29699b75f10760d29b04fceb95218180957d0732610b0ba5dacd1134916fc37",
     "references/javascript-sdk.md": "3fb021251a243f5171003d3ab4dd870596487288689672db591ad40a3a773fab",
-    "references/python-sdk.md": "fdca068929fd30d303283a0600c6508af9762dfb057f71c9b328d93bd14b6f43",
+    "references/python-sdk.md": "658f27e8165e2821e171a176d0ddab4ac48448963a4a6d9f3c0585dc2cb1fcbe",
     "references/index.md": "9ad4657cecdfc0b01c27c5c4ae3d95bfffcdf82ffbb2eec0b9e60894af3276cb",
-    "llms-full.txt": "fcd2d08756052d03a6ab6a27fa509996f06d649943dac41c828b110bb82c4dbd"
+    "llms-full.txt": "46db194a5a40b5d76b721687a72116f4b3e49afae57ae366ca3c56c66f0b2a0a"
   }
 }
