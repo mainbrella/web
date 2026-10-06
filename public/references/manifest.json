@@ -3,7 +3,7 @@
   "source": "mainbrella/backend",
   "licenseSha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
   "files": {
-    "API.md": "16a156ca686ac68d2937f4180998ca9a25422be59fae0df7c8f791ae3374f817",
+    "API.md": "86c7b87752732d18890876103429fb04c2d9d2dfce5fa88b008e0253ba1bcd23",
     "SKILL.md": "d4345a91b5dc86c6993771a2ed0663bc6cc6e377768976fbec766671cc91d8e4",
     "sdk/javascript.md": "3fb021251a243f5171003d3ab4dd870596487288689672db591ad40a3a773fab",
     "sdk/python.md": "658f27e8165e2821e171a176d0ddab4ac48448963a4a6d9f3c0585dc2cb1fcbe",
@@ -26,11 +26,11 @@
     "references/lifecycle-webhooks.md": "d53567686481e7deee6d65f85afd035312469e8130fdfb0c965b6e2365c6326a",
     "references/public-operational-status.md": "f8e868f8232ff37fd56da2432535accad59b309a641aa12855aad5983ff4a23a",
     "references/machine-sizes-and-compute-allowance.md": "ed636389603026b455ae85a5f0c19634d406ece64c1b1b03b40ef5efaaf25159",
-    "references/saved-workspaces-and-portable-export.md": "d29699b75f10760d29b04fceb95218180957d0732610b0ba5dacd1134916fc37",
+    "references/saved-workspaces-and-portable-export.md": "b8735620fc99bff8c17bd542aa7359fcf677838ca614e26eacf89ff7ab27040e",
     "references/javascript-sdk.md": "3fb021251a243f5171003d3ab4dd870596487288689672db591ad40a3a773fab",
     "references/python-sdk.md": "658f27e8165e2821e171a176d0ddab4ac48448963a4a6d9f3c0585dc2cb1fcbe",
     "references/index.md": "79984c7d63cef48fda18aba27bc73c2967e6a4bd4e8401a3157b000cf11ba2b5",
     "scripts/mainbrella-deploy-static.mjs": "c16e216de0839f889865172e47f45898890e6941e502bd89795e2fef77c549ec",
-    "llms-full.txt": "a449c5dccf704ce6b094df6cd3db3584f86b639ce32df1fa1fa4e5d08bbdce28"
+    "llms-full.txt": "669566127408efde9bba79d3e464fe004ab970cb8e6b0774868349bb66ae494b"
   }
 }
