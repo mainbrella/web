@@ -31,9 +31,7 @@
           <button class="text-link billing-link" id="checkout-back" type="button">← Back to plans</button>
           <h1 id="checkout-title" tabindex="-1">Subscribe</h1>
           <p class="pricing-note" id="checkout-summary">Enter your payment details below. Your plan has a fixed monthly price; compute usage charges are not enabled.</p>
-          <form id="checkout-form">
-            <label for="checkout-email">Email for receipts and billing</label>
-            <input id="checkout-email" name="email" type="email" autocomplete="email" required disabled />
+          <div id="checkout-form">
             <div class="checkout-payment-slot" id="checkout-payment-slot" data-loading="true" aria-busy="true">
               <div id="checkout-payment" aria-label="Payment details"></div>
               <div class="checkout-payment-placeholder" aria-hidden="true">
@@ -50,11 +48,9 @@
                 </div>
               </div>
             </div>
-            <p class="pricing-note" id="checkout-total" aria-live="polite"></p>
             <p class="pricing-note">By subscribing, you authorize recurring monthly charges until you cancel and agree to the <a href="/terms/">Terms of Service</a>.</p>
             <p class="pricing-note" id="checkout-status" role="status" aria-live="polite" data-state="pending">Preparing secure payment…</p>
-            <button class="button" id="checkout-submit" type="submit" disabled>Subscribe</button>
-          </form>
+          </div>
         </section>
       </div>
       <div class="billing-controls">

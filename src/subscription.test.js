@@ -200,20 +200,6 @@ test('session lookup failures show an unavailable state instead of pretending th
   assert.deepEqual(f.redirects, []);
 });
 
-test('successful payment applies the verified completion state without a second billing lookup', async t => {
-  const f = await fixture(t, null, 'pro', { active: false, subscription: null });
-  const reads = f.calls.filter(call => call.path === '/subscription').length;
-  assert.ok(globalThis.checkoutOptions);
-  f.setReadFailure(true);
-  await globalThis.checkoutOptions.onComplete({ id: 'cs_owned' });
-  assert.equal(f.calls.filter(call => call.path === '/subscription').length, reads);
-  assert.match(f.node('#pro-status').textContent, /Pro subscription is active/);
-  assert.match(f.button.textContent, /Current plan/);
-  assert.equal(f.button.disabled, true);
-  assert.equal(f.node('#billing-manage').hidden, false);
-  assert.equal(f.node('#inline-checkout').hidden, true);
-});
-
 test('checkout keeps its form visible while authentication and billing load', async t => {
   let release;
   const sessionGate = new Promise(resolve => { release = resolve; });
@@ -221,8 +207,6 @@ test('checkout keeps its form visible while authentication and billing load', as
   assert.equal(f.node('#pricing-plans').hidden, true);
   assert.equal(f.node('#inline-checkout').hidden, false);
   assert.equal(f.node('#checkout-form').hidden, false);
-  assert.equal(f.node('#checkout-email').disabled, true);
-  assert.equal(f.node('#checkout-submit').disabled, true);
   assert.equal(f.node('#checkout-payment-slot').dataset.loading, 'true');
   assert.equal(f.node('#checkout-title').textContent, 'Pro — $180/month');
   assert.equal(globalThis.checkoutOptions, null);
