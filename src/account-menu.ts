@@ -37,9 +37,11 @@ if (nav) {
 
   function render(user?: User | null) {
     if (user && window.location.pathname === '/') {
+      document.documentElement.setAttribute('data-home-session', 'redirecting');
       window.location.replace('/dashboard/');
       return;
     }
+    document.documentElement.removeAttribute('data-home-session');
     account.hidden = !user;
     nav.classList.toggle('has-account', Boolean(user));
     if (login) login.hidden = Boolean(user);
@@ -55,6 +57,7 @@ if (nav) {
       if (version === sessionVersion) render(session?.user);
     } catch {
       // Leave navigation as it is when the session service is unavailable.
+      if (version === sessionVersion) document.documentElement.removeAttribute('data-home-session');
     }
   }
 

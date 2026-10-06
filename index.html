@@ -3,6 +3,25 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>html[data-home-session] body { display: none; }</style>
+    <script>
+      // Run before the body is parsed so returning users never see the homepage.
+      for (const storageName of ['localStorage', 'sessionStorage']) {
+        let choice;
+        try { choice = window[storageName].getItem('mainbrella-cookie-consent'); } catch { continue; }
+        if (choice !== 'accepted' && choice !== 'rejected') continue;
+        if (choice === 'accepted') {
+          document.documentElement.setAttribute('data-home-session', 'pending');
+          // Reveal the page if the session service or application scripts stall.
+          setTimeout(() => {
+            if (document.documentElement.getAttribute('data-home-session') === 'pending') {
+              document.documentElement.removeAttribute('data-home-session');
+            }
+          }, 8000);
+        }
+        break;
+      }
+    </script>
     <meta name="description" content="A Linux computer for your AI agent. Start it by API, run commands, upload files, SSH in, and open web previews. From $5/month." />
     <meta name="theme-color" content="#0d1014" />
     <link rel="canonical" href="https://mainbrella.com/" />
