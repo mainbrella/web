@@ -394,6 +394,12 @@ button:disabled { opacity: .65; cursor: wait; }
 @media (prefers-reduced-motion: reduce) { .container-terminal .xterm-cursor { animation: none !important; } }
 
 .dashboard-images { margin-top: 16px; }
+.workspace-save-dialog { width: min(440px, calc(100% - 32px)); max-height: calc(100dvh - 32px); padding: 24px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: var(--surface); }
+.workspace-save-dialog::backdrop { background: rgb(0 0 0 / .6); }
+.workspace-save-dialog form { display: grid; gap: 12px; }
+.workspace-save-dialog input[type="text"] { width: 100%; min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: var(--paper); font: inherit; }
+.workspace-stop-choice { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.workspace-save-dialog .dashboard-retry { margin-top: 0; }
 .dashboard-images > summary { width: fit-content; min-height: 44px; align-content: center; cursor: pointer; color: var(--muted); font-size: 13px; }
 .dashboard-images > summary:hover { color: var(--ink); }
 .dashboard-images > summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }

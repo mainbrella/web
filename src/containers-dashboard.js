@@ -1,6 +1,7 @@
 import { API_ORIGIN } from './auth.js';
 import { createContainerPreviews } from './container-previews.js';
 import { createContainerObservations } from './container-observations.js';
+import { createWorkspacesDashboard } from './workspaces-dashboard.js';
 
 export function canCreateContainer(data, size = 'lite') {
   return Boolean(data && (!data.active || (
@@ -47,6 +48,8 @@ export function createContainersDashboard({ onUnauthenticated }) {
   const terminalHost = document.querySelector('#container-terminal');
   let previewsSupported = false;
   let observability = {};
+  let persistence = {};
+  const workspaces = createWorkspacesDashboard({onUnauthenticated:()=>{dispose();onUnauthenticated();},onChanged:()=>load()});
   const observations = createContainerObservations({ onUnauthenticated: () => { dispose(); onUnauthenticated(); } });
   const previews = createContainerPreviews({ onUnauthenticated: () => { dispose(); onUnauthenticated(); } });
 
@@ -107,6 +110,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
     previous.disabled = busy || !data || disposed || page === 0;
     next.disabled = busy || !data || disposed || (page + 1) * pageSize >= data.containers.length;
     previews.setBusy(busy || !data || disposed);
+    workspaces.setBusy(busy || !data || disposed);
   }
 
   async function request(method, id, createdAt) {
@@ -174,7 +178,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
       : 'Choose a monthly plan to create containers. All plans offer five machine sizes, with SSH and browser terminal access.';
     if (access && (!data.containers.some(c => c.id === access.id && c.createdAt === access.createdAt) || access.expiresAt <= Date.now())) access = null;
     const rows = data.containers.slice(page * pageSize, (page + 1) * pageSize);
-    const rowVersion = JSON.stringify({ page, rows, access, previewsSupported, observability, today: new Date().toDateString() });
+    const rowVersion = JSON.stringify({ page, rows, access, previewsSupported, observability, persistence, today: new Date().toDateString() });
     if (rowVersion === renderedRows) { controls(); return; }
     const focused = list.contains(document.activeElement) ? document.activeElement : null;
     const focusedRow = focused?.closest('[data-container-id]');
@@ -229,6 +233,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
       row.append(details, actions);
       previews.attach(row, actions, container);
       observations.attach(actions, container);
+      workspaces.attach(actions,container);
       list.append(row);
       if (access?.id === container.id) {
         const connection = document.createElement('li');
@@ -335,6 +340,8 @@ export function createContainersDashboard({ onUnauthenticated }) {
       if (disposed || version !== stateVersion) return;
       previewsSupported = capabilities?.previews?.supported === true;
       observability = capabilities?.observability ?? {};
+      persistence = capabilities?.persistence ?? {};
+      workspaces.configure(persistence);
       observations.configure(observability);
       data = result;
       render();
@@ -417,6 +424,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
   }
 
   function dispose() {
+    workspaces.dispose();
     observations.dispose();
     previews.dispose();
     closeTerminal();
