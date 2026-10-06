@@ -21,7 +21,7 @@ JavaScript so users can run them directly without a TypeScript toolchain.
 Builder ($5/month), Pro ($180/month), and Scale ($999/month) use Stripe's
 inline Payment Element, adapted from Cubacadabra's checkout helper. Customers
 sign in with Google before entering email and payment details on Mainbrella.
-The homepage pricing buttons open `/pricing/builder`, `/pricing/pro`, or
+The pricing buttons open `/pricing/builder`, `/pricing/pro`, or
 `/pricing/scale`. Signed-out customers are redirected to `/login` with the selected
 plan route as `returnTo`; after sign-in that route opens checkout automatically.
 Existing subscribers see their subscription status and billing management instead.
@@ -244,3 +244,22 @@ change; keep the capture date and `usage.txt` accurate.
 
 `/careers/` is an expression-of-interest contact page for Andrew, with no advertised
 open roles. Add job listings only when real roles and hiring details are supplied.
+
+## Acquisition pages and funnel
+
+`/e2b-alternative/`, `/daytona-alternative/`, and `/cloudflare-sandbox/` target
+specific agent-compute search intents. Shared chrome loads consent-aware funnel
+tracking on public and application pages. Copy `.env.example` to `.env.local` and
+set `VITE_GA_MEASUREMENT_ID` to enable GA4 at build time; it remains disabled when
+that setting is empty. Disable GA4 Enhanced Measurement for this web stream and
+verify events before using them to evaluate a campaign.
+
+[The acquisition runbook](docs/acquisition/README.md) includes event definitions,
+coverage limits, ad copy, developer outreach, a creator brief, tracking CSVs, and a
+seven-day experiment. Generate creator links with
+`npm run acquisition:link -- creator_slug e2b youtube`.
+The small backend email-auth change supplies `created` for accurate new-account
+counts; deploy it with the web changes. Browser tracking covers dashboard machine
+starts; direct API activation still requires server-side measurement or manual
+verification. The [remote-agent plan](docs/acquisition/remote-agents.md) defines
+the additional work required before promising laptop-independent coding agents.

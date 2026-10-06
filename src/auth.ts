@@ -1,5 +1,6 @@
 import type { User } from './types.ts';
 import { needsSignInCookies, signInCookieMessage } from './cookie-preferences.ts';
+import { identifyAccount, trackFunnel } from './acquisition-analytics.ts';
 
 export const GOOGLE_CLIENT_ID = import.meta.env?.VITE_GOOGLE_CLIENT_ID
   || "854186419005-l0u2olqlqe40qmgin0q8tjpvftooi6ac.apps.googleusercontent.com";
@@ -29,6 +30,7 @@ export function createAuthClient() {
       const { response, result } = await request("/auth/me");
       if (response.status === 401) return null;
       if (!response.ok || !result || !("user" in result)) throw new Error("Could not check your sign-in. Please try again.");
+      identifyAccount(result.user?.id || null);
       return result.user ? { user: result.user } : null;
     },
     async signInWithGoogle(credential?: string): Promise<{ user: User }> {
@@ -44,6 +46,9 @@ export function createAuthClient() {
           ? "Google could not verify that sign-in. Please try again."
           : "Could not finish signing you in. Please try again.");
       }
+      identifyAccount(result.user.id);
+      trackFunnel('login', { method: 'google' });
+      if (result.created === true) trackFunnel('sign_up', { method: 'google' });
       return { user: result.user };
     },
     async signInWithEmail(email: string, password: string): Promise<{ user: User }> {
@@ -60,11 +65,15 @@ export function createAuthClient() {
         };
         throw new Error(messages[result?.error] || "Could not finish signing you in. Please try again.");
       }
+      identifyAccount(result.user.id);
+      trackFunnel('login', { method: 'email' });
+      if (result.created === true) trackFunnel('sign_up', { method: 'email' });
       return { user: result.user };
     },
     async signOut() {
       const { response, result } = await request("/auth/logout", { method: "POST" });
       if (!response.ok || result?.ok !== true) throw new Error("Could not sign you out. Please try again.");
+      identifyAccount(null);
       window.google?.accounts?.id?.disableAutoSelect();
       window.dispatchEvent(new CustomEvent('auth-change', { detail: { user: null } }));
     },

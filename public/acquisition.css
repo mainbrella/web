@@ -1,0 +1,30 @@
+.acquisition-page .hero h1 { letter-spacing: -.025em; }
+.acquisition-page .hero-description { max-width: 48ch; }
+.acquisition-page .hero-plan-note { max-width: 52ch; }
+.acquisition-example { align-self: center; }
+.acquisition-example pre { font-size: 13px; }
+.acquisition-page .hero-actions .text-link { display: inline-flex; align-items: center; min-height: 44px; }
+.landing-detail, .landing-faq { padding-top: 24px; padding-bottom: 40px; }
+.landing-detail h2, .landing-faq h2 { font-size: 24px; line-height: 1.3; letter-spacing: -.015em; }
+.landing-detail p { max-width: 78ch; margin-top: 16px; color: var(--muted); }
+.landing-detail a, .landing-faq a, .acquisition-page .availability p a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.landing-detail .landing-source { font-size: 13px; }
+.landing-faq details { max-width: 850px; border-bottom: 1px solid var(--line); }
+.landing-faq h2 { margin-bottom: 16px; }
+.landing-faq summary { padding: 16px 0; min-height: 48px; cursor: pointer; font-weight: 500; }
+.landing-faq details p { max-width: 75ch; padding-bottom: 20px; color: var(--muted); }
+.acquisition-page .availability { padding-top: 24px; }
+.starter-pricing { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 32px; }
+.starter-pricing .plan-features { margin-top: 0; }
+.acquisition-page .pricing-note a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 700px) {
+  .acquisition-page .sandbox-hero .hero { gap: 24px; padding-bottom: 24px; }
+  .acquisition-page .hero h1 { font-size: clamp(30px, 8.2vw, 36px); }
+  .acquisition-page .hero-actions { gap: 12px; }
+  .acquisition-page .hero-actions .button { padding-right: 16px; padding-left: 16px; }
+  .acquisition-example pre { font-size: 12px; }
+  .acquisition-example figcaption { padding-top: 12px; padding-bottom: 12px; }
+  .acquisition-example pre { padding-top: 16px; padding-bottom: 16px; }
+  .starter-pricing { grid-template-columns: 1fr; gap: 24px; }
+  .landing-detail, .landing-faq { padding-bottom: 24px; }
+}

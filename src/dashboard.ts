@@ -2,6 +2,7 @@ import { API_ORIGIN, createAuthClient } from './auth.ts';
 import { plans } from './plans.ts';
 import { createImagesDashboard } from './images-dashboard.ts';
 import { createContainersDashboard } from './containers-dashboard.ts';
+import { trackFunnel } from './acquisition-analytics.ts';
 
 const auth = createAuthClient();
 const main = document.querySelector<HTMLElement>('#main')!;
@@ -13,6 +14,7 @@ const level = document.querySelector<HTMLElement>('#subscription-level')!;
 const note = document.querySelector<HTMLElement>('#subscription-note')!;
 const billing = document.querySelector<HTMLAnchorElement>('#subscription-manage')!;
 let version = 0;
+let dashboardTracked = false;
 const containers = createContainersDashboard({ onUnauthenticated: goToLogin });
 
 const images = createImagesDashboard({ onUnauthenticated: goToLogin,
@@ -44,6 +46,7 @@ async function loadDashboard() {
       return;
     }
     authenticated = true;
+    if (!dashboardTracked) { trackFunnel('dashboard_view'); dashboardTracked = true; }
     window.dispatchEvent(new CustomEvent('auth-change', { detail: { user: session.user } }));
     content.hidden = false;
     status.hidden = true;

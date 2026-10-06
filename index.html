@@ -3,27 +3,28 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="A cloud computer for every AI agent. Create isolated Linux workspaces, execute commands, and transfer files through the Mainbrella API." />
+    <meta name="description" content="A Linux computer for your AI agent. Start it by API, run commands, upload files, SSH in, and open web previews. From $5/month." />
     <meta name="theme-color" content="#0d1014" />
     <link rel="canonical" href="https://mainbrella.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Mainbrella" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="https://mainbrella.com/" />
-    <meta property="og:title" content="Mainbrella — A cloud computer for every AI agent." />
-    <meta property="og:description" content="Create isolated Linux workspaces for AI agents. HTTP execution, file transfer, runtime images, SSH, and browser terminals with fixed monthly plans." />
+    <meta property="og:title" content="Mainbrella — A Linux computer for your AI agent." />
+    <meta property="og:description" content="Start a Linux computer for your AI agent by API. Commands, files, SSH, browser terminals, and web previews. From $5/month." />
     <meta property="og:image" content="https://mainbrella.com/images/logo.png" />
     <meta property="og:image:alt" content="Mainbrella umbrella logo" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Mainbrella — A cloud computer for every AI agent." />
-    <meta name="twitter:description" content="Create isolated Linux workspaces for AI agents. HTTP execution, file transfer, runtime images, SSH, and browser terminals with fixed monthly plans." />
+    <meta name="twitter:title" content="Mainbrella — A Linux computer for your AI agent." />
+    <meta name="twitter:description" content="Start a Linux computer for your AI agent by API. Commands, files, SSH, browser terminals, and web previews. From $5/month." />
     <meta name="twitter:image" content="https://mainbrella.com/images/logo.png" />
     <meta name="twitter:image:alt" content="Mainbrella umbrella logo" />
     <link rel="icon" href="/images/favicon.png" type="image/png" />
     <link rel="stylesheet" href="/mainbrella.css" />
-    <title>Mainbrella — A cloud computer for every AI agent</title>
+    <link rel="stylesheet" href="/acquisition.css" />
+    <title>Mainbrella — A Linux computer for your AI agent</title>
   </head>
-  <body class="sandbox-home">
+  <body class="sandbox-home acquisition-page">
     <a class="skip-link" href="#main">Skip to content</a>
     <!-- site-header -->
 
@@ -31,54 +32,32 @@
       <section class="sandbox-hero" aria-labelledby="site-title">
         <div class="wrap hero">
           <div class="hero-copy">
-            <h1 id="site-title">A cloud computer<br />for every AI agent.</h1>
-            <p class="hero-description">Create isolated Linux workspaces for coding agents, evals, and automated tasks. Run commands, install tools, and move files through one HTTP API.</p>
+            <h1 id="site-title">A Linux computer<br />for your AI agent.</h1>
+            <p class="hero-description">Start it by API. Run commands, upload files, SSH in, and open web previews. From $5/month.</p>
             <div class="hero-actions">
-              <a class="button" href="/pricing/builder/">Start building — $5/month</a>
-              <button class="agent-copy-cta" type="button" data-copy-agent-setup aria-describedby="hero-agent-copy-status" hidden>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="12" height="15" rx="1.5" /><path d="M4 7v14h12" /></svg>
-                <span>Setup for agents</span>
-              </button>
+              <a class="button" href="/pricing/builder/">Start for $5/month</a>
+              <a class="text-link" href="/docs/">Quickstart <span aria-hidden="true">→</span></a>
             </div>
-            <p class="agent-copy-status" id="hero-agent-copy-status" role="status" aria-live="polite"></p>
-            <p class="hero-plan-note">Builder $5 · Pro $180 · Scale $999 / month. <a href="/pricing/">Compare plans</a>.</p>
-            <a class="cloudflare-label" href="/security/">Built on Cloudflare <span aria-hidden="true">→</span></a>
+            <p class="hero-plan-note">Fixed monthly plans. Built on <a href="/cloudflare-sandbox/">Cloudflare</a>. <a href="/pricing/">See limits</a>.</p>
           </div>
-          <figure class="hero-benchmarks">
-            <figcaption id="hero-benchmark-title">Five sizes. Measured workloads.</figcaption>
-            <table class="hero-benchmark-table" aria-labelledby="hero-benchmark-title" aria-describedby="hero-benchmark-note">
-              <thead><tr><th scope="col">Size</th><th scope="col">Node<br />startup</th><th scope="col">npm<br />install</th><th scope="col">TypeScript<br />build/test</th></tr></thead>
-              <tbody>
-                <tr><th scope="row">Lite</th><td>1.42 s</td><td>4.36 s</td><td>4.49 s</td></tr>
-                <tr><th scope="row">Small</th><td>1.04 s</td><td>4.20 s</td><td>4.09 s</td></tr>
-                <tr><th scope="row">Medium</th><td>0.96 s</td><td>4.01 s</td><td>2.51 s</td></tr>
-                <tr><th scope="row">Large</th><td>0.88 s</td><td>4.10 s</td><td>2.31 s</td></tr>
-                <tr><th scope="row">XL</th><td>0.90 s</td><td>4.03 s</td><td>2.58 s</td></tr>
-              </tbody>
-            </table>
-            <p class="benchmark-note" id="hero-benchmark-note">October 6, 2026 UTC · One Node sample per size.<br />Public API timings; provider cache state unknown.</p>
-            <a class="text-link" href="/benchmarks/">Results and methodology <span aria-hidden="true">→</span></a>
+          <figure class="sandbox-terminal acquisition-example">
+            <figcaption><span>Agent workspace</span><span>JavaScript SDK</span></figcaption>
+            <pre><code><span class="terminal-muted">import { Mainbrella } from '@mainbrella/sdk';</span>
+const client = new Mainbrella({
+  apiKey: process.env.MAINBRELLA_API_KEY
+});
+const machine = await client.create({
+  catalogId: 'node', size: 'small'
+});
+try {
+  const result = await machine.commands.run(
+    'node --version'
+  );
+  console.log(result.stdout);
+} finally { await machine.kill(); }</code></pre>
           </figure>
         </div>
       </section>
-
-
-
-      <section class="benchmarks wrap" id="benchmarks" aria-labelledby="benchmark-title">
-        <div class="section-heading"><div><h2 id="benchmark-title">Historical startup benchmarks.</h2><p>October 5, 2026 · Prototype on 1 vCPU, 6 GiB RAM, and 12 GB disk.</p></div><span class="preview-label">Prototype results</span></div>
-        <div class="benchmark-scroll" role="region" aria-label="Sandbox prototype benchmark results" tabindex="0">
-          <table class="benchmark-table">
-            <thead><tr><th scope="col">Test</th><th scope="col">P50</th><th scope="col">P95</th><th scope="col">Result</th></tr></thead>
-            <tbody>
-              <tr><th scope="row">Create<span>Historical prototype test</span></th><td data-label="P50">381 ms</td><td data-label="P95">528 ms</td><td>30 / 30 successful</td></tr>
-              <tr><th scope="row">Snapshot restore<span>Historical prototype test · verified files</span></th><td data-label="P50">473 ms</td><td data-label="P95">788 ms</td><td>30 / 30 successful</td></tr>
-              <tr><th scope="row">Scale<span>100 simultaneous sandbox starts</span></th><td data-label="P50">503 ms</td><td data-label="P95">680 ms</td><td>100 / 100 successful<span>100 distinct machines running at once</span></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <p class="benchmark-note">Prototype results from a separate harness, not current API latency guarantees. All 164 created machines were confirmed stopped. <a href="/benchmarks/">Results, methodology, and benchmark code</a>.</p>
-      </section>
-
 
       <section class="workflow wrap" id="product" aria-labelledby="product-title">
         <div class="section-heading"><div><h2 id="product-title">Give your agent a place to work.</h2><p>A complete execution workflow, from creation to cleanup.</p></div><a class="text-link" href="/docs/containers/">Explore the API <span aria-hidden="true">→</span></a></div>
@@ -95,14 +74,6 @@
           <nav class="recipe-links" aria-label="Trust evidence"><a href="/trust/">Trust center</a><a href="/status/">Service status</a><a href="https://github.com/mainbrella/web">Website and client source</a><a href="/about/">Meet Andrew</a></nav>
         </div></div>
       </section>
-      <section class="workflow wrap workloads" aria-labelledby="workloads-title">
-        <div class="section-heading"><div><h2 id="workloads-title">The right size for your work.</h2><p>Choose lightweight shells or larger environments for builds and agent workloads.</p></div></div>
-        <ul class="workflow-steps">
-          <li><h3>Coding agents</h3><p>Give an agent tools to edit files, execute scripts, and inspect results outside your application process.</p></li>
-          <li><h3>Evals and test runs</h3><p>Start separate environments for small evaluation jobs, with explicit concurrency and cleanup.</p></li>
-          <li><h3>Automated tasks</h3><p>Process small inputs, call external services, and export results before the workspace ends.</p></li>
-        </ul>
-      </section>
 
       <section class="workflow wrap" aria-labelledby="fit-title">
         <div class="section-heading"><div><h2 id="fit-title">Does Mainbrella fit your workload?</h2><p>Temporary agent workspaces with a fixed monthly budget.</p></div><a class="text-link" href="/compare/">Compare sandbox and compute platforms <span aria-hidden="true">→</span></a></div>
@@ -114,58 +85,19 @@
       </section>
 
       <section class="pricing wrap" id="pricing" aria-labelledby="pricing-title">
-        <div class="section-heading"><div><h2 id="pricing-title">Choose your size. Keep a fixed budget.</h2><p>Builder $5/month · Pro $180/month · Scale $999/month. No automatic overage charges.</p></div><a class="text-link" href="/pricing/">Pricing details <span aria-hidden="true">→</span></a></div>
-        <p class="pricing-size-note">All plans offer Lite through XL, up to 4 vCPU and 12 GiB RAM. Larger machines use more of your monthly compute allowance. <a href="/docs/limits/">Compare limits</a>.</p>
-        <div class="pricing-plans" id="pricing-plans">
-          <div class="plan">
-            <h3>Builder</h3>
-            <p class="plan-price">$5<span> / month</span></p>
-            <p>For individual projects and testing.</p>
-            <ul class="plan-features">
-              <li><strong>250 compute-unit hours/month</strong></li>
-              <li>1,000 starts per month</li>
-              <li>Up to 1-hour sessions · 10-minute idle timeout</li>
-              <li>Up to 5 containers within 28 concurrent units</li>
-              <li>All five sizes · SSH, browser terminal, internet</li>
-            </ul>
-            <a class="button" href="/pricing/builder/">Start building — $5/month</a>
-          </div>
-          <div class="plan">
-            <h3>Pro</h3>
-            <p class="plan-price">$180<span> / month</span></p>
-            <p>For regular development and agent workloads.</p>
-            <ul class="plan-features">
-              <li><strong>9,000 compute-unit hours/month</strong></li>
-              <li>10,000 starts per month</li>
-              <li>Up to 24-hour sessions · 30-minute idle timeout</li>
-              <li>Up to 100 containers within 128 concurrent units</li>
-              <li>All five sizes · SSH, browser terminal, internet</li>
-            </ul>
-            <a class="button" href="/pricing/pro/">Choose Pro — $180/month</a>
-          </div>
-          <div class="plan">
-            <h3>Scale</h3>
-            <p class="plan-price">$999<span> / month</span></p>
-            <p>For parallel workloads and sustained compute.</p>
-            <ul class="plan-features">
-              <li><strong>50,000 compute-unit hours/month</strong></li>
-              <li>100,000 starts per month</li>
-              <li>Up to 72-hour sessions · 60-minute idle timeout</li>
-              <li>Up to 500 containers within 640 concurrent units</li>
-              <li>All five sizes · SSH, browser terminal, internet</li>
-            </ul>
-            <a class="button" href="/pricing/scale/">Choose Scale — $999/month</a>
-          </div>
+        <div class="section-heading"><h2 id="pricing-title">Start with a real workload.</h2><a class="text-link" href="/pricing/">Compare all plans →</a></div>
+        <div class="starter-pricing">
+          <div><h3>Builder</h3><p class="plan-price">$5<span> / month</span></p><a class="button" href="/pricing/builder/">Start building</a></div>
+          <div><ul class="plan-features">
+            <li><strong>250 compute-unit hours and 1,000 starts/month</strong></li>
+            <li>Five machine sizes, from 256 MiB to 12 GiB RAM</li>
+            <li>Up to five containers within 28 concurrent compute units</li>
+            <li>Up to one-hour sessions · 10-minute idle timeout</li>
+            <li>SSH, browser terminal, files, and web previews</li>
+          </ul>
+          <p class="pricing-note">Larger sizes consume more compute units. Hard caps keep usage within your allowance; there is no automatic compute overage billing. <a href="/pricing/">Pro and Scale</a> offer larger allowances and longer sessions.</p></div>
         </div>
-        <details class="plan-rules">
-          <summary>Plan rules and included access</summary>
-          <p>Small uses 6 compute units per hour; XL uses 28. Running time, including idle time, uses your allowance. Starting a session reserves its runtime; stopping releases unused runtime. Allowances reset each UTC month without rollover, and sessions end at the month boundary or their earlier deadline. No automatic overage charges.</p>
-          <p>All plans offer five machine sizes, from Lite (256 MiB RAM) to XL (4 vCPU, 12 GiB RAM, 20 GB ephemeral disk), with bash, tmux, outbound internet, SSH and browser terminals. The default image includes Node 24; other runtimes depend on the selected image. Each container allows four terminal connections; each account allows ten live SSH commands, valid for up to 15 minutes.</p>
-          <p>Starts are shared across your account and reset at the start of each UTC month. Failed starts count. Stopping a container or changing plans does not reset usage. Sessions end at their hard limit or the end of the paid period at creation, whichever comes first. Ordinary stop discards unsaved files; save a workspace or export outputs first.</p>
-          <p>Upgrades require payment through Stripe. Downgrades and cancellation take effect at renewal; lower limits may stop containers. <a href="/docs/limits/">Read all platform limits</a>.</p>
-        </details>
-        <p class="pricing-note">Billed monthly. Applicable taxes and the total are shown at checkout. Read the <a href="/terms/">Terms of Service</a> and <a href="/privacy/">Privacy Policy</a>.</p>
-        <a class="text-link billing-link" href="/pricing/">Plans and billing →</a>
+        <p class="pricing-note">Billed monthly, plus applicable taxes shown at checkout. <a href="/terms/">Terms</a> · <a href="/docs/limits/">Full limits</a>.</p>
       </section>
 
       <section class="agent-setup wrap" id="agent-setup" aria-labelledby="agent-setup-title">
@@ -200,6 +132,11 @@
         </nav>
       </section>
 
+      <section class="landing-detail wrap" aria-labelledby="choose-title">
+        <h2 id="choose-title">Already looking for an agent sandbox?</h2>
+        <nav class="recipe-links" aria-label="Agent sandbox options"><a href="/e2b-alternative/">E2B alternative</a><a href="/daytona-alternative/">Daytona alternative</a><a href="/cloudflare-sandbox/">Cloudflare sandbox</a></nav>
+        <p>Inspect the <a href="/opensource/">open-source platform</a>, or review <a href="/benchmarks/">measured workloads</a> before you start.</p>
+      </section>
       <section class="latest-updates wrap" aria-labelledby="updates-title">
         <div class="section-heading"><div><h2 id="updates-title">Latest updates</h2></div><a class="text-link" href="/changelog/">Full changelog <span aria-hidden="true">→</span></a></div>
         <p><time datetime="2026-10-05">October 5, 2026</time> — <a href="/changelog/">HTTP files, command execution, and idempotent creation</a></p>

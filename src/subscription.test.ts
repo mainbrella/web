@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 
 const checkoutGlobal = globalThis as typeof globalThis & { checkoutOptions: { onComplete: (session: { id: string }) => Promise<void>; onReady: () => void; onError: () => void } };
+const trackingGlobal = globalThis as typeof globalThis & { funnelEvents: [string, unknown][] };
 
 // Exercise the real billing client; replace only browser and Stripe boundaries.
 const hooks = registerHooks({
@@ -11,6 +12,7 @@ const hooks = registerHooks({
     const mocks: Record<string, string> = {
       './payments/stripeEmbeddedCheckout.ts': 'export const mountStripeEmbeddedCheckout = options => { globalThis.checkoutOptions = options; return () => {}; };',
       './auth.ts': "export const API_ORIGIN = 'https://api.test'; export const createAuthClient = () => ({ signOut: async () => {} });",
+      './acquisition-analytics.ts': "export const identifyAccount = () => {}; export const trackFunnel = (name, parameters) => globalThis.funnelEvents.push([name, parameters]); export const trackConfirmedPayment = (sessionId, plan) => globalThis.funnelEvents.push(['payment_confirmed', plan]);",
     };
     if (Object.hasOwn(mocks, specifier)) return { url: `data:text/javascript,${encodeURIComponent(mocks[specifier])}`, shortCircuit: true };
     return next(specifier, context);
@@ -45,6 +47,7 @@ async function fixture(t: TestContext, current: string | null = 'builder', targe
   property('location', { pathname: extra.pathname || `/pricing/${target}`, search: extra.search || '', hash: '', assign: (value: string) => redirects.push(value) });
   property('history', { replaceState() {} });
   property('checkoutOptions', null);
+  property('funnelEvents', []);
   property('window', { localStorage: { getItem: () => extra.cookieChoice || 'accepted' }, addEventListener: (type: string, handler: (event: any) => unknown) => events.set(type, handler),
     dispatchEvent: (event: Event) => events.get(event.type)?.(event), confirm: (value: string) => { confirmations.push(value); return accept; } });
   property('fetch', async (url: string, options: RequestInit) => {
@@ -60,7 +63,7 @@ async function fixture(t: TestContext, current: string | null = 'builder', targe
     if (fail && (!extra.failPath || extra.failPath === path)) return Response.json({ error: fail }, { status: 409 });
     if (path === '/subscription/checkout') return Response.json({ client_secret: 'cs_owned_secret', publishable_key: 'pk_mock' });
     if (path === '/subscription/complete') {
-      state = { plan: target, active: true, valid_until: Date.UTC(2026, 10, 5), subscription: { id: 'sub_owned', cancel_at_period_end: false } };
+      state = { plan: target, active: true, valid_until: Date.UTC(2026, 10, 5), subscription: { id: 'sub_owned', cancel_at_period_end: false }, ...extra.completionState };
       return Response.json(state);
     }
     if (path === '/subscription/portal') return Response.json({ url: 'https://billing.stripe.com/p/session_owned' });
@@ -217,6 +220,23 @@ test('successful payment applies the verified completion state without a second 
   assert.equal(f.button.disabled, true);
   assert.equal(f.node('#billing-manage').hidden, false);
   assert.equal(f.node('#inline-checkout').hidden, true);
+  assert.equal(f.node('#subscription-workspace').hidden, false);
+  assert.deepEqual(trackingGlobal.funnelEvents, [['checkout_started', { plan: 'pro' }], ['payment_confirmed', 'pro']]);
+});
+
+test('inactive completion does not count as confirmed payment or offer machine access', async t => {
+  const f = await fixture(t, null, 'builder', { active: false, subscription: null, completionState: { active: false } });
+  await checkoutGlobal.checkoutOptions.onComplete({ id: 'cs_pending' });
+  assert.equal(f.node('#subscription-workspace').hidden, true);
+  assert.equal(trackingGlobal.funnelEvents.filter(([name]) => name === 'payment_confirmed').length, 0);
+});
+
+test('failed payment confirmation never counts as payment or offers machine access', async t => {
+  const f = await fixture(t, null, 'builder', { active: false, subscription: null, failPath: '/subscription/complete' });
+  f.setFail('billing_unavailable');
+  await assert.rejects(checkoutGlobal.checkoutOptions.onComplete({ id: 'cs_pending' }), /couldn’t confirm/);
+  assert.equal(f.node('#subscription-workspace').hidden, true);
+  assert.equal(trackingGlobal.funnelEvents.filter(([name]) => name === 'payment_confirmed').length, 0);
 });
 
 test('checkout keeps its form visible while authentication and billing load', async t => {

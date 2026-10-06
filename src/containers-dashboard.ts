@@ -1,3 +1,4 @@
+import { trackMachineStart } from './acquisition-analytics.ts';
 import type { Container, ContainerData, ContainerIdentity, ContainerLimits, MachineSize, Image, ObservabilityCapabilities, PersistenceCapabilities } from './types.ts';
 import { API_ORIGIN } from './auth.ts';
 import { createContainerPreviews } from './container-previews.ts';
@@ -388,6 +389,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       const result = await request(method, id, createdAt);
       if (disposed) return;
       data = result;
+      if (method === 'POST') trackMachineStart(sizeSelect?.value || 'lite');
       render();
       if (method === 'DELETE') refresh.focus();
     } catch (caught) {

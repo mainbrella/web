@@ -10,6 +10,7 @@
     "test": "tsx --test src/*.test.ts scripts/*.test.mjs",
     "docs:sync": "node scripts/sync-agent-docs.mjs",
     "docs:check": "node scripts/sync-agent-docs.mjs --check",
+    "acquisition:link": "node scripts/acquisition-link.mjs",
     "doctor": "node scripts/mainbrella-doctor.mjs",
     "verify:agent": "node scripts/mainbrella-verify.mjs",
     "type-check": "tsc --noEmit"

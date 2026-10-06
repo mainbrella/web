@@ -12,7 +12,8 @@ const publicPages = ['docs', 'docs/containers', 'docs/execute', 'docs/files', 'd
   'benchmarks', 'integrations', 'trust', 'subprocessors', 'platform',
   'blog', 'blog/account-owned-compute', 'blog/measuring-startup',
   'blog/safe-container-creation', 'blog/interactive-access', 'blog/custom-images',
-  'compare', 'brand', 'careers', 'opensource'];
+  'compare', 'brand', 'careers', 'opensource',
+  'e2b-alternative', 'daytona-alternative', 'cloudflare-sandbox'];
 
 function checkoutPage(html: string, plan: Plan) {
   return html

@@ -1,3 +1,4 @@
+import { identifyAccount, trackConfirmedPayment, trackFunnel } from './acquisition-analytics.ts';
 import type { User, BillingConfig, Subscription, SubscriptionState } from './types.ts';
 import { needsSignInCookies, signInCookieMessage } from './cookie-preferences.ts';
 import { mountStripeEmbeddedCheckout } from "./payments/stripeEmbeddedCheckout.ts";
@@ -151,6 +152,8 @@ function periodEnd() {
     : 'at the end of the current billing period';
 }
 function render() {
+  const workspace = document.querySelector<HTMLElement>('#subscription-workspace');
+  if (workspace) workspace.hidden = !user || !subscriptionState?.active || !ready || !checkoutView.hidden;
   const checkoutStage = document.querySelector<HTMLElement>("#checkout-stage")!;
   if (checkoutStage) {
     checkoutStage.dataset.reserve = String(!ready || !checkoutView.hidden);
@@ -248,6 +251,7 @@ async function initialize() {
       return;
     }
     user = session.user;
+    identifyAccount(user?.id || null);
     if (!config!.configured) throw new Error("billing_unavailable");
     render();
     if (selectedPlan && !user) {
@@ -262,6 +266,9 @@ async function initialize() {
       const confirmation = await api("/subscription/complete", { session_id: params.get("session_id") });
       if (version !== authVersion) return;
       applySubscription(confirmation);
+      if (confirmation.active && confirmation.subscription && Object.hasOwn(plans, confirmation.plan)) {
+        trackConfirmedPayment(params.get('session_id')!, confirmation.plan);
+      }
       completed = true;
       params.delete("subscription_return");
       params.delete("session_id");
@@ -318,6 +325,7 @@ async function openCheckout(plan: string) {
     const data = await api("/subscription/checkout", { plan });
     if (version !== checkoutVersion) return;
     if (!data.client_secret || !data.publishable_key) throw new Error("billing_unavailable");
+    trackFunnel('checkout_started', { plan });
     checkoutEmail.disabled = false;
     cleanupCheckout = mountStripeEmbeddedCheckout({
       container: document.querySelector<HTMLElement>("#checkout-payment")!, form: checkoutForm,
@@ -343,6 +351,9 @@ async function openCheckout(plan: string) {
           const confirmation = await api("/subscription/complete", { session_id: session.id, client_secret: data.client_secret });
           if (version !== checkoutVersion) return;
           applySubscription(confirmation);
+          if (confirmation.active && confirmation.subscription && Object.hasOwn(plans, confirmation.plan)) {
+            trackConfirmedPayment(session.id, confirmation.plan);
+          }
         } catch {
           throw new Error("Payment was submitted. We couldn’t confirm your subscription. Retry confirmation or contact support@mainbrella.com.");
         }

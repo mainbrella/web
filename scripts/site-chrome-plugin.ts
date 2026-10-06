@@ -21,7 +21,7 @@ export function siteChrome(path: string) {
     </nav>
   </header>`;
   const groups: [string, [string, string][]][] = [
-    ['Product', [['Containers', '/docs/containers/'], ['Images', '/docs/images/'], ['Pricing', '/pricing/'], ['Benchmarks', '/benchmarks/'], ['Platform', '/platform/'], ['Compare platforms', '/compare/']]],
+    ['Product', [['Containers', '/docs/containers/'], ['Images', '/docs/images/'], ['Pricing', '/pricing/'], ['Benchmarks', '/benchmarks/'], ['Platform', '/platform/'], ['Compare platforms', '/compare/'], ['E2B alternative', '/e2b-alternative/'], ['Daytona alternative', '/daytona-alternative/'], ['Cloudflare sandbox', '/cloudflare-sandbox/']]],
     ['Developers', [['Docs', '/docs/'], ['API reference', '/docs/api-reference/'], ['OpenAPI', 'https://api.mainbrella.com/docs'], ['Agent setup', '/docs/agent-setup/'], ['Integrations', '/integrations/'], ['Open source', '/opensource/'], ['GitHub', 'https://github.com/mainbrella'], ['Changelog', '/changelog/']]],
     ['Company', [['About', '/about/'], ['Contact', '/contact/'], ['Engineering blog', '/blog/'], ['Brand assets', '/brand/'], ['Careers', '/careers/'], ['Security', '/security/'], ['Trust center', '/trust/'], ['Status', '/status/']]],
     ['Legal', [['Privacy', '/privacy/'], ['Terms', '/terms/'], ['Acceptable use', '/terms/#acceptable-use'], ['Subprocessors', '/subprocessors/'], ['DPA availability', '/trust/#dpa'], ['Vulnerability disclosure', '/security/disclosure/']]],
@@ -33,6 +33,15 @@ export function siteChrome(path: string) {
   return { header, footer };
 }
 
+const cookieDialog = `    <dialog class="cookie-consent" id="cookie-consent" aria-label="Cookie preferences" aria-describedby="cookie-consent-description">
+      <p id="cookie-consent-description">This website uses cookies to measure and improve your experience. Read our <a href="/terms/" target="_blank" rel="noopener">Terms of Service<span class="visually-hidden"> (opens in a new tab)</span></a>.</p>
+      <div class="cookie-consent-actions">
+        <button class="button cookie-consent-reject" type="button" data-consent="rejected" autofocus>Reject All</button>
+        <button class="button" type="button" data-consent="accepted">Accept All</button>
+      </div>
+    </dialog>
+`;
+
 // Render shared chrome into HTML so navigation works without JavaScript.
 export function siteChromePlugin(): Plugin {
   return {
@@ -41,7 +50,9 @@ export function siteChromePlugin(): Plugin {
       order: 'pre',
       handler(html, context) {
         const { header, footer } = siteChrome(context.path);
-        return html.replace('<!-- site-header -->', header).replace('<!-- site-footer -->', footer);
+        return html.replace('<!-- site-header -->', header).replace('<!-- site-footer -->', footer)
+          .replace('<!-- cookie-consent -->', cookieDialog)
+          .replace('</body>', '<script type="module" src="/src/acquisition.ts"></script>\n  </body>');
       },
     },
   };
