@@ -128,7 +128,7 @@
               <li>Up to 5 containers within 28 concurrent units</li>
               <li>All five sizes · SSH, browser terminal, internet</li>
             </ul>
-            <button class="button" data-plan="builder" type="button" disabled>Start building — $5</button>
+            <a class="button" href="/pricing/builder/">Start building — $5/month</a>
           </div>
           <div class="plan">
             <h3>Pro</h3>
@@ -141,7 +141,7 @@
               <li>Up to 100 containers within 128 concurrent units</li>
               <li>All five sizes · SSH, browser terminal, internet</li>
             </ul>
-            <button class="button" data-plan="pro" type="button" disabled>Choose Pro — $180</button>
+            <a class="button" href="/pricing/pro/">Choose Pro — $180/month</a>
           </div>
           <div class="plan">
             <h3>Scale</h3>
@@ -154,7 +154,7 @@
               <li>Up to 500 containers within 640 concurrent units</li>
               <li>All five sizes · SSH, browser terminal, internet</li>
             </ul>
-            <button class="button" data-plan="scale" type="button" disabled>Choose Scale — $999</button>
+            <a class="button" href="/pricing/scale/">Choose Scale — $999/month</a>
           </div>
         </div>
         <details class="plan-rules">
@@ -164,31 +164,8 @@
           <p>Starts are shared across your account and reset at the start of each UTC month. Failed starts count. Stopping a container or changing plans does not reset usage. Sessions end at their hard limit or the end of the paid period at creation, whichever comes first. Ordinary stop discards unsaved files; save a workspace or export outputs first.</p>
           <p>Upgrades require payment through Stripe. Downgrades and cancellation take effect at renewal; lower limits may stop containers. <a href="/docs/limits/">Read all platform limits</a>.</p>
         </details>
-        <section class="inline-checkout" id="inline-checkout" aria-labelledby="checkout-title" hidden>
-          <button class="text-link billing-link" id="checkout-back" type="button">← Back to plans</button>
-          <h3 id="checkout-title" tabindex="-1"></h3>
-          <p class="pricing-note" id="checkout-summary"></p>
-          <form id="checkout-form" hidden>
-            <label for="checkout-email">Email for receipts and billing</label>
-            <input id="checkout-email" name="email" type="email" autocomplete="email" required />
-            <div id="checkout-payment" aria-label="Payment details"></div>
-            <p class="pricing-note" id="checkout-total" aria-live="polite"></p>
-            <p class="pricing-note">By subscribing, you authorize recurring monthly charges until you cancel and agree to the <a href="/terms/">Terms of Service</a>.</p>
-            <p class="pricing-note" id="checkout-status" role="status" aria-live="polite"></p>
-            <button class="button" id="checkout-submit" type="submit" disabled>Subscribe</button>
-          </form>
-        </section>
-        <div class="billing-controls">
-          <p class="pricing-note">Billed monthly. Fixed monthly pricing; compute usage charges are not enabled. Applicable taxes and the total are shown at checkout. Container access is available with an active subscription. Read the <a href="/terms/">Terms of Service</a> and <a href="/privacy/">Privacy Policy</a>.</p>
-          <p class="pricing-note" id="pro-status" role="status" aria-live="polite">Checking subscription…</p>
-          <p class="pricing-note" id="pro-account" hidden></p>
-          <button class="text-link billing-link" id="billing-manage" type="button" hidden>Manage subscription</button>
-          <button class="text-link billing-link" id="billing-cancel" type="button" hidden>Cancel subscription</button>
-          <button class="text-link billing-link" id="billing-resume" type="button" hidden>Resume subscription</button>
-          <a class="text-link billing-link" id="pro-login" href="/login?returnTo=%2F%23pricing" hidden>Sign in to subscribe</a>
-          <button class="text-link billing-link" id="pro-logout" type="button" hidden>Sign out</button>
-          <noscript><p class="pricing-note">Enable JavaScript to subscribe.</p></noscript>
-        </div>
+        <p class="pricing-note">Billed monthly. Applicable taxes and the total are shown at checkout. Read the <a href="/terms/">Terms of Service</a> and <a href="/privacy/">Privacy Policy</a>.</p>
+        <a class="text-link billing-link" href="/pricing/">Plans and billing →</a>
       </section>
 
       <section class="agent-setup wrap" id="agent-setup" aria-labelledby="agent-setup-title">
@@ -244,7 +221,6 @@
       </div>
     </dialog>
     <script type="module" src="/src/cookie-consent.js"></script>
-    <script type="module" src="/src/subscription.js"></script>
     <script type="module" src="/src/account-menu.js"></script>
     <script type="module" src="/src/agent-setup.js"></script>
   </body>

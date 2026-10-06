@@ -37,7 +37,7 @@ async function fixture(t, current = 'builder', target = 'pro', extra = {}) {
     t.after(() => { if (descriptor) Object.defineProperty(globalThis, name, descriptor); else delete globalThis[name]; });
   };
   property('document', { querySelector: node, querySelectorAll: selector => selector === '[data-plan]' ? [button] : [] });
-  property('location', { pathname: `/pricing/${target}`, search: extra.search || '', hash: '', assign: value => redirects.push(value) });
+  property('location', { pathname: extra.pathname || `/pricing/${target}`, search: extra.search || '', hash: '', assign: value => redirects.push(value) });
   property('history', { replaceState() {} });
   property('checkoutOptions', null);
   property('window', { addEventListener: (type, handler) => events.set(type, handler),
@@ -318,3 +318,20 @@ test('payment checkout failures still allow a valid card-free trial redemption',
 });
 
 test.after(() => hooks.deregister());
+
+
+test('pricing overview shows billing controls and navigates to checkout without mounting Stripe', async t => {
+  const f = await fixture(t, 'builder', 'pro', { pathname: '/pricing/' });
+  assert.equal(f.node('#billing-manage').hidden, false);
+  assert.equal(f.node('#billing-cancel').hidden, false);
+  assert.equal(globalThis.checkoutOptions, null);
+  await f.button.click();
+  assert.deepEqual(f.redirects, ['/pricing/pro']);
+  assert.equal(f.calls.filter(call => call.path === '/subscription/checkout').length, 0);
+});
+
+test('checkout Back to plans returns to pricing', async t => {
+  const f = await fixture(t);
+  await f.node('#checkout-back').click();
+  assert.deepEqual(f.redirects, ['/pricing/']);
+});

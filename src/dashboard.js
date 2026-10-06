@@ -32,7 +32,7 @@ async function loadDashboard() {
   status.textContent = 'Checking your session…';
   level.textContent = 'Loading…';
   note.hidden = true;
-  billing.href = '/#pricing';
+  billing.href = '/pricing/';
   billing.textContent = 'Plans and billing';
   billing.className = 'text-link';
   let authenticated = false;

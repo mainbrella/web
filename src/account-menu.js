@@ -17,7 +17,7 @@ if (nav) {
       <a href="/dashboard/">Dashboard</a>
       <a href="/profile/">Profile</a>
       <a href="/api-keys/">API Keys</a>
-      <a href="/#pricing">Billing</a>
+      <a href="/pricing/">Billing</a>
       <button class="account-sign-out" type="button">Sign out</button>
       <p class="account-error" role="alert" hidden></p>
     </div>`;

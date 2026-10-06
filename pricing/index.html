@@ -33,7 +33,7 @@
               <li>Up to 5 containers within 28 concurrent units</li>
               <li>All five sizes · SSH, browser terminal, internet</li>
             </ul>
-            <a class="button" href="/pricing/builder/">Start building — $5/month</a>
+            <button class="button" data-plan="builder" type="button" disabled>Start building — $5/month</button>
           </div>
           <div class="plan">
             <h3>Pro</h3>
@@ -46,7 +46,7 @@
               <li>Up to 100 containers within 128 concurrent units</li>
               <li>All five sizes · SSH, browser terminal, internet</li>
             </ul>
-            <a class="button" href="/pricing/pro/">Choose Pro — $180/month</a>
+            <button class="button" data-plan="pro" type="button" disabled>Choose Pro — $180/month</button>
           </div>
           <div class="plan">
             <h3>Scale</h3>
@@ -59,11 +59,44 @@
               <li>Up to 500 containers within 640 concurrent units</li>
               <li>All five sizes · SSH, browser terminal, internet</li>
             </ul>
-            <a class="button" href="/pricing/scale/">Choose Scale — $999/month</a>
+            <button class="button" data-plan="scale" type="button" disabled>Choose Scale — $999/month</button>
           </div>
         </div>
 
       <p class="pricing-note">Billed monthly until canceled. Applicable taxes and the total are shown before payment. Google sign-in and an active subscription are required for paid access. Have a free trial promo code? Choose its plan and enter the code after sign-in; a valid code needs no credit card and creates no automatic charges.</p>
+      <section class="inline-checkout" id="inline-checkout" aria-labelledby="checkout-title" hidden>
+        <button class="text-link billing-link" id="checkout-back" type="button">← Back to plans</button>
+        <h2 id="checkout-title" tabindex="-1"></h2>
+        <p class="pricing-note" id="checkout-summary"></p>
+        <form id="trial-code-form" class="trial-code-form">
+          <label for="trial-code">Free trial promo code</label>
+          <div class="trial-code-controls">
+            <input id="trial-code" name="code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" minlength="4" maxlength="64" required aria-describedby="trial-code-note trial-code-status" />
+            <button id="trial-code-submit" class="button button-small" type="submit">Start free trial</button>
+          </div>
+          <p id="trial-code-note" class="pricing-note">A valid code starts a free trial without a credit card. No automatic charges.</p>
+          <p id="trial-code-status" class="pricing-note" role="status" aria-live="polite"></p>
+        </form>
+        <form id="checkout-form" hidden>
+          <label for="checkout-email">Email for receipts and billing</label>
+          <input id="checkout-email" name="email" type="email" autocomplete="email" required />
+          <div id="checkout-payment" aria-label="Payment details"></div>
+          <p class="pricing-note" id="checkout-total" aria-live="polite"></p>
+          <p class="pricing-note">By subscribing, you authorize recurring monthly charges until you cancel and agree to the <a href="/terms/">Terms of Service</a>.</p>
+          <p class="pricing-note" id="checkout-status" role="status" aria-live="polite"></p>
+          <button class="button" id="checkout-submit" type="submit" disabled>Subscribe</button>
+        </form>
+      </section>
+      <div class="billing-controls">
+        <p class="pricing-note" id="pro-status" role="status" aria-live="polite">Checking subscription…</p>
+        <p class="pricing-note" id="pro-account" hidden></p>
+        <button class="text-link billing-link" id="billing-manage" type="button" hidden>Manage subscription</button>
+        <button class="text-link billing-link" id="billing-cancel" type="button" hidden>Cancel subscription</button>
+        <button class="text-link billing-link" id="billing-resume" type="button" hidden>Resume subscription</button>
+        <a class="text-link billing-link" id="pro-login" href="/login/?returnTo=%2Fpricing%2F" hidden>Sign in to subscribe</a>
+        <button class="text-link billing-link" id="pro-logout" type="button" hidden>Sign out</button>
+        <noscript><p class="pricing-note">Enable JavaScript to subscribe.</p></noscript>
+      </div>
       <section class="pricing-explanation" aria-labelledby="compute-title">
         <h2 id="compute-title">What does a compute-unit hour buy?</h2>
         <p>One unit-hour runs a Lite machine for one hour. Larger sizes use more units. Running and provisioning time, including idle time, counts toward your allowance.</p>
@@ -87,7 +120,7 @@
         <h2 id="billing-questions-title">Before you subscribe</h2>
         <div class="purchase-questions">
           <details><summary>What happens when I reach a limit?</summary><p>Starts and compute allowances reset at the beginning of each UTC month, without rollover. Starts are rejected when account limits are reached; running sessions end at their allocated deadline or the month boundary. There are no automatic overage charges or paid top-ups. Failed starts count toward the start allowance. Changing plans does not reset usage.</p></details>
-          <details><summary>Can I change plans or cancel?</summary><p>Manage your subscription from <a href="/#pricing">your billing controls</a>. Upgrades require payment through Stripe; downgrades and cancellation take effect at renewal. Lower limits may stop containers. Canceling stops future renewals; see the <a href="/terms/">Terms of Service</a> for billing and refund terms.</p></details>
+          <details><summary>Can I change plans or cancel?</summary><p>Manage your subscription from <a href="/pricing/">your billing controls</a>. Upgrades require payment through Stripe; downgrades and cancellation take effect at renewal. Lower limits may stop containers. Canceling stops future renewals; see the <a href="/terms/">Terms of Service</a> for billing and refund terms.</p></details>
           <details><summary>Do files persist when a workspace stops?</summary><p>Save a workspace before stopping to restore its filesystem into a fresh container. Ordinary stop discards unsaved changes. Saved workspaces have plan-specific quotas and retention. Keep independent backups; see <a href="/docs/containers/#workspaces">saved workspaces</a> and <a href="/docs/files/">file transfer</a>.</p></details>
           <details><summary>Is there an SLA or priority support?</summary><p>Self-service plans include no uptime SLA, guaranteed support response time, or automatic service credits. Review the <a href="/trust/">trust center</a> and <a href="/status/">service status</a>, or <a href="/contact/">contact Andrew</a> about your requirements before subscribing.</p></details>
         </div>
@@ -95,6 +128,7 @@
       </section>
     </main>
     <!-- site-footer -->
+    <script type="module" src="/src/subscription.js"></script>
     <script type="module" src="/src/account-menu.js"></script>
   </body>
 </html>

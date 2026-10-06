@@ -385,7 +385,7 @@ trialForm?.addEventListener("submit", async (event) => {
 });
 checkoutBack.addEventListener("click", () => {
   if (selectedPlan) {
-    location.assign("/#pricing");
+    location.assign("/pricing/");
     return;
   }
   closeCheckout();

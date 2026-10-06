@@ -407,7 +407,7 @@ export function createContainersDashboard({ onUnauthenticated }) {
       error.append(document.createTextNode(message));
       if (cause.message === 'subscription_required') {
         const link = document.createElement('a');
-        link.href = '/#pricing';
+        link.href = '/pricing/';
         link.textContent = ' View plans';
         error.append(link);
       }

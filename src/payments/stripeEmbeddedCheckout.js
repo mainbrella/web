@@ -1,4 +1,5 @@
-import { loadStripe } from "@stripe/stripe-js";
+// Load Stripe only when a visitor opens checkout. The default entry point injects it on import.
+import { loadStripe } from "@stripe/stripe-js/pure";
 
 const stripePromiseCache = new Map();
 
