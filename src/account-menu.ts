@@ -36,6 +36,10 @@ if (nav) {
   }
 
   function render(user?: User | null) {
+    if (user && window.location.pathname === '/') {
+      window.location.replace('/dashboard/');
+      return;
+    }
     account.hidden = !user;
     nav.classList.toggle('has-account', Boolean(user));
     if (login) login.hidden = Boolean(user);
