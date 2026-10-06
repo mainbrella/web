@@ -104,10 +104,11 @@ plan-specific idle deadline, but the independent alarm and terminal deadline nev
 extend the plan's hard session expiration. Closing the panel detaches the tmux client;
 the shell continues only while the container's existing lease allows it.
 
-Run `npm run deploy` in `../backend` to deploy the API first, then the container
-Worker and its named Docker image (bash, tmux, Node 24). Deploy the website
-afterward. GitHub Actions builds the image; local backend deployments do not
-require Docker. Existing containers using the old image must be stopped and
+Run `npm run deploy` in `../backend` to run the compatibility preflight, deploy
+the private container Worker with the published image map, then deploy the API.
+Follow [the deployment runbook](../backend/docs/deployment.md) and deploy the
+website afterward. GitHub Actions builds the image; local backend deployments do
+not require Docker. Existing containers using the old image must be stopped and
 recreated to gain tmux. No new token table, migration, CLI, or public port is
 required for browser terminals.
 
