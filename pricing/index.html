@@ -3,65 +3,98 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Mainbrella pricing in USD: Builder $5/month, Pro $180/month, Scale $999/month. Compare included compute, starts, concurrency, and session limits. No automatic overage charges." />
     <meta name="theme-color" content="#0d1014" />
-    <meta name="robots" content="noindex" />
+    <link rel="canonical" href="https://mainbrella.com/pricing/" />
+    <meta property="og:title" content="Pricing · Mainbrella" />
+    <meta property="og:description" content="Builder $5/month · Pro $180/month · Scale $999/month. Fixed monthly compute allowances, no automatic overage charges." />
+    <meta property="og:url" content="https://mainbrella.com/pricing/" />
+    <meta property="og:type" content="website" />
     <link rel="icon" href="/images/favicon.png" type="image/png" />
     <link rel="stylesheet" href="/mainbrella.css" />
-    <title>Subscribe · Mainbrella</title>
+    <title>Pricing · Mainbrella</title>
   </head>
   <body class="info-body sandbox-home">
     <a class="skip-link" href="#main">Skip to content</a>
     <!-- site-header -->
-    <main id="main" class="subscription-main wrap">
-      <div id="pricing-plans">
-        <h1 id="plan-title">Subscribe</h1>
-        <p class="pricing-note">All plans offer five machine sizes, from 256 MiB to 12 GiB RAM. Your subscription includes a fixed monthly compute allowance, with no automatic overage charges.</p>
-        <p id="selected-plan-limits" class="pricing-note" hidden></p>
-        <button class="button" data-plan="" type="button" disabled>Continue to checkout</button>
-        <details class="plan-rules">
-          <summary>Plan rules and included access</summary>
-          <p>Small uses 6 compute units per hour; XL uses 28. Running time, including idle time, uses your allowance. Starting a session reserves its runtime; stopping releases unused runtime. Allowances reset each UTC month without rollover, and sessions end at the month boundary or their earlier deadline. No automatic overage charges.</p>
-          <p>All plans offer five machine sizes, from Lite (256 MiB RAM) to XL (4 vCPU, 12 GiB RAM, 20 GB ephemeral disk), with bash, tmux, outbound internet, SSH and browser terminals. The default image includes Node 24; other runtimes depend on the selected image. Each container allows four terminal connections; each account allows ten live SSH commands, valid for up to 15 minutes.</p>
-          <p>Starts are shared across your account and reset at the start of each UTC month. Failed starts count. Stopping a container or changing plans does not reset usage. Sessions end at their hard limit or the end of the paid period at creation, whichever comes first. Files are lost when a container stops.</p>
-          <p>Upgrades require payment through Stripe. Downgrades and cancellation take effect at renewal; lower limits may stop containers. <a href="/docs/limits/">Read all platform limits</a>.</p>
-        </details>
-      </div>
-      <section class="inline-checkout" id="inline-checkout" aria-labelledby="checkout-title" hidden>
-        <button class="text-link billing-link" id="checkout-back" type="button">← Back to plans</button>
-        <h1 id="checkout-title" tabindex="-1"></h1>
-        <p class="pricing-note" id="checkout-summary"></p>
-        <form id="trial-code-form" class="trial-code-form">
-          <label for="trial-code">Free trial promo code</label>
-          <div class="trial-code-controls">
-            <input id="trial-code" name="code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" minlength="4" maxlength="64" required aria-describedby="trial-code-note trial-code-status" />
-            <button id="trial-code-submit" class="button button-small" type="submit">Start free trial</button>
+    <main id="main" class="pricing-page wrap">
+      <h1>Pricing</h1>
+      <p class="pricing-intro">Fixed monthly plans, with compute included. All prices in USD.</p>
+      <p class="pricing-size-note">Every plan includes all five machine sizes, the HTTP API, SSH, browser terminals, and outbound internet. No automatic overage charges.</p>
+        <div class="pricing-plans" id="pricing-plans">
+          <div class="plan">
+            <h3>Builder</h3>
+            <p class="plan-price">$5<span> / month</span></p>
+            <p>For individual projects and testing.</p>
+            <ul class="plan-features">
+              <li><strong>250 compute-unit hours/month</strong></li>
+              <li>1,000 starts per month</li>
+              <li>Up to 1-hour sessions · 10-minute idle timeout</li>
+              <li>Up to 5 containers within 28 concurrent units</li>
+              <li>All five sizes · SSH, browser terminal, internet</li>
+            </ul>
+            <a class="button" href="/pricing/builder/">Start building — $5/month</a>
           </div>
-          <p id="trial-code-note" class="pricing-note">A valid code starts a free trial without a credit card. No automatic charges.</p>
-          <p id="trial-code-status" class="pricing-note" role="status" aria-live="polite"></p>
-        </form>
-        <form id="checkout-form" hidden>
-          <label for="checkout-email">Email for receipts and billing</label>
-          <input id="checkout-email" name="email" type="email" autocomplete="email" required />
-          <div id="checkout-payment" aria-label="Payment details"></div>
-          <p class="pricing-note" id="checkout-total" aria-live="polite"></p>
-          <p class="pricing-note">By subscribing, you authorize recurring monthly charges until you cancel and agree to the <a href="/terms/">Terms of Service</a>.</p>
-          <p class="pricing-note" id="checkout-status" role="status" aria-live="polite"></p>
-          <button class="button" id="checkout-submit" type="submit" disabled>Subscribe</button>
-        </form>
+          <div class="plan">
+            <h3>Pro</h3>
+            <p class="plan-price">$180<span> / month</span></p>
+            <p>For regular development and agent workloads.</p>
+            <ul class="plan-features">
+              <li><strong>9,000 compute-unit hours/month</strong></li>
+              <li>10,000 starts per month</li>
+              <li>Up to 24-hour sessions · 30-minute idle timeout</li>
+              <li>Up to 100 containers within 128 concurrent units</li>
+              <li>All five sizes · SSH, browser terminal, internet</li>
+            </ul>
+            <a class="button" href="/pricing/pro/">Choose Pro — $180/month</a>
+          </div>
+          <div class="plan">
+            <h3>Scale</h3>
+            <p class="plan-price">$999<span> / month</span></p>
+            <p>For parallel workloads and sustained compute.</p>
+            <ul class="plan-features">
+              <li><strong>50,000 compute-unit hours/month</strong></li>
+              <li>100,000 starts per month</li>
+              <li>Up to 72-hour sessions · 60-minute idle timeout</li>
+              <li>Up to 500 containers within 640 concurrent units</li>
+              <li>All five sizes · SSH, browser terminal, internet</li>
+            </ul>
+            <a class="button" href="/pricing/scale/">Choose Scale — $999/month</a>
+          </div>
+        </div>
+
+      <p class="pricing-note">Billed monthly until canceled. Applicable taxes and the total are shown before payment. Google sign-in and an active subscription are required for paid access. Have a free trial promo code? Choose its plan and enter the code after sign-in; a valid code needs no credit card and creates no automatic charges.</p>
+      <section class="pricing-explanation" aria-labelledby="compute-title">
+        <h2 id="compute-title">What does a compute-unit hour buy?</h2>
+        <p>One unit-hour runs a Lite machine for one hour. Larger sizes use more units. Running and provisioning time, including idle time, counts toward your allowance.</p>
+        <div class="docs-table-scroll" role="region" aria-label="Machine resources and compute cost" tabindex="0">
+          <table class="docs-table">
+            <thead><tr><th scope="col">Machine</th><th scope="col">vCPU</th><th scope="col">RAM</th><th scope="col">Units per hour</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Lite</th><td>1/16</td><td>256 MiB</td><td>1</td></tr>
+              <tr><th scope="row">Small</th><td>½</td><td>4 GiB</td><td>6</td></tr>
+              <tr><th scope="row">Medium</th><td>1</td><td>6 GiB</td><td>10</td></tr>
+              <tr><th scope="row">Large</th><td>2</td><td>8 GiB</td><td>16</td></tr>
+              <tr><th scope="row">XL</th><td>4</td><td>12 GiB</td><td>28</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><strong>Example:</strong> Ten 30-minute Small sessions use 30 unit-hours and ten starts. Builder includes 250 unit-hours for $5/month, equivalent to about 41 hours of Small runtime spread across sessions of up to one hour. Mixed sizes share the same allowance.</p>
+        <p>Both concurrency limits apply: Builder can run up to five Lite machines, four Small machines, or one XL at once, subject to remaining compute. A start reserves runtime; stopping releases unused runtime after reconciliation.</p>
+        <a class="text-link" href="/docs/limits/">Full machine and platform limits →</a>
       </section>
-      <div class="billing-controls">
-        <p class="pricing-note" id="pro-status" role="status" aria-live="polite">Checking subscription…</p>
-        <p class="pricing-note" id="pro-account" hidden></p>
-        <button class="text-link billing-link" id="billing-manage" type="button" hidden>Manage subscription</button>
-        <button class="text-link billing-link" id="billing-cancel" type="button" hidden>Cancel subscription</button>
-        <button class="text-link billing-link" id="billing-resume" type="button" hidden>Resume subscription</button>
-        <a class="text-link billing-link" id="pro-login" href="/login" hidden>Sign in to subscribe</a>
-        <button class="text-link billing-link" id="pro-logout" type="button" hidden>Sign out</button>
-        <p class="pricing-note">Billed monthly. Fixed monthly pricing; compute usage charges are not enabled. Applicable taxes and the total are shown at checkout. Container access is available with an active subscription. Read our <a href="/terms/">Terms of Service</a> and <a href="/privacy/">Privacy Policy</a>.</p>
-        <noscript><p class="pricing-note">Enable JavaScript to subscribe.</p></noscript>
-      </div>
+      <section class="pricing-explanation" aria-labelledby="billing-questions-title">
+        <h2 id="billing-questions-title">Before you subscribe</h2>
+        <div class="purchase-questions">
+          <details><summary>What happens when I reach a limit?</summary><p>Starts and compute allowances reset at the beginning of each UTC month, without rollover. Starts are rejected when account limits are reached; running sessions end at their allocated deadline or the month boundary. There are no automatic overage charges or paid top-ups. Failed starts count toward the start allowance. Changing plans does not reset usage.</p></details>
+          <details><summary>Can I change plans or cancel?</summary><p>Manage your subscription from <a href="/#pricing">your billing controls</a>. Upgrades require payment through Stripe; downgrades and cancellation take effect at renewal. Lower limits may stop containers. Canceling stops future renewals; see the <a href="/terms/">Terms of Service</a> for billing and refund terms.</p></details>
+          <details><summary>Do files persist when a workspace stops?</summary><p>Container files are ephemeral and lost after stop. Export outputs before the session ends. Keep inputs and backups outside the container. See <a href="/docs/files/">file transfer</a> and <a href="/docs/containers/">container lifecycle</a>.</p></details>
+          <details><summary>Is there an SLA or priority support?</summary><p>Self-service plans include no uptime SLA, guaranteed support response time, or automatic service credits. Review the <a href="/trust/">trust center</a> and <a href="/status/">service status</a>, or <a href="/contact/">contact Andrew</a> about your requirements before subscribing.</p></details>
+        </div>
+        <a class="text-link" href="/compare/">Compare Mainbrella, E2B, and Daytona →</a>
+      </section>
     </main>
-    <script type="module" src="/src/subscription.js"></script>
+    <!-- site-footer -->
     <script type="module" src="/src/account-menu.js"></script>
   </body>
 </html>

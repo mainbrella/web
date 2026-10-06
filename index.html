@@ -43,9 +43,10 @@
             <h1 id="site-title">A cloud computer<br />for every AI agent.</h1>
             <p class="hero-description">Create isolated Linux workspaces for coding agents, evals, and automated tasks. Run commands, install tools, and move files through one HTTP API.</p>
             <div class="hero-actions">
-              <a class="button" href="/pricing/builder/">Start building</a>
+              <a class="button" href="/pricing/builder/">Start building — $5/month</a>
               <a class="text-link" href="/docs/">Read the quickstart <span aria-hidden="true">→</span></a>
             </div>
+            <p class="hero-plan-note">Builder $5 · Pro $180 · Scale $999 / month. <a href="/pricing/">Compare plans</a>.</p>
             <a class="cloudflare-label" href="/security/">Built on Cloudflare <span aria-hidden="true">→</span></a>
           </div>
           <figure class="sandbox-terminal">
@@ -95,7 +96,10 @@ curl -X DELETE &quot;$API/containers?id=$ID&amp;createdAt=$GEN&quot; \
         <div class="provider-details"><h3>One account. One workflow.</h3><p>Named API keys, idempotent creation, and generation checks connect your agent to the same containers you manage in the dashboard. Fixed monthly allowances keep concurrency and session limits explicit.</p></div>
       </section>
       <section class="homepage-security wrap" aria-labelledby="isolation-title">
-        <div class="provider-details"><h2 id="isolation-title">Isolated from the start.</h2><div><p>Cloudflare runs each container in its own microVM with a separate kernel and network. Mainbrella checks ownership, credentials, and container generations at the API boundary.</p><a class="text-link" href="/security/">Security and data handling <span aria-hidden="true">→</span></a></div></div>
+        <div class="provider-details"><h2 id="isolation-title">Isolated from the start.</h2><div><p>Cloudflare runs each container in its own microVM with a separate kernel and network. Mainbrella checks ownership, credentials, and container generations at the API boundary.</p><a class="text-link" href="/security/">Security and data handling <span aria-hidden="true">→</span></a>
+          <p class="trust-operator">Operated by Andrew Arrow, doing business as Mainbrella Co. in Culver City, California. Card details are handled directly by Stripe.</p>
+          <nav class="recipe-links" aria-label="Trust evidence"><a href="/trust/">Trust center</a><a href="/status/">Service status</a><a href="https://github.com/mainbrella/web">Website and client source</a><a href="/about/">Meet Andrew</a></nav>
+        </div></div>
       </section>
       <section class="workflow wrap workloads" aria-labelledby="workloads-title">
         <div class="section-heading"><div><h2 id="workloads-title">The right size for your work.</h2><p>Choose lightweight shells or larger environments for builds and agent workloads.</p></div></div>
@@ -106,8 +110,17 @@ curl -X DELETE &quot;$API/containers?id=$ID&amp;createdAt=$GEN&quot; \
         </ul>
       </section>
 
+      <section class="workflow wrap" aria-labelledby="fit-title">
+        <div class="section-heading"><div><h2 id="fit-title">Does Mainbrella fit your workload?</h2><p>Temporary agent workspaces with a fixed monthly budget.</p></div><a class="text-link" href="/compare/">Compare with E2B and Daytona <span aria-hidden="true">→</span></a></div>
+        <div class="purchase-questions">
+          <details><summary>What if I need persistent files?</summary><p>Container files are lost after stop. Use Mainbrella for temporary tasks and export outputs before the session ends. For persistent volumes or snapshots, review the <a href="/compare/">platform comparison</a>.</p></details>
+          <details><summary>Will usage create an unexpected bill?</summary><p>Builder is $5/month, Pro $180/month, and Scale $999/month, plus applicable taxes. Each includes a fixed compute allowance. Account limits and runtime deadlines cap usage; no automatic overage charges or paid top-ups are enabled. <a href="/pricing/">See allowances and a worked example</a>.</p></details>
+          <details><summary>Can I use my existing agent?</summary><p>Use the HTTP API from your application, or follow the Codex, Claude Code, and OpenAI Agents SDK <a href="/integrations/">integration recipes</a>. Read the <a href="/docs/limits/">execution and file limits</a> before moving a workload.</p></details>
+        </div>
+      </section>
+
       <section class="pricing wrap" id="pricing" aria-labelledby="pricing-title">
-        <div class="section-heading"><div><h2 id="pricing-title">Choose your size. Keep a fixed budget.</h2><p>Monthly compute included. Five machine sizes. No automatic overage charges.</p></div></div>
+        <div class="section-heading"><div><h2 id="pricing-title">Choose your size. Keep a fixed budget.</h2><p>Builder $5/month · Pro $180/month · Scale $999/month. No automatic overage charges.</p></div><a class="text-link" href="/pricing/">Pricing details <span aria-hidden="true">→</span></a></div>
         <p class="pricing-size-note">All plans offer Lite through XL, up to 4 vCPU and 12 GiB RAM. Larger machines use more of your monthly compute allowance. <a href="/docs/limits/">Compare limits</a>.</p>
         <div class="pricing-plans" id="pricing-plans">
           <div class="plan">

@@ -18,7 +18,7 @@ The homepage pricing buttons open `/pricing/builder`, `/pricing/pro`, or
 `/pricing/scale`. Signed-out customers are redirected to `/login` with the selected
 plan route as `returnTo`; after sign-in that route opens checkout automatically.
 Existing subscribers see their subscription status and billing management instead.
-Pricing remains available at `/#pricing`. Stripe collects card details directly; Mainbrella never
+Public plan details and billing FAQs are available at `/pricing/`; `/#pricing` retains inline checkout and subscription management. Plan-specific routes use `pricing/checkout.html`, copied to the three plan directories at build time. Stripe collects card details directly; Mainbrella never
 receives them. Subscribers change plans or cancel from the pricing section;
 payment updates use the Stripe billing portal. Upgrades open a hosted Stripe
 confirmation, while downgrades and cancellations take effect at the next renewal.

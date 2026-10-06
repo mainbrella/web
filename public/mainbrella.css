@@ -594,3 +594,24 @@ button:disabled { opacity: .65; cursor: wait; }
 
 .status-content .docs-table { min-width: 640px; }
 .status-content .docs-table td:nth-child(2), .status-content .docs-table td:nth-child(3) { white-space: nowrap; }
+
+/* Pricing and purchase evidence reuse the public site's compact hierarchy. */
+.hero-plan-note { margin-top: 16px; color: var(--muted); font-size: 14px; }
+.hero-plan-note a, .purchase-questions a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.trust-operator { margin-top: 16px; }
+.purchase-questions details { border-bottom: 1px solid var(--line); }
+.purchase-questions summary { min-height: 44px; padding: 12px 0; cursor: pointer; font-size: 16px; font-weight: 500; }
+.purchase-questions p { max-width: 78ch; padding-bottom: 16px; color: var(--muted); font-size: 15px; }
+.pricing-page { flex: 1; padding-top: 32px; padding-bottom: 48px; }
+.pricing-page h1 { font-size: 32px; line-height: 1.2; letter-spacing: -.025em; }
+.pricing-intro { margin: 12px 0; color: var(--muted); }
+.pricing-page .pricing-size-note { margin: 0 0 24px; }
+.pricing-explanation { margin-top: 32px; }
+.pricing-explanation h2 { font-size: 22px; }
+.pricing-explanation > p { max-width: 78ch; margin-top: 12px; color: var(--muted); }
+.pricing-explanation .docs-table-scroll { max-width: 800px; margin: 16px 0; }
+.pricing-explanation .purchase-questions { margin-top: 16px; }
+@media (max-width: 800px) {
+  .pricing-explanation .docs-table { min-width: 0; }
+  .pricing-explanation .docs-table th, .pricing-explanation .docs-table td { padding: 12px 8px; }
+}

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0d1014" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <title>Subscribe · Mainbrella</title>
+  </head>
+  <body class="info-body sandbox-home">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="subscription-main wrap">
+      <div id="pricing-plans">
+        <h1 id="plan-title">Subscribe</h1>
+        <p class="pricing-note">All plans offer five machine sizes, from 256 MiB to 12 GiB RAM. Your subscription includes a fixed monthly compute allowance, with no automatic overage charges.</p>
+        <p id="selected-plan-limits" class="pricing-note" hidden></p>
+        <button class="button" data-plan="" type="button" disabled>Continue to checkout</button>
+        <details class="plan-rules">
+          <summary>Plan rules and included access</summary>
+          <p>Small uses 6 compute units per hour; XL uses 28. Running time, including idle time, uses your allowance. Starting a session reserves its runtime; stopping releases unused runtime. Allowances reset each UTC month without rollover, and sessions end at the month boundary or their earlier deadline. No automatic overage charges.</p>
+          <p>All plans offer five machine sizes, from Lite (256 MiB RAM) to XL (4 vCPU, 12 GiB RAM, 20 GB ephemeral disk), with bash, tmux, outbound internet, SSH and browser terminals. The default image includes Node 24; other runtimes depend on the selected image. Each container allows four terminal connections; each account allows ten live SSH commands, valid for up to 15 minutes.</p>
+          <p>Starts are shared across your account and reset at the start of each UTC month. Failed starts count. Stopping a container or changing plans does not reset usage. Sessions end at their hard limit or the end of the paid period at creation, whichever comes first. Files are lost when a container stops.</p>
+          <p>Upgrades require payment through Stripe. Downgrades and cancellation take effect at renewal; lower limits may stop containers. <a href="/docs/limits/">Read all platform limits</a>.</p>
+        </details>
+      </div>
+      <section class="inline-checkout" id="inline-checkout" aria-labelledby="checkout-title" hidden>
+        <button class="text-link billing-link" id="checkout-back" type="button">← Back to plans</button>
+        <h1 id="checkout-title" tabindex="-1"></h1>
+        <p class="pricing-note" id="checkout-summary"></p>
+        <form id="trial-code-form" class="trial-code-form">
+          <label for="trial-code">Free trial promo code</label>
+          <div class="trial-code-controls">
+            <input id="trial-code" name="code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" minlength="4" maxlength="64" required aria-describedby="trial-code-note trial-code-status" />
+            <button id="trial-code-submit" class="button button-small" type="submit">Start free trial</button>
+          </div>
+          <p id="trial-code-note" class="pricing-note">A valid code starts a free trial without a credit card. No automatic charges.</p>
+          <p id="trial-code-status" class="pricing-note" role="status" aria-live="polite"></p>
+        </form>
+        <form id="checkout-form" hidden>
+          <label for="checkout-email">Email for receipts and billing</label>
+          <input id="checkout-email" name="email" type="email" autocomplete="email" required />
+          <div id="checkout-payment" aria-label="Payment details"></div>
+          <p class="pricing-note" id="checkout-total" aria-live="polite"></p>
+          <p class="pricing-note">By subscribing, you authorize recurring monthly charges until you cancel and agree to the <a href="/terms/">Terms of Service</a>.</p>
+          <p class="pricing-note" id="checkout-status" role="status" aria-live="polite"></p>
+          <button class="button" id="checkout-submit" type="submit" disabled>Subscribe</button>
+        </form>
+      </section>
+      <div class="billing-controls">
+        <p class="pricing-note" id="pro-status" role="status" aria-live="polite">Checking subscription…</p>
+        <p class="pricing-note" id="pro-account" hidden></p>
+        <button class="text-link billing-link" id="billing-manage" type="button" hidden>Manage subscription</button>
+        <button class="text-link billing-link" id="billing-cancel" type="button" hidden>Cancel subscription</button>
+        <button class="text-link billing-link" id="billing-resume" type="button" hidden>Resume subscription</button>
+        <a class="text-link billing-link" id="pro-login" href="/login" hidden>Sign in to subscribe</a>
+        <button class="text-link billing-link" id="pro-logout" type="button" hidden>Sign out</button>
+        <p class="pricing-note">Billed monthly. Fixed monthly pricing; compute usage charges are not enabled. Applicable taxes and the total are shown at checkout. Container access is available with an active subscription. Read our <a href="/terms/">Terms of Service</a> and <a href="/privacy/">Privacy Policy</a>.</p>
+        <noscript><p class="pricing-note">Enable JavaScript to subscribe.</p></noscript>
+      </div>
+    </main>
+    <script type="module" src="/src/subscription.js"></script>
+    <script type="module" src="/src/account-menu.js"></script>
+  </body>
+</html>
