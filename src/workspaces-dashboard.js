@@ -43,7 +43,7 @@ export function createWorkspacesDashboard({onUnauthenticated,onChanged}){
       for(const workspace of workspaces){
         const row=document.createElement('li');row.className='container-row';
         const details=document.createElement('div'),title=document.createElement('strong'),meta=document.createElement('p');title.textContent=workspace.name;meta.className='dashboard-status';
-        meta.textContent=`${workspace.archived?'Archived':workspace.status==='ready'?'Saved':workspace.status==='saving'?'Saving…':'Expired'} · ${workspace.size.toUpperCase()} · Expires ${new Date(workspace.expiresAt).toLocaleDateString()}`;
+        meta.textContent=`${workspace.archived?'Archived':workspace.status==='ready'?'Saved':workspace.status==='saving'?'Saving…':workspace.status==='failed'?'Failed':'Expired'} · ${workspace.size.toUpperCase()} · Expires ${new Date(workspace.expiresAt).toLocaleDateString()}`;
         details.append(title,meta);const actions=document.createElement('div');actions.className='container-actions';
         for(const [label,action]of [['Restore','restore'],[workspace.archived?'Unarchive':'Archive','archive'],['Delete','delete']]){
           const button=document.createElement('button');button.type='button';button.className='dashboard-retry';button.textContent=label;button.dataset.workspaceAction=action;
@@ -74,6 +74,7 @@ export function createWorkspacesDashboard({onUnauthenticated,onChanged}){
   }
   form.onsubmit=async event=>{
     event.preventDefault();if(busy||externalBusy||disposed||!selected||!form.reportValidity())return;
+    if(!pending&&!name.value.trim()){dialogError.textContent='Enter a workspace name.';dialogError.hidden=false;name.focus();return;}
     pending??={container:{id:selected.id,createdAt:selected.createdAt},name:name.value.trim(),stop:stop.checked,key:crypto.randomUUID()};
     busy=true;dialogError.hidden=true;dialogStatus.textContent='Saving filesystem…';controls();
     try{

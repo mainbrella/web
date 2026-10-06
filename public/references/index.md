@@ -20,5 +20,6 @@ Generated from backend API.md and SDK READMEs. Local implementation does not est
 - [Lifecycle webhooks](lifecycle-webhooks.md)
 - [Public operational status](public-operational-status.md)
 - [Machine sizes and compute allowance](machine-sizes-and-compute-allowance.md)
+- [Saved workspaces and portable export](saved-workspaces-and-portable-export.md)
 - [Mainbrella JavaScript SDK](javascript-sdk.md)
 - [Mainbrella Python SDK](python-sdk.md)

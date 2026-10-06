@@ -99,7 +99,7 @@
             <label for="workspace-name">Name</label>
             <input id="workspace-name" type="text" maxlength="80" required autocomplete="off">
             <label class="workspace-stop-choice"><input type="checkbox"> Stop container after saving</label>
-            <p class="dashboard-status">Pause file writes before saving. Files are saved; running processes restart on restore.</p>
+            <p class="dashboard-status">Pause file writes before saving. Files are saved; running processes do not resume on restore.</p>
             <p class="dashboard-status" role="status"></p><p class="dashboard-error" role="alert" hidden></p>
             <div class="container-actions"><button type="submit" class="button button-small">Save workspace</button><button type="button" class="dashboard-retry" data-workspace-cancel>Cancel</button></div>
           </form>

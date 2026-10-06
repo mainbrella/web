@@ -3,10 +3,10 @@
   "source": "mainbrella/backend",
   "licenseSha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
   "files": {
-    "API.md": "0a5f7cfad5f40f63ad1d2fe27bf3f30a1852b1943aa908eee029cb6b0e4fc1c6",
-    "SKILL.md": "219374e499cd4cd2476defa6ff50d91f39fb72d1cf35c6720c0eb6ce9b658230",
-    "sdk/javascript.md": "5b1bca9d8b985f22c29d1e05a249df50bb519d5a03a5aca46af75477d6d325d4",
-    "sdk/python.md": "647f06a279b22e53254235552499d1fbe1f1c82e957557bac3cd32e353fccd33",
+    "API.md": "393f0943318e22cd995dd706bbb196020822f867e61bba6d5a495d7be3dad3ed",
+    "SKILL.md": "a8c5546673d54bb3c35fe6a4c2495e3051dbf5f40cde930940c32f70218a34f2",
+    "sdk/javascript.md": "17451685ac7cf44b06611ade2f3583853d5213ff1e9082574d6db6736069a472",
+    "sdk/python.md": "8582e7513a5b22b85fd22b9dc4b46902a23633105aa71507d064df0855dd0b7f",
     "references/authentication.md": "a8f04f7b5abfe904a5b01525f062795dd0e7fd0d2bfcd3a6c3662e392939c8bb",
     "references/agent-setup-and-verification.md": "8b95b47057e523e95b7ab3ed0d683beca69e6596c00c280e7ca218ab8c13daf5",
     "references/images.md": "c750445141ebd12cff4679f39ee508afb2d4ede05b1e63ae098915980093e2e4",
@@ -25,9 +25,10 @@
     "references/lifecycle-webhooks.md": "d53567686481e7deee6d65f85afd035312469e8130fdfb0c965b6e2365c6326a",
     "references/public-operational-status.md": "f8e868f8232ff37fd56da2432535accad59b309a641aa12855aad5983ff4a23a",
     "references/machine-sizes-and-compute-allowance.md": "ed636389603026b455ae85a5f0c19634d406ece64c1b1b03b40ef5efaaf25159",
-    "references/javascript-sdk.md": "5b1bca9d8b985f22c29d1e05a249df50bb519d5a03a5aca46af75477d6d325d4",
-    "references/python-sdk.md": "647f06a279b22e53254235552499d1fbe1f1c82e957557bac3cd32e353fccd33",
-    "references/index.md": "71875b454bf3fcd5a0a505f6e3f1b7646b798c633213457ed07bebb9dc0fd27d",
-    "llms-full.txt": "70850c56ec6c9f519b457e5d81657e81f5975bc6f2c0324ad6b0862724802590"
+    "references/saved-workspaces-and-portable-export.md": "e308dff03eaaabaeb641f12ad849a0005dc00587a2fee997c8fe3abab16e7112",
+    "references/javascript-sdk.md": "17451685ac7cf44b06611ade2f3583853d5213ff1e9082574d6db6736069a472",
+    "references/python-sdk.md": "8582e7513a5b22b85fd22b9dc4b46902a23633105aa71507d064df0855dd0b7f",
+    "references/index.md": "9ad4657cecdfc0b01c27c5c4ae3d95bfffcdf82ffbb2eec0b9e60894af3276cb",
+    "llms-full.txt": "37f5af3c67503a2f7608dfed400fba97b59fdb167bebeaa63cb1a36fa0a61533"
   }
 }
