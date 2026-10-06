@@ -17,7 +17,7 @@
 
 <p>Give your agent a Linux workspace through the HTTP API. This walkthrough creates one container, runs foreground and managed commands, verifies binary transfer and cancellation, and stops the container it created.</p>
 <h2>1. Get access and an API key</h2>
-<p><a href="/login/">Sign in</a>, choose a <a href="/pricing/">plan</a> or redeem a valid trial code, then create a named key in <a href="/api-keys/">API Keys</a>. Copy it once and provision <code>MAINBRELLA_API_KEY</code> in your environment through your secret manager. Keep it out of source code, chat, and logs.</p>
+<p><a href="/login/">Sign in</a>, choose a <a href="/pricing/">plan</a>, then create a named key in <a href="/api-keys/">API Keys</a>. Copy it once and provision <code>MAINBRELLA_API_KEY</code> in your environment through your secret manager. Keep it out of source code, chat, and logs.</p>
 <h2>2. Check your setup</h2>
 <p>Use Node.js 22 or later on your local computer. Download and inspect these dependency-free scripts before running them. The doctor reads public deployment capabilities and authenticated account access, allowance, and available images; it does not start a container.</p>
 <pre class="docs-code"><code>curl --fail --silent --show-error https://mainbrella.com/mainbrella-doctor.mjs -o mainbrella-doctor.mjs

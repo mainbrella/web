@@ -63,20 +63,11 @@
           </div>
         </div>
 
-      <p class="pricing-note">Billed monthly until canceled. Applicable taxes and the total are shown before payment. Google sign-in and an active subscription are required for paid access. Have a free trial promo code? Choose its plan and enter the code after sign-in; a valid code needs no credit card and creates no automatic charges.</p>
+      <p class="pricing-note">Billed monthly until canceled. Applicable taxes and the total are shown before payment. Sign-in and an active subscription are required for paid access.</p>
       <section class="inline-checkout" id="inline-checkout" aria-labelledby="checkout-title" hidden>
         <button class="text-link billing-link" id="checkout-back" type="button">← Back to plans</button>
         <h2 id="checkout-title" tabindex="-1"></h2>
         <p class="pricing-note" id="checkout-summary"></p>
-        <form id="trial-code-form" class="trial-code-form">
-          <label for="trial-code">Free trial promo code</label>
-          <div class="trial-code-controls">
-            <input id="trial-code" name="code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" minlength="4" maxlength="64" required aria-describedby="trial-code-note trial-code-status" />
-            <button id="trial-code-submit" class="button button-small" type="submit">Start free trial</button>
-          </div>
-          <p id="trial-code-note" class="pricing-note">A valid code starts a free trial without a credit card. No automatic charges.</p>
-          <p id="trial-code-status" class="pricing-note" role="status" aria-live="polite"></p>
-        </form>
         <form id="checkout-form" hidden>
           <label for="checkout-email">Email for receipts and billing</label>
           <input id="checkout-email" name="email" type="email" autocomplete="email" required />

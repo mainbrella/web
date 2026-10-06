@@ -88,6 +88,7 @@ export function mountStripeEmbeddedCheckout({
   let emailTimer;
   let syncSession;
   let syncedEmail = "";
+  let fixedEmail = false;
   let confirmedSession = null;
 
   submitButton.disabled = true;
@@ -113,10 +114,16 @@ export function mountStripeEmbeddedCheckout({
       }
 
       checkoutActions = loadResult.actions;
+      const sessionEmail = checkoutActions.getSession()?.email;
+      // A Customer email supplied by the backend is fixed by Stripe for this
+      // session. Display Stripe's value without attempting to update it.
+      fixedEmail = Boolean(sessionEmail);
+      if (fixedEmail) emailInput.value = sessionEmail;
+      emailInput.readOnly = fixedEmail;
       syncSession = (session) => {
         if (destroyed) return;
         if (session?.total?.total?.amount) totalElement.textContent = `Due today: ${session.total.total.amount}`;
-        submitButton.disabled = processing || (!confirmedSession && (syncedEmail !== emailInput.value.trim() || !emailInput.validity.valid || session?.canConfirm !== true));
+        submitButton.disabled = processing || (!confirmedSession && ((!fixedEmail && syncedEmail !== emailInput.value.trim()) || !emailInput.validity.valid || session?.canConfirm !== true));
       };
       if (typeof checkout.on === "function") checkout.on("change", syncSession);
 
@@ -131,7 +138,7 @@ export function mountStripeEmbeddedCheckout({
       paymentElement.mount(container);
       syncSession(checkoutActions.getSession?.());
       setStatus(statusElement, "", "");
-      if (emailInput.value) await updateEmail();
+      if (!fixedEmail && emailInput.value) await updateEmail();
     } catch (error) {
       if (destroyed) return;
       const message = error?.message || "Unable to load the payment form.";
@@ -143,7 +150,7 @@ export function mountStripeEmbeddedCheckout({
 
   async function updateEmail() {
     const email = emailInput.value.trim();
-    if (destroyed || !checkoutActions || !emailInput.validity.valid) return;
+    if (destroyed || fixedEmail || !checkoutActions || !emailInput.validity.valid) return;
     try {
       const result = await checkoutActions.updateEmail(email);
       if (destroyed || email !== emailInput.value.trim()) return;
@@ -157,6 +164,7 @@ export function mountStripeEmbeddedCheckout({
     }
   }
   function handleEmailInput() {
+    if (fixedEmail) return;
     submitButton.disabled = true;
     clearTimeout(emailTimer);
     emailTimer = setTimeout(updateEmail, 300);
@@ -169,6 +177,8 @@ export function mountStripeEmbeddedCheckout({
       return;
     }
     if (processing || !form.reportValidity()) return;
+    if (!confirmedSession && (checkoutActions.getSession()?.canConfirm !== true
+      || (!fixedEmail && syncedEmail !== emailInput.value.trim()))) return;
     processing = true;
     onProcessing?.(true);
     submitButton.disabled = true;
@@ -176,7 +186,10 @@ export function mountStripeEmbeddedCheckout({
     setStatus(statusElement, "Processing payment…", "pending");
     try {
       if (!confirmedSession) {
-        const result = await checkoutActions.confirm({ redirect: "if_required", email: emailInput.value.trim() });
+        const result = await checkoutActions.confirm({
+          redirect: "if_required",
+          ...(!fixedEmail ? { email: emailInput.value.trim() } : {}),
+        });
         if (result?.type === "error") {
           throw new Error(result.error?.message || "Unable to activate subscription.");
         }

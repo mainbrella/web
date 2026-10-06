@@ -431,13 +431,6 @@ button:disabled { opacity: .65; cursor: wait; }
 .image-logs { margin-top: 16px; min-width: 0; }
 .image-logs pre { max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px; margin-top: 12px; background: var(--surface); font: 13px/1.5 monospace; }
 
-.trial-code-form { margin-top: 20px; }
-.trial-code-form label { display: block; font-size: 14px; margin-bottom: 8px; }
-.trial-code-controls { display: flex; gap: 8px; }
-#trial-code { min-width: 0; flex: 1; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); font: inherit; }
-.trial-code-form .pricing-note { margin-top: 8px; }
-#trial-code-status:empty { display: none; }
-@media (max-width: 480px) { .trial-code-controls { flex-direction: column; } }
 
 .api-keys-main { max-width: 720px; }
 .api-keys-main [hidden] { display: none; }
