@@ -1,4 +1,5 @@
 import { API_ORIGIN } from './auth.ts';
+import { createSearchPicker } from './search-picker.ts';
 import type { ClientOptions, Container, ContainerIdentity } from './types.ts';
 
 export interface PrivateMember extends ContainerIdentity { name: string; port?: number }
@@ -112,8 +113,8 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
   const networkName = networkForm.querySelector<HTMLInputElement>('input')!;
   const memberDialog = document.querySelector<HTMLDialogElement>('#private-member-dialog')!;
   const memberForm = memberDialog.querySelector<HTMLFormElement>('form')!;
-  const networkPicker = memberForm.querySelector<HTMLSelectElement>('#private-member-network')!;
-  const machinePicker = memberForm.querySelector<HTMLSelectElement>('#private-member-machine')!;
+  const networkPicker = createSearchPicker(memberForm.querySelector<HTMLInputElement>('#private-member-network')!, () => controls());
+  const machinePicker = createSearchPicker(memberForm.querySelector<HTMLInputElement>('#private-member-machine')!, () => controls());
   const serviceName = memberForm.querySelector<HTMLInputElement>('#private-member-name')!;
   const port = memberForm.querySelector<HTMLInputElement>('#private-member-port')!;
   const submit = memberForm.querySelector<HTMLButtonElement>('[type="submit"]')!;
@@ -154,10 +155,10 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
     refresh.disabled = disabled;
     networkForm.querySelectorAll<HTMLInputElement | HTMLButtonElement>('input, button[type="submit"]').forEach(node => { node.disabled = issuanceDisabled || !known; });
     memberForm.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLSelectElement>('input, select, button[type="submit"]').forEach(node => { node.disabled = issuanceDisabled || !known; });
-    networkPicker.disabled ||= Boolean(editing);
-    machinePicker.disabled ||= Boolean(editing);
+    networkPicker.disabled = issuanceDisabled || !known || Boolean(editing);
+    machinePicker.disabled = issuanceDisabled || !known || Boolean(editing);
     const machine = containers.find(value => generationKey(value) === machinePicker.value);
-    submit.disabled ||= !machine || machine.status !== 'running';
+    submit.disabled ||= !networkPicker.value || !machine || machine.status !== 'running';
     document.querySelectorAll<HTMLButtonElement>('[data-private-control]').forEach(node => {
       node.disabled = disabled || !known || node.dataset.unavailable === 'true';
     });
@@ -257,10 +258,10 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
   }
 
   function populateMachines() {
-    const previous = machinePicker.value;
     const choices = containers.filter(machine => machine.status === 'running' && (!membership(machine) || generationKey(machine) === generationKey(editing?.member ?? { id: '', createdAt: '' })));
-    machinePicker.replaceChildren(new Option('Select a running machine', ''), ...choices.map(machine => new Option(`${machine.name || machine.id} · ${machine.imageName || machine.size || machine.id}`, generationKey(machine))));
-    machinePicker.value = choices.some(machine => generationKey(machine) === previous) ? previous : '';
+    machinePicker.setOptions(choices.map(machine => ({
+      value: generationKey(machine), label: `${machine.name || machine.id} · ${machine.imageName || machine.size || machine.id}`, search: machine.id,
+    })));
   }
 
   function openMember(network?: string, machine?: Container, member?: PrivateMember) {
@@ -268,7 +269,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
     editing = member && network ? { network, member } : null;
     memberDialog.querySelector<HTMLElement>('h2')!.textContent = member ? 'Edit private service' : 'Attach machine';
     submit.textContent = member ? 'Save service' : 'Attach machine';
-    networkPicker.replaceChildren(new Option('Select a network', ''), ...networks.map(item => new Option(item.name, item.name)));
+    networkPicker.setOptions(networks.map(item => ({ value: item.name, label: item.name })));
     networkPicker.value = network ?? '';
     populateMachines(); machinePicker.value = machine ? generationKey(machine) : '';
     serviceName.value = member?.name ?? ''; port.value = member?.port === undefined ? '' : String(member.port);
@@ -310,7 +311,6 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
   };
   newNetwork.onclick = () => { networkForm.reset(); networkDialog.querySelector<HTMLElement>('[role="alert"]')!.hidden = true; networkDialog.showModal(); networkName.focus(); };
   refresh.onclick = () => load();
-  machinePicker.onchange = () => controls();
   for (const dialog of [networkDialog, memberDialog]) dialog.querySelector<HTMLButtonElement>('[data-private-close]')!.onclick = () => dialog.close();
 
   return {

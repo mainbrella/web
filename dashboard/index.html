@@ -130,9 +130,9 @@
           <form>
             <h2 id="private-member-title">Attach machine</h2>
             <label for="private-member-network">Network</label>
-            <select id="private-member-network" required></select>
+            <input id="private-member-network" type="text" required autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Search networks">
             <label for="private-member-machine">Running machine</label>
-            <select id="private-member-machine" required></select>
+            <input id="private-member-machine" type="text" required autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Search running machines">
             <label for="private-member-name">Service name</label>
             <input id="private-member-name" type="text" required pattern="[a-z][a-z0-9-]{0,62}" maxlength="63" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="api" aria-describedby="private-member-name-note">
             <p id="private-member-name-note" class="dashboard-status">Unique in this network. Use lowercase letters, numbers, and hyphens; start with a letter.</p>
