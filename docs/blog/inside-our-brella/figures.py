@@ -48,7 +48,7 @@ class Drawing:
         self.path(f'M{x+width-20} {y} v20 h20', MUTED)
         f = 20 if mobile else 24
         self.text(x+16, y+39, 'save: a7…', f)
-        self.text(x+16, y+76, 'handle:', f, MUTED)
+        self.text(x+16, y+76, 'address:', f, MUTED)
         if handle:
             self.text(x+16, y+109, 'snap: b9…', f, BLUE)
         else:
@@ -94,7 +94,7 @@ def admission(mobile=False):
             d.text((x+end)/2, y+27, 'boot + readiness', 22, BLUE, 'middle')
             d.check(end+23, y+20)
             d.text(end+42, y+27, 'ready', 20, GREEN)
-        d.text(32, 402, '■ = durable reservation. Each boot begins after its own commit.', 19, MUTED)
+        d.text(32, 402, '■ = saved reservation. Each machine waits for its own decision.', 19, MUTED)
     d.save('admission-mobile.svg' if mobile else 'admission.svg')
 
 
@@ -104,7 +104,7 @@ def fence(mobile=False):
                 'Cancel 41 precedes boot 42. Delayed boot 41 is rejected and late cancel 41 leaves the replacement running. Time runs down.')
     if mobile:
         a, r = 64, 303
-        d.text(24, 36, 'The older message arrives last', 23, weight='600')
+        d.text(24, 36, 'Boot 41 arrives after boot 42', 23, weight='600')
         d.text(24, 65, 'Schematic time ↓', 18, MUTED)
         d.text(a, 107, 'Account', 20, anchor='middle')
         d.text(r, 107, 'c17 runtime', 20, anchor='middle')
@@ -129,7 +129,7 @@ def fence(mobile=False):
         d.text(24, 671, 'Replacement 42 remains running.', 20, GREEN)
     else:
         a, r = 152, 694
-        d.text(32, 38, 'The older message arrives last', 25, weight='600')
+        d.text(32, 38, 'Boot 41 arrives after boot 42', 25, weight='600')
         d.text(32, 67, 'Schematic time ↓', 18, MUTED)
         d.text(a, 96, 'Account', 22, anchor='middle')
         d.text(r, 96, 'Runtime · c17', 22, anchor='middle')
@@ -148,7 +148,7 @@ def fence(mobile=False):
         d.text(724, 375, '41 ≤ 42', 20, RED)
         d.text(724, 453, 'ignore stop 41', 21, MUTED)
         d.text(724, 482, '41 < 42', 20, MUTED)
-        d.text(32, 540, 'The green interval is the replacement’s lifetime; old messages cannot take ownership.', 19, GREEN)
+        d.text(32, 540, 'Machine 42 keeps running. Both messages from attempt 41 are refused.', 19, GREEN)
     d.save('reservation-fence-mobile.svg' if mobile else 'reservation-fence.svg')
 
 
@@ -157,20 +157,22 @@ def snapshot(mobile=False):
                 'A saved handle separates recovery from uncertainty',
                 'A retry recovers a saved provider handle. If only capture intent remains, the operation stays unresolved and capture is not repeated.')
     if mobile:
-        d.text(24, 35, 'What survived the lost answer?', 23, weight='600')
-        d.text(220, 91, 'Provider capture attempt', 20, anchor='middle')
+        d.text(24, 35, 'A saved disk needs an address', 23, weight='600')
+        d.text(220, 91, 'Attempt to capture the disk', 20, anchor='middle')
         d.path('M220 110 V148')
-        d.path('M220 148 H112 V222', arrow='ink')
-        d.path('M220 148 H325 V222', arrow='ink')
-        d.text(111, 186, 'Handle saved', 19, GREEN, 'middle')
-        d.text(325, 186, 'Handle missing', 19, RED, 'middle')
+        d.path('M220 148 H112 V164', arrow='ink')
+        d.path('M220 148 H325 V164', arrow='ink')
+        d.text(111, 186, 'Address saved', 19, GREEN, 'middle')
+        d.text(325, 186, 'Address missing', 19, RED, 'middle')
+        d.path('M112 201 V222', arrow='ink')
+        d.path('M325 201 V222', arrow='ink')
         d.receipt(37, 231, 150, 132, True, True)
         d.receipt(250, 231, 150, 132, False, True)
-        d.text(220, 401, 'Durable runtime receipts', 19, MUTED, 'middle')
+        d.text(220, 401, 'What the runtime saved', 19, MUTED, 'middle')
         d.path('M112 418 V464', arrow='blue', color=BLUE)
         d.path('M325 418 V464', arrow='ink')
-        d.text(112, 497, 'Read handle', 20, BLUE, 'middle')
-        d.text(112, 526, 'Commit at account', 18, BLUE, 'middle')
+        d.text(112, 497, 'Read address', 20, BLUE, 'middle')
+        d.text(112, 526, 'Finish the save', 18, BLUE, 'middle')
         d.text(325, 497, '503', 23, RED, 'middle', '600')
         d.text(325, 526, 'Unresolved', 20, RED, 'middle')
         d.path('M325 551 H426 V91 H362', RED, dashed=True, arrow='red')
@@ -183,20 +185,22 @@ def snapshot(mobile=False):
         d.text(325, 685, 'source intact', 20, GREEN, 'middle')
         d.text(24, 721, 'Both branches start with a saved intent.', 19, MUTED)
     else:
-        d.text(32, 38, 'What survived the lost answer?', 25, weight='600')
-        d.text(460, 95, 'Provider capture attempt', 22, anchor='middle')
+        d.text(32, 38, 'A saved disk needs an address', 25, weight='600')
+        d.text(460, 95, 'Attempt to capture the disk', 22, anchor='middle')
         d.path('M460 112 V148')
-        d.path('M460 148 H232 V212', arrow='ink')
-        d.path('M460 148 H688 V212', arrow='ink')
-        d.text(232, 184, 'Handle saved before reply loss', 22, GREEN, 'middle')
-        d.text(688, 184, 'Handle lost before durable write', 22, RED, 'middle')
+        d.path('M460 148 H232 V157', arrow='ink')
+        d.path('M460 148 H688 V157', arrow='ink')
+        d.text(232, 184, 'Address saved', 22, GREEN, 'middle')
+        d.text(688, 184, 'Address missing', 22, RED, 'middle')
+        d.path('M232 199 V212', arrow='ink')
+        d.path('M688 199 V212', arrow='ink')
         d.receipt(112, 223, 240, 133, True)
         d.receipt(568, 223, 240, 133, False)
-        d.text(460, 392, 'Durable runtime receipts', 20, MUTED, 'middle')
+        d.text(460, 392, 'What the runtime saved', 20, MUTED, 'middle')
         d.path('M232 414 V441', BLUE, arrow='blue')
         d.path('M688 414 V441', arrow='ink')
-        d.text(232, 474, 'Retry reads handle; account commits', 22, BLUE, 'middle')
-        d.text(688, 474, 'Retry returns 503 · unresolved', 22, RED, 'middle')
+        d.text(232, 474, 'Retry finishes the save', 22, BLUE, 'middle')
+        d.text(688, 474, 'Retry returns 503 · still unknown', 22, RED, 'middle')
         d.path('M808 289 H877 V88 H620', RED, dashed=True, arrow='red')
         d.cross(877, 203)
         d.text(688, 511, 'No recapture', 20, RED, 'middle')
@@ -204,7 +208,7 @@ def snapshot(mobile=False):
         d.text(180, 549, 'Stop allowed', 22, GREEN)
         d.parts.append(f'<path d="M565 532 l20 10 l-20 10 Z" fill="{GREEN}"/>')
         d.text(601, 549, 'Save leaves source intact', 22, GREEN)
-        d.text(32, 580, 'The dashed return path is blocked: a saved intent is not permission to repeat capture.', 19, MUTED)
+        d.text(32, 580, 'Knowing we tried is not enough to safely repeat the capture.', 19, MUTED)
     d.save('snapshot-receipt-mobile.svg' if mobile else 'snapshot-receipt.svg')
 
 

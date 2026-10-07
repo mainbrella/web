@@ -1,15 +1,18 @@
 /* Shared site typography and chrome, with responsive explanatory figures. */
-.inside-brella { max-width: 880px; }
-.inside-brella article { min-width: 0; }
+.inside-brella { max-width: 816px; }
+.inside-brella article { min-width: 0; font-size: 18px; line-height: 1.75; }
+.inside-brella h2 { font-size: 22px; line-height: 1.4; }
 .inside-brella .article-meta { margin-top: 12px; margin-bottom: 24px; }
-.inside-brella p { max-width: 78ch; }
+.inside-brella p { max-width: 72ch; }
 .inside-brella .article-figure { margin: 32px 0; }
+.inside-brella .article-figure picture { display: block; }
 .inside-brella .article-figure img { width: 100%; height: auto; }
 .inside-brella figcaption { margin-top: 12px; color: var(--muted); font-size: 14px; line-height: 1.6; }
 .inside-brella .docs-code { border-radius: 4px; overflow-wrap: normal; }
 .inside-brella .docs-code code { font: inherit; }
 .inside-brella .source-note { margin-top: 32px; color: var(--muted); font-size: 14px; }
 @media (max-width: 600px) {
-  .inside-brella .docs-code { padding: 12px; font-size: 12px; }
+  .inside-brella article { font-size: 17px; }
+  .inside-brella .docs-code { padding: 12px; font-size: 13px; }
   .inside-brella .article-figure { margin: 24px 0; }
 }

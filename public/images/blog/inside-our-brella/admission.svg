@@ -32,5 +32,5 @@
 <text x="632.5" y="358" fill="#315f82" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" text-anchor="middle">boot + readiness</text>
 <path d="M771 351 l5 5 l10 -12" fill="none" stroke="#27624e" stroke-width="3"/>
 <text x="797" y="358" fill="#27624e" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" text-anchor="start">ready</text>
-<text x="32" y="402" fill="#58636d" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" text-anchor="start">■ = durable reservation. Each boot begins after its own commit.</text>
+<text x="32" y="402" fill="#58636d" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" text-anchor="start">■ = saved reservation. Each machine waits for its own decision.</text>
 </svg>
