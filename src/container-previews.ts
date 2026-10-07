@@ -20,9 +20,14 @@ export function previewMetadata(input: unknown, createdAt: string, withUrl = fal
   const grant: PreviewGrant = { id: value.id, port: value.port, createdAt, expiresAt: value.expiresAt };
   if (withUrl) {
     const url = new URL(value.url!);
-    if (url.protocol !== 'https:' || url.username || url.password || url.port || url.pathname !== '/'
-      || url.search || url.hash || !/^[a-f0-9]{48}\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(url.hostname)
-      || url.hostname.endsWith('.mainbrella.com')) throw new Error('invalid_response');
+    const api = new URL(API_ORIGIN);
+    const local = api.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(api.hostname)
+      && url.protocol === 'http:' && url.port === api.port && /^[a-f0-9]{48}\.localhost$/.test(url.hostname);
+    const production = url.protocol === 'https:' && !url.port
+      && /^[a-f0-9]{48}\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(url.hostname)
+      && !url.hostname.endsWith('.mainbrella.com');
+    if ((!local && !production) || url.username || url.password || url.pathname !== '/'
+      || url.search || url.hash) throw new Error('invalid_response');
     grant.url = url.href;
   }
   return grant;

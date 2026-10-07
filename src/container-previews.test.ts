@@ -44,6 +44,15 @@ test('preview browser requests retain exact identity and one-time issuance witho
   assert.equal(calls.length, 3);
 });
 
+test('local preview links use isolated localhost hosts on the local API port', () => {
+  const local = { ...grant, url: `http://${'a'.repeat(48)}.localhost:8787/` };
+  assert.deepEqual(previewMetadata(local, container.createdAt, true), local);
+  for (const url of [local.url.replace(':8787', ':9999'), local.url.replace('.localhost', '.example.com'),
+    local.url.replace('http:', 'https:'), `${local.url}?token=secret`]) {
+    assert.throws(() => previewMetadata({ ...local, url }, container.createdAt, true));
+  }
+});
+
 test('preview errors support safe cleanup and never render server text or retry issuance', async () => {
   let calls = 0, signedOut = false;
   const request = createPreviewClient({ fetcher: async () => { calls++; throw new Error('secret'); } });
