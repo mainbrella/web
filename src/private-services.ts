@@ -352,7 +352,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
       for (const network of groups) {
         const key = network?.name ?? '', members = machines.filter(machine => (this.membership(machine)?.network ?? '') === key);
         if (!network && !members.length) continue;
-        const group = document.createElement('details'); group.className = 'machine-group'; group.open = collapse.get(key) ?? true;
+        const group = document.createElement('details'); group.className = 'machine-group'; group.open = collapse.get(key) ?? !network;
         group.ontoggle = () => { if (group.isConnected) collapse.set(key, group.open); };
         const summary = document.createElement('summary');
         const title = document.createElement('strong'); title.textContent = network?.name ?? (this.visible && !known ? 'Containers' : 'Standalone containers');
