@@ -13,6 +13,7 @@ declare global {
     dataLayer: IArguments[];
     gtag: (...args: unknown[]) => void;
     oaiq: PixelQueue;
+    clarity: PixelQueue;
     _tfa: { notify: string; name: string; id: number }[];
   }
   interface WindowEventMap {

@@ -39,7 +39,7 @@ function visit({ local = new Map(), session = new Map(), blockedLocal = false, b
     set cookie(value: string) { cookieWrites.push(value); },
   };
   const methods: { readConsent: () => string | null; needsSignInCookies: () => boolean } = runInNewContext(source + '\n({ readConsent, needsSignInCookies });', { window, document, CustomEvent: class { detail: unknown; constructor(public type: string, options: { detail: unknown }) { this.detail = options.detail; } } });
-  return { ...methods, dialog, scripts, scriptElements, cookieWrites, window: window as typeof window & Pick<Window, "_tfa" | "gtag" | "oaiq">, local, session,
+  return { ...methods, dialog, scripts, scriptElements, cookieWrites, window: window as typeof window & Pick<Window, "_tfa" | "gtag" | "oaiq" | "clarity">, local, session,
     reopen() { settingsListeners.get('click')(); },
     choose(choice: string) { listeners.get('click')({ target: { closest: () => ({ dataset: { consent: choice } }) } }); },
   };
@@ -56,6 +56,7 @@ test('first visit and Reject All never load trackers or write cookies, including
   assert.deepEqual(first.cookieWrites, []);
   assert.equal(first.window.gtag, undefined);
   assert.equal(first.window.oaiq, undefined);
+  assert.equal(first.window.clarity, undefined);
   assert.equal(first.window._tfa, undefined);
   const returning = visit({ local: first.local });
   assert.equal(returning.dialog.open, false);
@@ -82,13 +83,16 @@ test('measurement scripts load only after explicit acceptance and on accepted re
   const first = visit();
   assert.deepEqual(first.scripts, [] as string[]);
   first.choose('accepted');
-  assert.equal(first.scripts.length, 3);
+  assert.equal(first.scripts.length, 4);
   assert.ok(first.scripts.some(url => url.startsWith('https://www.googletagmanager.com/')));
   assert.ok(first.scripts.some(url => url.startsWith('https://bzrcdn.openai.com/')));
   assert.ok(first.scripts.includes('https://cdn.taboola.com/libtrc/unip/2122717/tfa.js'));
+  assert.ok(first.scripts.includes('https://www.clarity.ms/tag/ytw9xswstj'));
   assert.deepEqual(JSON.parse(JSON.stringify(first.window._tfa)), [{ notify: 'event', name: 'page_view', id: 2122717 }]);
   const taboolaScript = first.scriptElements.find(script => script.id === 'tb_tfa_script');
   assert.equal(taboolaScript!.async, true);
+  const clarityScript = first.scriptElements.find(script => script.src === 'https://www.clarity.ms/tag/ytw9xswstj');
+  assert.equal(clarityScript!.async, true);
   const returning = visit({ local: first.local });
   assert.equal(returning.dialog.open, false);
   assert.deepEqual(returning.scripts, first.scripts);
@@ -150,9 +154,9 @@ test('rejected visitors can reopen the original modal, reject again, or accept t
   returning.reopen();
   returning.choose('accepted');
   assert.equal(returning.needsSignInCookies(), false);
-  assert.equal(returning.scripts.length, 3);
+  assert.equal(returning.scripts.length, 4);
   returning.reopen();
   returning.choose('accepted');
-  assert.equal(returning.scripts.length, 3);
+  assert.equal(returning.scripts.length, 4);
   assert.equal(returning.window._tfa.length, 1);
 });

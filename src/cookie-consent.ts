@@ -27,6 +27,16 @@ function loadTracking() {
   }
   window.oaiq('init', { pixelId: 'QeBc7EgP6cvtRWN38MkXjE', debug: true });
 
+  if (!window.clarity) {
+    const queue = function () { queue.q.push(arguments); };
+    queue.q = [] as IArguments[];
+    window.clarity = queue;
+  }
+  const clarityScript = document.createElement('script');
+  clarityScript.async = true;
+  clarityScript.src = 'https://www.clarity.ms/tag/ytw9xswstj';
+  document.head.append(clarityScript);
+
   window._tfa = window._tfa || [];
   window._tfa.push({ notify: 'event', name: 'page_view', id: 2122717 });
   if (!document.getElementById('tb_tfa_script')) {
