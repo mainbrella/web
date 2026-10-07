@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="490" viewBox="0 0 440 490" role="img" aria-labelledby="title desc">
+  <title id="title">The connection closes; the job keeps running</title>
+  <desc id="desc">Time runs down. The job keeps running while the first output stream closes. Output is saved during the gap. The next connection supplies its cursor to read the missed events.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#58636d"/></marker>
+  </defs>
+  <rect width="440" height="490" fill="#f5f3ed"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="24" y="34" fill="#242d35" font-size="23" font-weight="600">The connection closes.</text>
+    <text x="24" y="63" fill="#242d35" font-size="23" font-weight="600">The job keeps running.</text>
+    <text x="114" y="110" fill="#242d35" font-size="20" text-anchor="middle">Python job</text>
+    <text x="307" y="110" fill="#242d35" font-size="20" text-anchor="middle">Output stream</text>
+    <path d="M26 132V429" fill="none" stroke="#58636d" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <rect x="65" y="131" width="97" height="291" rx="2" fill="#d9e9de" stroke="#27624e" stroke-width="1.5"/>
+    <text x="114" y="265" fill="#27624e" font-size="21" text-anchor="middle" transform="rotate(-90 114 265)">analysis.py keeps running</text>
+    <rect x="218" y="131" width="178" height="84" rx="2" fill="#dce6ed" stroke="#315f82" stroke-width="1.5"/>
+    <text x="307" y="166" fill="#315f82" font-size="20" text-anchor="middle">First connection</text>
+    <text x="307" y="194" fill="#315f82" font-size="18" text-anchor="middle">Read output</text>
+    <path d="M307 225V257M307 294V308" fill="none" stroke="#a23832" stroke-width="1.5" stroke-dasharray="5 5"/>
+    <path d="M299 238L315 254M299 254L315 238" stroke="#a23832" stroke-width="2.5"/>
+    <text x="307" y="283" fill="#a23832" font-size="18" text-anchor="middle">Disconnected</text>
+    <rect x="218" y="321" width="178" height="101" rx="2" fill="#dce6ed" stroke="#315f82" stroke-width="1.5"/>
+    <text x="307" y="350" fill="#315f82" font-size="20" text-anchor="middle">Reconnect</text>
+    <text x="307" y="378" fill="#315f82" font-size="18" text-anchor="middle">Send saved cursor</text>
+    <text x="307" y="404" fill="#315f82" font-size="18" text-anchor="middle">Read missed output</text>
+    <text x="24" y="460" fill="#58636d" font-size="18">Output is saved throughout the gap.</text>
+    <text x="24" y="482" fill="#58636d" font-size="16">Time runs down; intervals are schematic.</text>
+  </g>
+</svg>

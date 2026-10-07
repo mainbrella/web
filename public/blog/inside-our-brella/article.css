@@ -1,18 +1,71 @@
-/* Shared site typography and chrome, with responsive explanatory figures. */
-.inside-brella { max-width: 816px; }
-.inside-brella article { min-width: 0; font-size: 18px; line-height: 1.75; }
-.inside-brella h2 { font-size: 22px; line-height: 1.4; }
-.inside-brella .article-meta { margin-top: 12px; margin-bottom: 24px; }
-.inside-brella p { max-width: 72ch; }
-.inside-brella .article-figure { margin: 32px 0; }
+/* A reading surface for this article; the site's chrome and type family stay shared. */
+.brella-article-page {
+  --paper: #181a1b;
+  --surface: #222629;
+  --ink: #e9e6e1;
+  --muted: #b1b8bf;
+  --line: #3a4146;
+  background: var(--paper);
+  color: var(--ink);
+}
+.inside-brella { max-width: 880px; padding-top: 24px; padding-bottom: 56px; }
+.inside-brella article { min-width: 0; font-size: 20px; line-height: 1.65; }
+.inside-brella h1 { max-width: 26ch; font-size: 34px; line-height: 1.2; letter-spacing: -.025em; text-wrap: balance; }
+.inside-brella h2 { margin-top: 48px; font-size: 24px; line-height: 1.35; letter-spacing: -.02em; text-wrap: balance; }
+.inside-brella p { max-width: 72ch; margin-top: 16px; }
+.inside-brella .article-meta { margin-top: 12px; margin-bottom: 24px; font-size: 14px; }
+.inside-brella .article-figure { margin: 32px auto; }
+.inside-brella .figure-narrow { max-width: 720px; }
 .inside-brella .article-figure picture { display: block; }
 .inside-brella .article-figure img { width: 100%; height: auto; }
-.inside-brella figcaption { margin-top: 12px; color: var(--muted); font-size: 14px; line-height: 1.6; }
-.inside-brella .docs-code { border-radius: 4px; overflow-wrap: normal; }
+.inside-brella figcaption { margin-top: 12px; color: var(--muted); font-size: 15px; line-height: 1.55; }
+.inside-brella .docs-code { margin: 24px 0; padding: 20px 24px; border-radius: 4px; overflow-wrap: normal; font-size: 15px; line-height: 1.7; }
 .inside-brella .docs-code code { font: inherit; }
-.inside-brella .source-note { margin-top: 32px; color: var(--muted); font-size: 14px; }
+.inside-brella .code-keyword { color: #cab6ef; }
+.inside-brella .code-string { color: #b0ddb9; }
+.inside-brella .code-number { color: #f2c28e; }
+.inside-brella .code-comment { color: var(--muted); }
+
+/* Comparable examples let readers inspect the retry decision. */
+.inside-brella .retry-examples { display: grid; gap: 16px; margin: 28px 0; }
+.inside-brella .example { padding: 20px 24px; border: 1px solid var(--example-border); border-left: 3px solid var(--example-accent); background: var(--example-surface); }
+.inside-brella .example-failure { --example-surface: #321d1b; --example-accent: #efa79b; --example-border: #80534c; }
+.inside-brella .example-recovery { --example-surface: #192e23; --example-accent: #a2d8b5; --example-border: #4a725a; }
+.inside-brella .example-heading { margin: 0; color: var(--example-accent); font-size: 17px; font-weight: 600; }
+.inside-brella .example-mark { display: inline-block; width: 24px; }
+.inside-brella .example-steps { margin: 12px 0; padding-left: 24px; font-size: 18px; }
+.inside-brella .example-steps li + li { margin-top: 4px; }
+.inside-brella .example-result { margin-top: 12px; font-size: 18px; }
+
+/* A calculation belongs in a small table, rather than another code block. */
+.inside-brella .compute-example { margin: 28px 0; }
+.inside-brella .compute-example table { width: 100%; border-collapse: collapse; font-size: 18px; }
+.inside-brella .compute-example caption { padding-bottom: 12px; text-align: left; font-weight: 600; }
+.inside-brella .compute-example th, .inside-brella .compute-example td { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.inside-brella .compute-example th { padding-right: 16px; text-align: left; font-weight: 400; }
+.inside-brella .compute-example td { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.inside-brella .compute-example .compute-return td { color: #a2d8b5; font-weight: 600; }
+.inside-brella .compute-example figcaption { margin-top: 12px; }
+.inside-brella .deadline-list { margin: 16px 0 24px; padding-left: 24px; }
+.inside-brella .deadline-list li + li { margin-top: 4px; }
+
+.inside-brella .article-emphasis { max-width: 38ch; margin: 36px auto; font-size: 23px; font-weight: 600; line-height: 1.45; text-align: center; text-wrap: balance; }
+.inside-brella .article-detail { margin: 20px 0 28px; font-size: 16px; }
+.inside-brella .article-detail summary { width: fit-content; min-height: 44px; padding: 8px 0; color: var(--blue); cursor: pointer; }
+.inside-brella .article-detail summary:hover { text-decoration: underline; text-underline-offset: 4px; }
+.inside-brella .article-detail .docs-code { margin-top: 12px; font-size: 14px; }
+.inside-brella .source-note { margin-top: 24px; color: var(--muted); font-size: 14px; line-height: 1.65; }
+.inside-brella .source-note + .source-note { margin-top: 12px; }
+
 @media (max-width: 600px) {
-  .inside-brella article { font-size: 17px; }
-  .inside-brella .docs-code { padding: 12px; font-size: 13px; }
+  .inside-brella { padding-right: 20px; padding-left: 20px; padding-top: 16px; padding-bottom: 40px; }
+  .inside-brella article { font-size: 18px; }
+  .inside-brella h1 { font-size: 30px; }
+  .inside-brella h2 { margin-top: 36px; font-size: 23px; }
+  .inside-brella .docs-code { padding: 16px; font-size: 14px; }
   .inside-brella .article-figure { margin: 24px 0; }
+  .inside-brella .example { padding: 16px; }
+  .inside-brella .example-steps, .inside-brella .example-result { font-size: 17px; }
+  .inside-brella .compute-example table { font-size: 16px; }
+  .inside-brella .article-emphasis { margin: 28px auto; font-size: 21px; }
 }

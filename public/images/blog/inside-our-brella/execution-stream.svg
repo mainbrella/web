@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="330" viewBox="0 0 800 330" role="img" aria-labelledby="title desc">
+  <title id="title">The connection closes; the job keeps running</title>
+  <desc id="desc">The process runs continuously while one output connection ends and another begins. Saved output bridges the gap, and the next connection resumes from its cursor. Time is schematic.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#58636d"/></marker>
+  </defs>
+  <rect width="800" height="330" fill="#f5f3ed"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="28" y="38" fill="#242d35" font-size="24" font-weight="600">The connection closes; the job keeps running</text>
+    <path d="M164 68H754" fill="none" stroke="#58636d" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="752" y="59" fill="#58636d" font-size="16" text-anchor="end">Schematic time</text>
+    <text x="28" y="122" fill="#242d35" font-size="20">Python job</text>
+    <rect x="164" y="94" width="590" height="44" rx="2" fill="#d9e9de" stroke="#27624e" stroke-width="1.5"/>
+    <text x="459" y="122" fill="#27624e" font-size="20" text-anchor="middle">analysis.py keeps running</text>
+    <text x="28" y="208" fill="#242d35" font-size="20">Output stream</text>
+    <rect x="164" y="180" width="184" height="44" rx="2" fill="#dce6ed" stroke="#315f82" stroke-width="1.5"/>
+    <text x="256" y="208" fill="#315f82" font-size="19" text-anchor="middle">First connection</text>
+    <path d="M356 202H484" fill="none" stroke="#a23832" stroke-width="1.5" stroke-dasharray="5 5"/>
+    <path d="M412 193L430 211M412 211L430 193" stroke="#a23832" stroke-width="2.5"/>
+    <text x="421" y="171" fill="#a23832" font-size="17" text-anchor="middle">Disconnected</text>
+    <rect x="493" y="180" width="261" height="44" rx="2" fill="#dce6ed" stroke="#315f82" stroke-width="1.5"/>
+    <text x="624" y="208" fill="#315f82" font-size="19" text-anchor="middle">Reconnect with saved cursor</text>
+    <path d="M364 238V259H480V238" fill="none" stroke="#58636d" stroke-width="1.5"/>
+    <text x="422" y="287" fill="#242d35" font-size="19" text-anchor="middle">Output saved during the gap</text>
+    <path d="M488 260H624V233" fill="none" stroke="#58636d" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+</svg>
