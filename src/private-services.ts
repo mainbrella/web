@@ -120,11 +120,12 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
   let editing: { network: string; member: PrivateMember } | null = null;
 
   function controls() {
-    const disabled = busy || externalBusy || disposed || !supported;
-    newNetwork.hidden = !supported; newNetwork.disabled = disabled || !known;
+    const disabled = busy || externalBusy || disposed;
+    const issuanceDisabled = disabled || !supported;
+    newNetwork.hidden = !supported; newNetwork.disabled = issuanceDisabled || !known;
     refresh.disabled = disabled;
-    networkForm.querySelectorAll<HTMLInputElement | HTMLButtonElement>('input, button[type="submit"]').forEach(node => { node.disabled = disabled || !known; });
-    memberForm.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLSelectElement>('input, select, button[type="submit"]').forEach(node => { node.disabled = disabled || !known; });
+    networkForm.querySelectorAll<HTMLInputElement | HTMLButtonElement>('input, button[type="submit"]').forEach(node => { node.disabled = issuanceDisabled || !known; });
+    memberForm.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLSelectElement>('input, select, button[type="submit"]').forEach(node => { node.disabled = issuanceDisabled || !known; });
     networkPicker.disabled ||= Boolean(editing);
     machinePicker.disabled ||= Boolean(editing);
     const machine = containers.find(value => generationKey(value) === machinePicker.value);
@@ -140,22 +141,27 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
   }
 
   async function load() {
-    if (disposed || !supported || busy) return;
+    if (disposed || busy) return;
     const current = version;
     busy = true; controls();
-    if (!known) feedback('Loading Private Services…');
+    if (!known && supported) feedback('Loading Private Services…');
     try {
       const result = await client.list();
       if (disposed || current !== version) return;
-      networks = result; known = true; feedback(''); onChanged();
+      networks = result; known = true; host.hidden = !supported && !networks.length; feedback(''); onChanged();
     } catch {
       if (disposed || current !== version) return;
-      known = false; feedback('Could not load Private Services. Refresh to check network membership.', true); onChanged();
+      known = false;
+      if (supported || networks.length) {
+        host.hidden = false;
+        feedback('Could not load Private Services. Refresh to check network membership.', true);
+      }
+      onChanged();
     } finally { busy = false; controls(); }
   }
 
   async function operate(action: () => Promise<unknown>, message: string, dialog?: HTMLDialogElement) {
-    if (busy || externalBusy || disposed || !supported || !known) return;
+    if (busy || externalBusy || disposed || !known || (dialog && !supported)) return;
     const current = version;
     busy = true; controls();
     const dialogError = dialog?.querySelector<HTMLElement>('[role="alert"]');
@@ -179,6 +185,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
           const result = await client.list();
           if (disposed || current !== version) return;
           networks = result; known = true;
+          host.hidden = !supported && !networks.length;
         }
         catch {
           if (disposed || current !== version) return;
@@ -251,53 +258,56 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
   for (const dialog of [networkDialog, memberDialog]) dialog.querySelector<HTMLButtonElement>('[data-private-close]')!.onclick = () => dialog.close();
 
   return {
-    get networks() { return supported && known ? networks : []; },
+    get networks() { return known ? networks : []; },
     get supported() { return supported; },
+    get visible() { return supported || networks.length > 0; },
     get stateKey() { return JSON.stringify([supported, known, networks]); },
-    membership(machine: ContainerIdentity) { return supported && known ? membership(machine) : null; },
+    membership(machine: ContainerIdentity) { return known ? membership(machine) : null; },
     sync(machines: Container[]) {
       containers = machines;
       if (memberDialog.open) { populateMachines(); controls(); }
-      const attached = supported && known ? machines.filter(machine => membership(machine)).length : 0;
-      containerDetail.hidden = !supported;
+      const attached = known ? machines.filter(machine => membership(machine)).length : 0;
+      containerDetail.hidden = !this.visible;
       containerDetail.textContent = known ? `${machines.length - attached} standalone · ${attached} in networks` : 'Network membership unavailable';
-      networkUsage.hidden = !supported; networkCount.textContent = known ? String(networks.length) : '—';
+      networkUsage.hidden = !this.visible; networkCount.textContent = known ? String(networks.length) : '—';
       networkDetail.textContent = known ? `${networks.length} private ${networks.length === 1 ? 'network' : 'networks'}` : 'Membership unavailable';
     },
     configure(enabled: boolean) {
       if (disposed) return;
       const changed = supported !== enabled;
-      supported = enabled; host.hidden = !enabled;
-      if (!enabled) { version++; known = false; networks = []; networkDialog.close(); memberDialog.close(); }
+      supported = enabled; host.hidden = !this.visible;
+      // The capability gates issuance, not inspection or revocation. Always
+      // discover existing registrations, including after a disabled-page reload.
+      if (!enabled) { networkDialog.close(); memberDialog.close(); }
       controls();
-      if (enabled && (changed || !busy)) load();
+      if (changed || !busy) load();
     },
     setBusy(value: boolean) { externalBusy = value; controls(); },
     attach(actions: HTMLElement, machine: Container) {
-      if (!supported || !known) return;
+      if (!known) return;
       const member = membership(machine);
-      actions.append(privateButton(member ? 'Edit service' : 'Attach to network', () => openMember(member?.network, machine, member?.member), machine.status !== 'running' || !networks.length));
+      if (supported) actions.append(privateButton(member ? 'Edit service' : 'Attach to network', () => openMember(member?.network, machine, member?.member), machine.status !== 'running' || !networks.length));
       if (member) actions.append(privateButton('Detach', () => detach(member.network, member.member)));
     },
     buildGroups(list: HTMLElement, machines: Container[]) {
       const bodies = new Map<string, HTMLTableSectionElement>();
-      const groups = [null, ...(supported && known ? networks : [])];
+      const groups = [null, ...(known ? networks : [])];
       for (const network of groups) {
         const key = network?.name ?? '', members = machines.filter(machine => (this.membership(machine)?.network ?? '') === key);
         if (!network && !members.length) continue;
         const group = document.createElement('details'); group.className = 'machine-group'; group.open = collapse.get(key) ?? true;
         group.ontoggle = () => { if (group.isConnected) collapse.set(key, group.open); };
         const summary = document.createElement('summary');
-        const title = document.createElement('strong'); title.textContent = network?.name ?? (supported && !known ? 'Containers' : 'Standalone containers');
+        const title = document.createElement('strong'); title.textContent = network?.name ?? (this.visible && !known ? 'Containers' : 'Standalone containers');
         const count = document.createElement('span'); count.className = 'section-count'; count.textContent = String(network?.members.length ?? members.length);
         const label = document.createElement('span'); label.className = 'private-service-badge'; label.textContent = 'Private Services';
         const note = document.createElement('span'); note.className = 'dashboard-status group-note';
-        note.textContent = network ? 'Private HTTP services · public previews are opt-in' : supported && !known ? 'Network membership unavailable' : 'Containers without private service attachments';
+        note.textContent = network ? 'Private HTTP services · public previews are opt-in' : this.visible && !known ? 'Network membership unavailable' : 'Containers without private service attachments';
         summary.append(title, count); if (network) summary.append(label); summary.append(note); group.append(summary);
         if (network) {
           const tools = document.createElement('div'); tools.className = 'container-actions group-tools';
-          tools.append(privateButton('Attach machine', () => openMember(network.name), !containers.some(machine => machine.status === 'running' && !membership(machine))),
-            privateButton('Delete network', () => { if (window.confirm(`Delete empty network ${network.name}?`)) operate(() => client.delete(network.name), 'Network deleted.'); }, network.members.length > 0));
+          if (supported) tools.append(privateButton('Attach machine', () => openMember(network.name), !containers.some(machine => machine.status === 'running' && !membership(machine))));
+          tools.append(privateButton('Delete network', () => { if (window.confirm(`Delete empty network ${network.name}?`)) operate(() => client.delete(network.name), 'Network deleted.'); }, network.members.length > 0));
           tools.lastElementChild!.setAttribute('title', network.members.length ? 'Detach all machines before deleting this network.' : 'Delete this empty network');
           group.append(tools);
         }

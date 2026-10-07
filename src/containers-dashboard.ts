@@ -183,7 +183,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     if (!data) return;
     previews.sync(data.containers, previewsSupported);
     privateServices.sync(data.containers);
-    document.querySelector<HTMLElement>('#containers-title')!.firstChild!.textContent = privateServices.supported ? 'Private Services & containers ' : 'Containers ';
+    document.querySelector<HTMLElement>('#containers-title')!.firstChild!.textContent = privateServices.visible ? 'Private Services & containers ' : 'Containers ';
     if (Array.isArray(data.sizes)) {
       const key = JSON.stringify(data.sizes);
       if (key !== sizeOptionsKey) {
@@ -286,7 +286,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       }
       const expires = document.createElement('span');
       expires.textContent = `Stops by ${expiry.toLocaleString([], expiryOptions)}`;
-      details.title = expires.textContent;
+      state.append(expires);
       const stop = document.createElement('button');
       stop.type = 'button';
       stop.className = 'dashboard-retry button-danger';
