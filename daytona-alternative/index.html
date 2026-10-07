@@ -62,13 +62,18 @@ try {
         </ul>
       </section>
       <section class="landing-detail wrap" aria-labelledby="detail-title">
-        <h2 id="detail-title">Choose the lifecycle your workload needs</h2>
+        <h2 id="detail-title">Private services with independent machine lifecycles</h2>
+        <p>Mainbrella’s Private Services prototype connects machines through named HTTP endpoints such as <code>http://api.internal</code>. Attach existing running machines to an account-owned network, register only the application ports you need, and detach them without stopping their peers. Your frontend can call a private backend without a public preview or a Mainbrella API key in the guest.</p>
+        <p>Daytona’s <a href="https://www.daytona.io/docs/en/sandboxes/#linked-sandboxes">linked sandboxes</a> place ephemeral children on their parent’s runner, with a shared network and DNS aliases. Deleting the parent deletes its children. Mainbrella’s explicit membership model gives HTTP services more flexible grouping and independent lifecycles; it is currently a local prototype, available only when <code>networking.privateServices</code> is true.</p>
+        <p>This is an HTTP service comparison: Mainbrella does not yet support arbitrary TCP, HTTPS, WebSockets, private IPs, or direct database protocols through Private Services. Daytona documents direct port connections. See <a href="/docs/containers/#private-services">setup and limits</a>; no common networking benchmark establishes a speed advantage.</p>
+        <h3>Choose the lifecycle your workload needs</h3>
         <p>Daytona uses usage-based pricing for compute, memory, and storage. Mainbrella includes a bounded compute allowance in each monthly plan. It fits temporary agent tasks where predictable limits matter.</p>
         <p>Mainbrella saves filesystem snapshots explicitly; it does not provide persistent volumes or process resume. If your workload depends on Daytona-specific persistence or SDK behavior, check those requirements before migrating.</p>
-        <p class="landing-source">Provider details: <a href="https://www.daytona.io/pricing">Daytona pricing</a> and <a href="https://www.daytona.io/docs/en/volumes/">persistent volumes</a> · Reviewed October 6, 2026.</p>
+        <p class="landing-source">Provider details: <a href="https://www.daytona.io/pricing">Daytona pricing</a> and <a href="https://www.daytona.io/docs/en/volumes/">persistent volumes</a> · Internal networking reviewed October 7, 2026; pricing and persistence reviewed October 6, 2026.</p>
       </section>
       <section class="landing-faq wrap" aria-labelledby="faq-title">
         <h2 id="faq-title">Before you start</h2>
+        <details><summary>Can I connect a frontend and backend privately?</summary><p>The local Private Services prototype supports HTTP between explicitly attached machines in the same account-owned network. Register the backend as <code>api</code>, then call <code>http://api.internal</code> from the frontend. Production support is not qualified; check <code>networking.privateServices</code> before use. <a href="/docs/containers/#private-services">Read the setup guide</a>.</p></details>
         <details><summary>Is Mainbrella compatible with the Daytona SDK?</summary><p>No. Use Mainbrella’s SDK or HTTP API and adapt the calls your agent makes. Validate creation, execution, files, and cleanup on one workload before migrating.</p></details>
         <details><summary>Can I run a coding agent inside the container?</summary><p>You can install tools and run commands in a Linux environment sized for your workload. You supply the agent’s credentials. Plan-specific idle and session deadlines still apply; Mainbrella does not yet provide a managed, always-on agent service.</p></details>
         <details><summary>How long can a machine run?</summary><p>Builder supports up to one-hour sessions, Pro up to 24 hours, and Scale up to 72 hours, within available compute. Each plan also has an idle timeout. <a href="/docs/limits/">Read the complete limits</a>.</p></details>

@@ -263,3 +263,17 @@ counts; deploy it with the web changes. Browser tracking covers dashboard machin
 starts; direct API activation still requires server-side measurement or manual
 verification. The [remote-agent plan](docs/acquisition/remote-agents.md) defines
 the additional work required before promising laptop-independent coding agents.
+
+## Internal networking copy
+
+The homepage, Daytona alternative, comparison, platform page and container docs
+describe the October 7 Private Services HTTP prototype. The backend API.md is
+authoritative; run `npm run docs:sync` after changing it. Production does not
+yet advertise `networking.privateServices`; require an explicit true capability.
+
+Daytona’s linked-sandbox contract was reviewed October 7, 2026. The supported
+Mainbrella comparison is flexible membership of existing machines and independent
+lifecycles, with named HTTP service routing and generation checks. Do not claim
+full transport parity, production qualification, better isolation or faster
+networking. Daytona documents same-runner linked children, DNS aliases and direct
+port connections. Its linked children are ephemeral and parent deletion cascades.

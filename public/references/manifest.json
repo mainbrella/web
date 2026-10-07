@@ -3,7 +3,7 @@
   "source": "mainbrella/backend",
   "licenseSha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
   "files": {
-    "API.md": "ce778d213f54adf0d0972efd06b4db7f84378c7a37810c4f11700500184b5133",
+    "API.md": "1c42801062bb8fffc03d4bf8992bfafb0adf1673d332008495dedfaf363433ce",
     "SKILL.md": "d4345a91b5dc86c6993771a2ed0663bc6cc6e377768976fbec766671cc91d8e4",
     "sdk/javascript.md": "3fb021251a243f5171003d3ab4dd870596487288689672db591ad40a3a773fab",
     "sdk/python.md": "658f27e8165e2821e171a176d0ddab4ac48448963a4a6d9f3c0585dc2cb1fcbe",
@@ -19,6 +19,7 @@
     "references/errors-and-retry-behavior.md": "b3ab328b07df20a4a0847ff1c9c804e436021149de79d5f8b6f0cb28a2c15b25",
     "references/card-free-trial-coupons.md": "82a6ce927af289530984a300999a4840fa72c954d405874cf870da9072caa939",
     "references/capability-discovery.md": "fa4b2359c8f0ba97192a7d09e839580da38c01b2a52a2c5ff174527402123c01",
+    "references/private-services-between-machines.md": "e2523b2a1263a76c3f9b1cd8734b797fddfdbe3a0ac1711dc50bbf82bd802140",
     "references/protected-application-previews.md": "7664c51cd5418a6462332c7fd5bb139c9e5013b093074ec35b23008c550d1b0d",
     "references/managed-execution-and-streaming.md": "60f46dc155aa5113ad3b48e97295650d7a964eb3f62c79f50dd08b92e0a86e9b",
     "references/outbound-internet-selection.md": "dcbf60557da894edab61bb3a78f1adcf00d5dd92319a28184b6d9eb9c0dcef5b",
@@ -29,8 +30,8 @@
     "references/saved-workspaces-and-portable-export.md": "b8735620fc99bff8c17bd542aa7359fcf677838ca614e26eacf89ff7ab27040e",
     "references/javascript-sdk.md": "3fb021251a243f5171003d3ab4dd870596487288689672db591ad40a3a773fab",
     "references/python-sdk.md": "658f27e8165e2821e171a176d0ddab4ac48448963a4a6d9f3c0585dc2cb1fcbe",
-    "references/index.md": "79984c7d63cef48fda18aba27bc73c2967e6a4bd4e8401a3157b000cf11ba2b5",
+    "references/index.md": "886d8353b58f80c152aaa0877a41edc20c0d9e1f0ebbe484cde61aaae531bb73",
     "scripts/mainbrella-deploy-static.mjs": "c16e216de0839f889865172e47f45898890e6941e502bd89795e2fef77c549ec",
-    "llms-full.txt": "d5499f6470c4464ae944d734f72c94c4eae78dbefc2a098df27a9821936f04de"
+    "llms-full.txt": "87004aca9fffb052d73a20d7f808e4279b4509dd4284c92d9b25473c4f6e4c30"
   }
 }

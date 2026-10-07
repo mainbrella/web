@@ -36,8 +36,25 @@ Idempotency-Key: &lt;unique-operation-key&gt;
 <p>Save a running container’s filesystem from the dashboard’s Save control, optionally stopping it after save. Restore a saved workspace into a fresh container with its saved image, machine size, and internet policy. Restore consumes one normal start; it preserves files, permissions, symlinks, and timestamps, but not running processes or memory.</p>
 <p>For API integrations, check <code>capabilities.persistence.snapshots</code>, then send <code>POST /workspaces</code> with <code>{id, createdAt, name, stop?}</code> and a persisted <code>Idempotency-Key</code>. Restore with <code>POST /containers</code> and <code>{workspaceId}</code> using a new creation key. Keep both keys to reconcile lost responses.</p>
 <p>Saved workspaces have plan-specific storage quotas and retention. Export <code>/workspace</code> as a portable archive for independent backups. See the <a href="/references/saved-workspaces-and-portable-export.md">workspace API contract</a> for limits, archive/delete behavior, and image compatibility.</p>
+<h2 id="private-services">Private Services between machines</h2>
+<p>Connect a frontend to a backend using <code>http://api.internal/users</code>, without a public backend preview or a Mainbrella API key inside the guest. Private Services is a local HTTP prototype. Require <code>networking.privateServices: true</code> from <code>GET /capabilities</code> before use; absent or false means unavailable. Production support has not been qualified.</p>
+<p>In the dashboard’s Private Services controls, create a named network and attach both running machines. Register the backend as <code>api</code> with its application port, such as <code>8080</code>. Attach the frontend as <code>web</code> without a port for caller-only access. From the frontend, request <code>http://api.internal/users</code>; the platform routes it to the backend’s registered port. A browser preview for the frontend is a separate, opt-in grant.</p>
+<pre class="docs-code"><code>POST /private-services/networks
+{"name":"app"}
+
+PUT /private-services/members?network=app
+{"id":"&lt;backend-id&gt;","createdAt":"&lt;backend-generation&gt;","name":"api","port":8080}
+
+PUT /private-services/members?network=app
+{"id":"&lt;frontend-id&gt;","createdAt":"&lt;frontend-generation&gt;","name":"web"}
+
+# Run inside the attached frontend:
+curl http://api.internal/users</code></pre>
+<p>Authenticate management requests with your API key or browser session. Both machines must belong to the same account-owned network and remain current, running, paid generations. Stop or replacement prevents stale membership from routing; attach replacements explicitly. Attach or detach existing machines without recreating them. Each machine keeps its own deadlines and lifecycle; membership does not change internet policy or start machines.</p>
+<p>Plain HTTP on port 80 to <code>NAME.internal</code> only, mapped to registered ports 1024–65535. Limits: 16 networks per account, 32 members per network, one network per generation, 1 MiB per request and response, and a 10-second timeout. HTTPS, WebSockets, CONNECT, arbitrary TCP/UDP, private IPs, and direct database protocols are unsupported. Put a database behind an HTTP service if needed.</p>
+<p>List networks with <code>GET /private-services/networks</code>. Detach with <code>DELETE /private-services/members?network=app</code> and the exact member’s <code>{id, createdAt, name}</code>; then delete the empty network with <code>DELETE /private-services/networks?network=app</code>. Detach does not stop the machine or undo an already accepted request. See the <a href="/API.md#private-services-between-machines">complete API contract</a>.</p>
 <h2 id="previews">Protected application previews</h2>
-<p>Preview ingress is implemented locally and awaits isolated-domain configuration and live qualification. Check <code>GET /capabilities</code>; use it only when <code>previews.supported</code> is true. The dashboard then shows a Preview control beside each container. Start your HTTP server first, enter its port, and create a link. The dashboard shows expiration and lets you revoke access.</p>
+<p>Protected previews are enabled on the isolated <code>mainbrella.dev</code> gateway after live HTTP, WebSocket, browser, and account/generation isolation qualification. Check <code>GET /capabilities</code>; use it only when <code>previews.supported</code> is true. The dashboard then shows a Preview control beside each container. Start your HTTP server first, enter its port, and create a link. The dashboard shows expiration and lets you revoke access.</p>
 <pre class="docs-code"><code>POST /containers/previews?id=&lt;id&gt;&amp;createdAt=&lt;generation&gt;
 Authorization: Bearer mb_&lt;your-key&gt;
 Content-Type: application/json
