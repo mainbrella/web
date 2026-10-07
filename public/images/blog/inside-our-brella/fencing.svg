@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="650" viewBox="0 0 560 650" role="img" aria-labelledby="title desc">
+  <title id="title">A late boot cannot replace a newer reservation</title>
+  <desc id="desc">Reservation 41 is delayed and canceled. Replacement 42 starts. The persisted fence rejects late dispatch 41. Operations on the replacement then require its generation timestamp.</desc>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="none" stroke="#80aaff" stroke-width="1.5"/></marker></defs>
+  <g font-family="Helvetica, Arial, sans-serif" fill="#f2f4f7">
+    <text x="16" y="32" font-size="24" fill="#a4adb8">Slot c17 · schematic sequence</text>
+    <g fill="#141920" stroke="#536274" stroke-width="1.5">
+      <rect x="16" y="60" width="528" height="90" rx="4"/>
+      <rect x="16" y="190" width="528" height="90" rx="4"/>
+      <rect x="16" y="320" width="528" height="90" rx="4"/>
+      <rect x="16" y="450" width="528" height="90" rx="4"/>
+    </g>
+    <g font-size="26" font-weight="600">
+      <text x="40" y="97">Reserve 41; boot dispatch waits</text>
+      <text x="40" y="227">Cancel 41 before dispatch arrives</text>
+      <text x="40" y="357">Accept 42; replacement starts</text>
+      <text x="40" y="487">Late boot 41 → rejected</text>
+    </g>
+    <g font-size="24" fill="#a4adb8">
+      <text x="40" y="132">Account already counts the slot</text>
+      <text x="40" y="262">Persist canceled = 41</text>
+      <text x="40" y="392">Persist accepted = 42</text>
+      <text x="40" y="522">41 ≤ max(accepted, canceled)</text>
+      <text x="16" y="590">After boot: every guest operation</text>
+      <text x="16" y="627">must match the returned generation.</text>
+    </g>
+    <g fill="none" stroke="#80aaff" stroke-width="2" marker-end="url(#arrow)">
+      <path d="M280 150V178"/><path d="M280 280V308"/><path d="M280 410V438"/>
+    </g>
+  </g>
+</svg>
