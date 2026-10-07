@@ -23,12 +23,20 @@ export function createWorkspaceClient({fetcher=fetch,onUnauthenticated,signal}: 
 }
 
 export function createWorkspacesDashboard({onUnauthenticated,onChanged}: { onUnauthenticated: () => void; onChanged: () => Promise<void> }){
-  const host=document.querySelector<HTMLDetailsElement>('#saved-workspaces')!;
-  if(!host)return {configure(_value: PersistenceCapabilities){},attach(_actions: HTMLElement, _container: Container){},setBusy(_value: boolean){},dispose(){}};
+  const host=document.querySelector<HTMLElement>('#saved-workspaces')!;
+  if(!host)return {configure(_value: PersistenceCapabilities){},attach(_actions: HTMLElement, _container: Container){},setBusy(_value: boolean){},setVisible(_value: boolean){},dispose(){}};
   const rows=host.querySelector<HTMLElement>('ul')!,status=host.querySelector<HTMLElement>('[role="status"]')!,error=host.querySelector<HTMLElement>('[role="alert"]')!;
   const refresh=host.querySelector<HTMLButtonElement>('[data-workspaces-refresh]')!,retry=host.querySelector<HTMLButtonElement>('[data-workspaces-retry]')!;
   const dialog=document.querySelector<HTMLDialogElement>('#workspace-save-dialog')!,form=dialog.querySelector<HTMLFormElement>('form')!,name=form.querySelector<HTMLInputElement>('input[type="text"]')!,stop=form.querySelector<HTMLInputElement>('input[type="checkbox"]')!,submit=form.querySelector<HTMLButtonElement>('[type="submit"]')!;
   const dialogError=form.querySelector<HTMLElement>('[role="alert"]')!,dialogStatus=form.querySelector<HTMLElement>('[role="status"]')!;
+  const search=host.querySelector<HTMLInputElement>('#workspace-search')!;
+  let active=false;
+  function filter(){
+    let matches=0;
+    for(const row of rows.children){const item=row as HTMLElement;item.hidden=!item.dataset.name!.includes(search.value.trim().toLowerCase());if(!item.hidden)matches++;}
+    status.textContent=rows.children.length ? (matches ? '' : 'No saved workspaces match your search.') : "You haven't saved any workspaces.";
+  }
+  search.addEventListener('input',filter);
   const abort=new AbortController(),request=createWorkspaceClient({onUnauthenticated,signal:abort.signal}),restoreKeys=new Map<string, string>();
   let supported=false,canSave=false,externalBusy=false,busy=false,disposed=false,version=0;
   let pending: {container: ContainerIdentity; name: string; stop: boolean; key: string} | null = null, selected: ContainerIdentity | null = null;
@@ -45,7 +53,7 @@ export function createWorkspacesDashboard({onUnauthenticated,onChanged}: { onUna
       if(!Array.isArray(result.workspaces))throw new Error('invalid_response');const workspaces=(result.workspaces as unknown[]).map(workspaceMetadata);
       rows.replaceChildren();status.textContent=workspaces.length?'':"You haven't saved any workspaces.";
       for(const workspace of workspaces){
-        const row=document.createElement('li');row.className='container-row';
+        const row=document.createElement('li');row.className='container-row';row.dataset.name=workspace.name.toLowerCase();
         const details=document.createElement('div'),title=document.createElement('strong'),meta=document.createElement('p');title.textContent=workspace.name;meta.className='dashboard-status';
         meta.textContent=`${workspace.archived?'Archived':workspace.status==='ready'?'Saved':workspace.status==='saving'?'Saving…':workspace.status==='failed'?'Failed':'Expired'} · ${workspace.size.toUpperCase()} · Expires ${new Date(workspace.expiresAt).toLocaleDateString()}`;
         details.append(title,meta);const actions=document.createElement('div');actions.className='container-actions';
@@ -55,7 +63,7 @@ export function createWorkspacesDashboard({onUnauthenticated,onChanged}: { onUna
           button.dataset.unavailable=String(action==='restore'&&(!canSave||workspace.archived||workspace.status!=='ready'||workspace.expiresAt<=Date.now()));
           button.onclick=()=>operate(workspace,action);actions.append(button);
         }row.append(details,actions);rows.append(row);
-      }controls();
+      }filter();controls();
     }catch{if(!disposed&&current===version){status.textContent='';error.textContent='Could not load saved workspaces. Refresh to try again.';error.hidden=false;}}
   }
   async function operate(workspace: Workspace,action: string){
@@ -89,8 +97,9 @@ export function createWorkspacesDashboard({onUnauthenticated,onChanged}: { onUna
   };
   form.querySelector<HTMLButtonElement>('[data-workspace-cancel]')!.onclick=()=>dialog.close();retry.onclick=()=>{ if (pending) open(pending.container); };refresh.onclick=()=>{error.hidden=true;load();};
   return {
-    configure(value: PersistenceCapabilities={}){const next=value.workspaces===true||value.snapshots===true;canSave=value.snapshots===true;host.hidden=!next;if(next&&!supported){supported=true;load();}else supported=next;controls();},
+    configure(value: PersistenceCapabilities={}){const next=value.workspaces===true||value.snapshots===true;canSave=value.snapshots===true;search.disabled=!next;host.hidden=!active;if(!next)status.textContent='Saved workspaces are unavailable in this environment.';if(next&&!supported){supported=true;load();}else supported=next;controls();},
     attach(actions: HTMLElement,container: Container){if(!canSave)return;const button=document.createElement('button');button.type='button';button.className='dashboard-retry';button.textContent='Save workspace';button.dataset.action='save-workspace';button.dataset.requiresRunning='true';button.dataset.running=String(container.status==='running');button.onclick=()=>{if(!busy&&!externalBusy)open(container);};actions.append(button);},
+    setVisible(value: boolean){active=value;host.hidden=!active;if(!supported)status.textContent='Saved workspaces are unavailable in this environment.';},
     setBusy(value: boolean){externalBusy=value;controls();},
     dispose(){disposed=true;version++;abort.abort();pending=null;restoreKeys.clear();dialog.close();rows.replaceChildren();host.hidden=true;},
   };

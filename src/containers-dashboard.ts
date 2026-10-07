@@ -45,7 +45,13 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   const list = document.querySelector<HTMLElement>('#container-list')!;
   const status = document.querySelector<HTMLElement>('#containers-status')!;
   const empty = document.querySelector<HTMLElement>('#containers-empty')!;
-  const count = document.querySelector<HTMLElement>('#container-count')!;
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>('[data-resource-tab]')];
+  const panel = document.querySelector<HTMLElement>('#resources-panel')!;
+  const filters = document.querySelector<HTMLElement>('#container-filters')!;
+  const search = document.querySelector<HTMLInputElement>('#container-search')!;
+  let activeTab: 'containers' | 'networks' | 'workspaces' = 'containers';
+  const filteredContainers = () => (data?.containers ?? []).filter(container =>
+    !privateServices.membership(container) && `${container.name ?? ''} ${container.id}`.toLowerCase().includes(search.value.trim().toLowerCase()));
   const usage = document.querySelector<HTMLElement>('#container-usage')!;
   const usageContainers = document.querySelector<HTMLElement>('#usage-containers')!;
   const usageConcurrency = document.querySelector<HTMLElement>('#usage-concurrency')!;
@@ -147,7 +153,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       button.disabled = busy || !data || disposed || (button.dataset.requiresRunning === 'true' && button.dataset.running !== 'true');
     });
     previous.disabled = busy || !data || disposed || page === 0;
-    next.disabled = busy || !data || disposed || (page + 1) * pageSize >= data.containers.length;
+    next.disabled = busy || !data || disposed || (page + 1) * pageSize >= filteredContainers().length;
     previews.setBusy(busy || !data || disposed);
     privateServices.setBusy(busy || !data || disposed);
     workspaces.setBusy(busy || !data || disposed);
@@ -186,7 +192,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     if (!data) return;
     previews.sync(data.containers, previewsSupported);
     privateServices.sync(data.containers);
-    document.querySelector<HTMLElement>('#containers-title')!.firstChild!.textContent = privateServices.visible ? 'Private Services & containers ' : 'Containers ';
+
     if (Array.isArray(data.sizes)) {
       const key = JSON.stringify(data.sizes);
       if (key !== sizeOptionsKey) {
@@ -219,10 +225,11 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       renderImages();
     }
     if (terminal && !data.containers.some(c => c.id === terminal?.id && c.createdAt === terminal?.createdAt)) closeTerminal(true);
-    list.hidden = data.containers.length === 0 && privateServices.networks.length === 0;
-    page = Math.min(page, Math.max(0, Math.ceil(data.containers.length / pageSize) - 1));
-    pagination.hidden = data.containers.length <= pageSize;
-    range.textContent = `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, data.containers.length)} of ${data.containers.length}`;
+    const filtered = filteredContainers();
+    list.hidden = false;
+    page = Math.min(page, Math.max(0, Math.ceil(filtered.length / pageSize) - 1));
+    pagination.hidden = activeTab !== 'containers' || filtered.length <= pageSize;
+    range.textContent = `${filtered.length ? page * pageSize + 1 : 0}–${Math.min((page + 1) * pageSize, filtered.length)} of ${filtered.length}`;
     const remaining = Math.max(0, data.limits.maxStartsPerMonth - data.usage.starts);
     usage.hidden = !data.active;
     usageContainers.textContent = `${data.containers.length} / ${data.limits.maxContainers.toLocaleString()}`;
@@ -235,24 +242,23 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     usageStarts.textContent = `${remaining.toLocaleString()} / ${data.limits.maxStartsPerMonth.toLocaleString()}`;
     usageStartsDetail.textContent = `${data.usage.starts.toLocaleString()} starts used · Resets monthly (UTC)`;
     status.textContent = '';
-    empty.hidden = data.containers.length !== 0 || privateServices.networks.length !== 0;
-    count.textContent = String(data.containers.length + privateServices.networks.length);
-    count.hidden = false;
+    empty.hidden = activeTab !== 'containers' || filtered.length !== 0;
+    empty.textContent = search.value.trim() ? 'No containers match your search.' : 'You have no standalone containers.';
     const hours = Math.round(data.limits.maxSessionMs / 3600000);
     const idleMinutes = Math.round(data.limits.idleTimeoutMs / 60000);
     document.querySelector<HTMLElement>('#container-limits')!.textContent = data.active
       ? `Sessions last up to ${hours} ${hours === 1 ? 'hour' : 'hours'} · Auto-stop after ${idleMinutes} idle minutes.`
       : 'An active subscription is required to create containers.';
     if (access && (!data.containers.some(c => c.id === access?.id && c.createdAt === access?.createdAt) || access.expiresAt <= Date.now())) access = null;
-    const rows = data.containers.slice(page * pageSize, (page + 1) * pageSize);
-    const rowVersion = JSON.stringify({ page, rows, access, previewsSupported, observability, persistence, privateServices: privateServices.stateKey, today: new Date().toDateString() });
+    const rows = activeTab === 'networks' ? data.containers : filtered.slice(page * pageSize, (page + 1) * pageSize);
+    const rowVersion = JSON.stringify({ activeTab, page, rows, access, previewsSupported, observability, persistence, privateServices: privateServices.stateKey, today: new Date().toDateString() });
     if (rowVersion === renderedRows) { controls(); return; }
     const focused = list.contains(document.activeElement) ? document.activeElement as HTMLElement : null;
     const focusedRow = focused?.closest<HTMLElement>('[data-container-id]');
     const focus = focusedRow ? { id: focusedRow.dataset.containerId, createdAt: focusedRow.dataset.createdAt,
       action: focused!.dataset.action, start: (focused as HTMLInputElement).selectionStart, end: (focused as HTMLInputElement).selectionEnd } : null;
     list.replaceChildren();
-    const groups = privateServices.buildGroups(list, rows);
+    const groups = privateServices.buildGroups(list, rows, activeTab === 'networks' ? 'networks' : 'containers');
     for (const container of rows) {
       const row = document.createElement('tr');
       row.className = 'machine-table-row';
@@ -465,7 +471,6 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       data = null;
       list.hidden = true;
       empty.hidden = true;
-      count.hidden = true;
       usage.hidden = true;
       pagination.hidden = true;
       status.textContent = 'Container status is unavailable.';
@@ -542,7 +547,6 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       mutationError.hidden = false;
       data = null;
       usage.hidden = true;
-      count.hidden = true;
       status.textContent = 'Refresh containers to check the current state.';
     } finally {
       busy = false;
@@ -579,6 +583,36 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     const menu = (event.target as HTMLElement).closest<HTMLDetailsElement>('.container-action-menu');
     list.querySelectorAll<HTMLDetailsElement>('.container-action-menu[open]').forEach(other => { if (other !== menu) other.open = false; });
   });
+  function selectTab(tab: typeof activeTab) {
+    activeTab = tab;
+    for (const button of tabs) {
+      const selected = button.dataset.resourceTab === tab;
+      button.setAttribute('aria-selected', String(selected));
+      button.tabIndex = selected ? 0 : -1;
+    }
+    panel.hidden = tab === 'workspaces';
+    panel.setAttribute('aria-labelledby', `${tab}-tab`);
+    filters.hidden = tab !== 'containers';
+    openLaunch.hidden = tab !== 'containers';
+    refresh.hidden = tab === 'workspaces';
+    privateServices.setVisible(tab === 'networks');
+    workspaces.setVisible(tab === 'workspaces');
+    render();
+  }
+  tabs.forEach((button, index) => {
+    button.addEventListener('click', () => selectTab(button.dataset.resourceTab as typeof activeTab));
+    button.addEventListener('keydown', event => {
+      const target = event.key === 'ArrowRight' ? (index + 1) % tabs.length
+        : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
+        : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : -1;
+      if (target < 0) return;
+      event.preventDefault();
+      tabs[target].click();
+      tabs[target].focus();
+    });
+  });
+  search.addEventListener('input', () => { page = 0; render(); });
+  selectTab('containers');
   sizePicker.addEventListener('change', controls);
   openLaunch.addEventListener('click', () => {
     launchError.hidden = true;

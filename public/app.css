@@ -274,3 +274,15 @@
   .app-body .network-filters { align-items: stretch; flex-direction: column; gap: 4px; }
   .app-body .network-filters input { width: 100%; }
 }
+
+/* Resource tabs keep each dashboard list and its search together. */
+.dashboard-body .resource-tabs { display: flex; gap: 16px; min-width: 0; }
+.resource-tabs [role="tab"] { min-height: 44px; padding: 8px 0; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); font: inherit; font-size: 14px; white-space: nowrap; cursor: pointer; }
+.resource-tabs [role="tab"][aria-selected="true"] { border-bottom-color: var(--orange, #c65b13); color: var(--ink); }
+.resource-tabs [role="tab"]:hover { color: var(--ink); }
+.resource-tabs [role="tab"]:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
+.dashboard-body #saved-workspaces { padding-top: 4px; }
+@media (max-width: 600px) {
+  .dashboard-body .resource-tabs { gap: 12px; width: 100%; }
+  .dashboard-body .dashboard-containers > .dashboard-section-heading { align-items: flex-start; flex-direction: column; }
+}

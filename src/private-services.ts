@@ -135,19 +135,22 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
   const abort = new AbortController();
   const client = createPrivateServicesClient({ onUnauthenticated, signal: abort.signal });
   let networks: PrivateNetwork[] = [], containers: Container[] = [];
+  let active = false;
   let supported = false, known = false, busy = false, externalBusy = false, disposed = false, version = 0;
   let editing: { network: string; member: PrivateMember } | null = null;
 
   function controls() {
-    filters.hidden = !known || (!networks.length && !search.value);
-    pagination.hidden = !known || total <= pageSize;
-    noResults.hidden = !known || !pageKnown || pageBusy || total !== 0 || !search.value.trim();
+    host.hidden = !active;
+    filters.hidden = !active || !known || (!networks.length && !search.value);
+    pagination.hidden = !active || !known || total <= pageSize;
+    noResults.hidden = !active || !known || !pageKnown || pageBusy || total !== 0;
+    noResults.textContent = search.value.trim() ? 'No networks match your search.' : 'You haven\'t created any networks.';
     previous.disabled = busy || externalBusy || disposed || pageBusy || page <= 1;
     next.disabled = busy || externalBusy || disposed || pageBusy || page * pageSize >= total;
     range.textContent = `${total ? (page - 1) * pageSize + 1 : 0}–${Math.min(page * pageSize, total)} of ${total} networks`;
     const disabled = busy || externalBusy || disposed || pageBusy;
     const issuanceDisabled = disabled || !supported;
-    newNetwork.hidden = !supported; newNetwork.disabled = issuanceDisabled || !known;
+    newNetwork.hidden = !active || !supported; newNetwork.disabled = issuanceDisabled || !known;
     refresh.disabled = disabled;
     networkForm.querySelectorAll<HTMLInputElement | HTMLButtonElement>('input, button[type="submit"]').forEach(node => { node.disabled = issuanceDisabled || !known; });
     memberForm.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLSelectElement>('input, select, button[type="submit"]').forEach(node => { node.disabled = issuanceDisabled || !known; });
@@ -311,6 +314,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
   for (const dialog of [networkDialog, memberDialog]) dialog.querySelector<HTMLButtonElement>('[data-private-close]')!.onclick = () => dialog.close();
 
   return {
+    setVisible(value: boolean) { active = value; controls(); },
     get networks() { return known ? networks : []; },
     get supported() { return supported; },
     get visible() { return supported || networks.length > 0; },
@@ -342,9 +346,9 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
       if (supported) actions.append(privateButton(member ? 'Edit service' : 'Attach to network', () => openMember(member?.network, machine, member?.member), machine.status !== 'running' || !networks.length));
       if (member) actions.append(privateButton('Detach', () => detach(member.network, member.member)));
     },
-    buildGroups(list: HTMLElement, machines: Container[]) {
+    buildGroups(list: HTMLElement, machines: Container[], view: 'containers' | 'networks') {
       const bodies = new Map<string, HTMLTableSectionElement>();
-      const groups = [null, ...(known ? visibleNetworks : [])];
+      const groups = view === 'networks' ? (known ? visibleNetworks : []) : [null];
       for (const network of groups) {
         const key = network?.name ?? '', members = machines.filter(machine => (this.membership(machine)?.network ?? '') === key);
         if (!network && !members.length) continue;

@@ -35,66 +35,86 @@
           <div><dt>Compute-unit hours available</dt><dd id="usage-compute">—</dd><dd id="usage-compute-detail" class="usage-detail"></dd></div>
           <div><dt>Starts remaining this month</dt><dd id="usage-starts">—</dd><dd id="usage-starts-detail" class="usage-detail"></dd></div>
         </dl>
-        <section class="dashboard-containers" aria-labelledby="containers-title">
+        <section class="dashboard-containers" aria-label="Resources">
           <div class="dashboard-section-heading">
-            <h2 id="containers-title">Private Services &amp; containers <span id="container-count" class="section-count" hidden></span></h2>
+            <div class="resource-tabs" role="tablist" aria-label="Resources">
+              <button id="containers-tab" type="button" role="tab" aria-selected="true" aria-controls="resources-panel" data-resource-tab="containers">Containers</button>
+              <button id="networks-tab" type="button" role="tab" aria-selected="false" aria-controls="resources-panel" tabindex="-1" data-resource-tab="networks">Networks</button>
+              <button id="workspaces-tab" type="button" role="tab" aria-selected="false" aria-controls="saved-workspaces" tabindex="-1" data-resource-tab="workspaces">Saved workspaces</button>
+            </div>
             <div class="container-actions">
               <button id="containers-refresh" class="dashboard-retry" type="button" disabled>Refresh</button>
               <button id="network-create-open" class="dashboard-retry" type="button" hidden disabled>New network</button>
               <button id="container-launch-open" class="button button-small" type="button" disabled>New container</button>
             </div>
           </div>
-          <p id="containers-status" class="dashboard-status" role="status">Loading containers…</p>
-          <p id="containers-empty" class="dashboard-status containers-empty" hidden>You have no active containers.</p>
-          <div id="private-services-feedback" hidden>
-            <p class="dashboard-status" role="status"></p><p class="dashboard-error" role="alert" hidden></p>
-            <button type="button" class="dashboard-retry" disabled>Refresh Private Services</button>
-          </div>
-          <div id="network-filters" class="network-filters" hidden>
-            <label for="network-search">Search networks</label>
-            <input id="network-search" type="search" placeholder="Network name" maxlength="63" autocomplete="off" aria-controls="container-list">
-          </div>
-          <p id="networks-empty" class="dashboard-status" role="status" hidden>No networks match your search.</p>
-          <div id="container-list" class="machine-groups" hidden></div>
-          <nav id="network-pagination" class="container-pagination" aria-label="Network pages" hidden>
-            <button id="networks-previous" class="dashboard-retry" type="button">Previous</button>
-            <span id="networks-range" aria-live="polite"></span>
-            <button id="networks-next" class="dashboard-retry" type="button">Next</button>
-          </nav>
-          <section id="container-observations" class="container-observations" aria-labelledby="history-title" hidden>
-            <div class="history-heading"><h3 id="history-title" tabindex="-1">History</h3><div class="container-actions"><button type="button" class="dashboard-retry" data-history-refresh>Refresh history</button><button type="button" class="dashboard-retry" data-history-close>Close</button></div></div>
-            <p class="dashboard-status" data-history-identity></p>
-            <p class="dashboard-status" data-history-metrics hidden></p>
-            <ol class="lifecycle-list" aria-label="Lifecycle events"></ol>
-            <p class="dashboard-status" role="status"></p><p class="dashboard-error" role="alert" hidden></p>
-            <button type="button" class="dashboard-retry" data-history-more hidden>More events</button>
-            <details class="container-webhooks" data-container-webhooks hidden>
-              <summary>Lifecycle webhook</summary>
-              <form>
-                <label for="webhook-url">Approved HTTPS relay URL</label>
-                <input id="webhook-url" type="url" maxlength="2048" required autocomplete="off" placeholder="https://relay.example.com/events">
-                <div class="container-actions"><button type="submit" class="dashboard-retry" data-webhook-save>Save webhook</button><button type="button" class="dashboard-retry" data-webhook-remove hidden>Remove webhook</button><button type="button" class="dashboard-retry" data-webhook-refresh>Refresh webhook</button></div>
-              </form>
-              <p class="dashboard-status">Saving replaces the signing key and clears previous deliveries.</p>
-              <div data-webhook-secret hidden><label for="webhook-signing-secret">Signing key · shown once</label><input id="webhook-signing-secret" readonly autocomplete="off" spellcheck="false"><p class="dashboard-status">Copy this key to your receiver before closing history.</p></div>
-              <p class="dashboard-status" role="status"></p><p class="dashboard-error" role="alert" hidden></p>
-              <ul aria-label="Webhook deliveries"></ul>
-            </details>
-          </section>
-          <nav id="container-pagination" class="container-pagination" aria-label="Container pages" hidden>
-            <button id="containers-previous" class="dashboard-retry" type="button">Previous</button>
-            <span id="containers-range" aria-live="polite"></span>
-            <button id="containers-next" class="dashboard-retry" type="button">Next</button>
-          </nav>
-          <section id="container-terminal" class="container-terminal" aria-labelledby="terminal-title" hidden>
-            <div class="terminal-heading">
-              <h3 id="terminal-title">Terminal</h3>
-              <button class="dashboard-retry" type="button">Close terminal</button>
+          <div id="resources-panel" role="tabpanel" aria-labelledby="containers-tab">
+            <div id="container-filters" class="network-filters">
+              <label for="container-search">Search containers</label>
+              <input id="container-search" type="search" placeholder="Container name or ID" autocomplete="off" aria-controls="container-list">
             </div>
-            <p class="dashboard-status" role="status">Connecting…</p>
-            <div class="terminal-output" aria-label="Container terminal"></div>
+            <p id="containers-status" class="dashboard-status" role="status">Loading containers…</p>
+            <p id="containers-empty" class="dashboard-status containers-empty" hidden>You have no active containers.</p>
+            <div id="private-services-feedback" hidden>
+              <p class="dashboard-status" role="status"></p><p class="dashboard-error" role="alert" hidden></p>
+              <button type="button" class="dashboard-retry" disabled>Refresh Private Services</button>
+            </div>
+            <div id="network-filters" class="network-filters" hidden>
+              <label for="network-search">Search networks</label>
+              <input id="network-search" type="search" placeholder="Network name" maxlength="63" autocomplete="off" aria-controls="container-list">
+            </div>
+            <p id="networks-empty" class="dashboard-status" role="status" hidden>No networks match your search.</p>
+            <div id="container-list" class="machine-groups" hidden></div>
+            <nav id="network-pagination" class="container-pagination" aria-label="Network pages" hidden>
+              <button id="networks-previous" class="dashboard-retry" type="button">Previous</button>
+              <span id="networks-range" aria-live="polite"></span>
+              <button id="networks-next" class="dashboard-retry" type="button">Next</button>
+            </nav>
+            <section id="container-observations" class="container-observations" aria-labelledby="history-title" hidden>
+              <div class="history-heading"><h3 id="history-title" tabindex="-1">History</h3><div class="container-actions"><button type="button" class="dashboard-retry" data-history-refresh>Refresh history</button><button type="button" class="dashboard-retry" data-history-close>Close</button></div></div>
+              <p class="dashboard-status" data-history-identity></p>
+              <p class="dashboard-status" data-history-metrics hidden></p>
+              <ol class="lifecycle-list" aria-label="Lifecycle events"></ol>
+              <p class="dashboard-status" role="status"></p><p class="dashboard-error" role="alert" hidden></p>
+              <button type="button" class="dashboard-retry" data-history-more hidden>More events</button>
+              <details class="container-webhooks" data-container-webhooks hidden>
+                <summary>Lifecycle webhook</summary>
+                <form>
+                  <label for="webhook-url">Approved HTTPS relay URL</label>
+                  <input id="webhook-url" type="url" maxlength="2048" required autocomplete="off" placeholder="https://relay.example.com/events">
+                  <div class="container-actions"><button type="submit" class="dashboard-retry" data-webhook-save>Save webhook</button><button type="button" class="dashboard-retry" data-webhook-remove hidden>Remove webhook</button><button type="button" class="dashboard-retry" data-webhook-refresh>Refresh webhook</button></div>
+                </form>
+                <p class="dashboard-status">Saving replaces the signing key and clears previous deliveries.</p>
+                <div data-webhook-secret hidden><label for="webhook-signing-secret">Signing key · shown once</label><input id="webhook-signing-secret" readonly autocomplete="off" spellcheck="false"><p class="dashboard-status">Copy this key to your receiver before closing history.</p></div>
+                <p class="dashboard-status" role="status"></p><p class="dashboard-error" role="alert" hidden></p>
+                <ul aria-label="Webhook deliveries"></ul>
+              </details>
+            </section>
+            <nav id="container-pagination" class="container-pagination" aria-label="Container pages" hidden>
+              <button id="containers-previous" class="dashboard-retry" type="button">Previous</button>
+              <span id="containers-range" aria-live="polite"></span>
+              <button id="containers-next" class="dashboard-retry" type="button">Next</button>
+            </nav>
+            <section id="container-terminal" class="container-terminal" aria-labelledby="terminal-title" hidden>
+              <div class="terminal-heading">
+                <h3 id="terminal-title">Terminal</h3>
+                <button class="dashboard-retry" type="button">Close terminal</button>
+              </div>
+              <p class="dashboard-status" role="status">Connecting…</p>
+              <div class="terminal-output" aria-label="Container terminal"></div>
+            </section>
+            <p id="containers-error" class="dashboard-error" role="alert" hidden></p>
+          </div>
+          <section id="saved-workspaces" role="tabpanel" aria-labelledby="workspaces-tab" hidden>
+            <div class="network-filters">
+              <label for="workspace-search">Search saved workspaces</label>
+              <input id="workspace-search" type="search" placeholder="Workspace name" autocomplete="off" aria-controls="workspace-list">
+            </div>
+            <ul id="workspace-list" class="container-list" aria-label="Saved workspaces"></ul>
+            <p class="dashboard-status" role="status"></p>
+            <p class="dashboard-error" role="alert" hidden></p>
+            <div class="container-actions"><button type="button" class="dashboard-retry" data-workspaces-refresh>Refresh workspaces</button><button type="button" class="dashboard-retry" data-workspaces-retry hidden>Retry save</button></div>
           </section>
-          <p id="containers-error" class="dashboard-error" role="alert" hidden></p>
         </section>
         <dialog id="network-create-dialog" class="private-services-dialog" aria-labelledby="network-create-title">
           <form>
@@ -152,13 +172,6 @@
           <p id="container-launch-error" class="dashboard-error" role="alert" hidden></p>
           </form>
         </dialog>
-        <details id="saved-workspaces" class="dashboard-images" hidden>
-          <summary>Saved workspaces</summary>
-          <ul class="container-list" aria-label="Saved workspaces"></ul>
-          <p class="dashboard-status" role="status"></p>
-          <p class="dashboard-error" role="alert" hidden></p>
-          <div class="container-actions"><button type="button" class="dashboard-retry" data-workspaces-refresh>Refresh workspaces</button><button type="button" class="dashboard-retry" data-workspaces-retry hidden>Retry save</button></div>
-        </details>
         <dialog id="workspace-save-dialog" class="workspace-save-dialog" aria-labelledby="workspace-save-title">
           <form>
             <h3 id="workspace-save-title">Save workspace</h3>
