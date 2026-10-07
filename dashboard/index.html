@@ -30,21 +30,27 @@
           <p id="subscription-note" class="dashboard-status" hidden></p>
         </section>
         <dl id="container-usage" class="container-usage" aria-label="Plan usage" hidden>
-          <div><dt>Containers</dt><dd id="usage-containers">—</dd><dd id="usage-concurrency" class="usage-detail"></dd></div>
+          <div><dt>Containers</dt><dd id="usage-containers">—</dd><dd id="usage-network-containers" class="usage-detail" hidden></dd><dd id="usage-concurrency" class="usage-detail"></dd></div>
+          <div id="usage-networks-group" hidden><dt>Networks</dt><dd id="usage-networks">—</dd><dd id="usage-networks-detail" class="usage-detail"></dd></div>
           <div><dt>Compute-unit hours available</dt><dd id="usage-compute">—</dd><dd id="usage-compute-detail" class="usage-detail"></dd></div>
           <div><dt>Starts remaining this month</dt><dd id="usage-starts">—</dd><dd id="usage-starts-detail" class="usage-detail"></dd></div>
         </dl>
         <section class="dashboard-containers" aria-labelledby="containers-title">
           <div class="dashboard-section-heading">
-            <h2 id="containers-title">Containers <span id="container-count" class="section-count" hidden></span></h2>
+            <h2 id="containers-title">Private Services &amp; containers <span id="container-count" class="section-count" hidden></span></h2>
             <div class="container-actions">
               <button id="containers-refresh" class="dashboard-retry" type="button" disabled>Refresh</button>
+              <button id="network-create-open" class="dashboard-retry" type="button" hidden disabled>New network</button>
               <button id="container-launch-open" class="button button-small" type="button" disabled>New container</button>
             </div>
           </div>
           <p id="containers-status" class="dashboard-status" role="status">Loading containers…</p>
           <p id="containers-empty" class="dashboard-status containers-empty" hidden>You have no active containers.</p>
-          <ul id="container-list" class="container-list" aria-label="Containers" hidden></ul>
+          <div id="private-services-feedback" hidden>
+            <p class="dashboard-status" role="status"></p><p class="dashboard-error" role="alert" hidden></p>
+            <button type="button" class="dashboard-retry" disabled>Refresh Private Services</button>
+          </div>
+          <div id="container-list" class="machine-groups" hidden></div>
           <section id="container-observations" class="container-observations" aria-labelledby="history-title" hidden>
             <div class="history-heading"><h3 id="history-title" tabindex="-1">History</h3><div class="container-actions"><button type="button" class="dashboard-retry" data-history-refresh>Refresh history</button><button type="button" class="dashboard-retry" data-history-close>Close</button></div></div>
             <p class="dashboard-status" data-history-identity></p>
@@ -80,6 +86,33 @@
           </section>
           <p id="containers-error" class="dashboard-error" role="alert" hidden></p>
         </section>
+        <dialog id="network-create-dialog" class="private-services-dialog" aria-labelledby="network-create-title">
+          <form>
+            <h2 id="network-create-title">New network</h2>
+            <label for="private-network-name">Network name</label>
+            <input id="private-network-name" type="text" required pattern="[a-z][a-z0-9-]{0,62}" maxlength="63" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="app-stack" aria-describedby="private-network-name-note">
+            <p id="private-network-name-note" class="dashboard-status">Start with a lowercase letter. Use lowercase letters, numbers, and hyphens.</p>
+            <p class="dashboard-error" role="alert" hidden></p>
+            <div class="container-actions"><button type="submit" class="button button-small">Create network</button><button type="button" class="dashboard-retry" data-private-close>Cancel</button></div>
+          </form>
+        </dialog>
+        <dialog id="private-member-dialog" class="private-services-dialog" aria-labelledby="private-member-title">
+          <form>
+            <h2 id="private-member-title">Attach machine</h2>
+            <label for="private-member-network">Network</label>
+            <select id="private-member-network" required></select>
+            <label for="private-member-machine">Running machine</label>
+            <select id="private-member-machine" required></select>
+            <label for="private-member-name">Service name</label>
+            <input id="private-member-name" type="text" required pattern="[a-z][a-z0-9-]{0,62}" maxlength="63" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="api" aria-describedby="private-member-name-note">
+            <p id="private-member-name-note" class="dashboard-status">Unique in this network. Use lowercase letters, numbers, and hyphens; start with a letter.</p>
+            <label for="private-member-port">Application port <span class="dashboard-status">(optional)</span></label>
+            <input id="private-member-port" type="number" min="1024" max="65535" step="1" inputmode="numeric" placeholder="8080" aria-describedby="private-member-port-note">
+            <p id="private-member-port-note" class="dashboard-status">Register a port to receive HTTP at http://NAME.internal. Leave blank to only call services. Public previews are enabled separately.</p>
+            <p class="dashboard-error" role="alert" hidden></p>
+            <div class="container-actions"><button type="submit" class="button button-small">Attach machine</button><button type="button" class="dashboard-retry" data-private-close>Cancel</button></div>
+          </form>
+        </dialog>
         <dialog id="container-launch-dialog" class="container-launch" aria-labelledby="launch-title">
           <div class="launch-heading">
             <h2 id="launch-title">New container</h2>

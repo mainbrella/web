@@ -4,6 +4,7 @@ import { API_ORIGIN } from './auth.ts';
 import { createContainerPreviews } from './container-previews.ts';
 import { createContainerObservations } from './container-observations.ts';
 import { createWorkspacesDashboard } from './workspaces-dashboard.ts';
+import { createPrivateServices } from './private-services.ts';
 
 type CreationState = {
   active: boolean; containers: unknown[];
@@ -77,6 +78,9 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   const observations = createContainerObservations({ onUnauthenticated: () => { dispose(); onUnauthenticated(); } });
   const previews = createContainerPreviews({ onUnauthenticated: () => { dispose(); onUnauthenticated(); } });
 
+  const privateServices = createPrivateServices({ onUnauthenticated: () => { dispose(); onUnauthenticated(); },
+    onChanged: () => { if (!disposed && data) render(); } });
+
   function closeTerminal(stopped = false) {
     terminal?.session.dispose();
     terminal = null;
@@ -142,6 +146,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     previous.disabled = busy || !data || disposed || page === 0;
     next.disabled = busy || !data || disposed || (page + 1) * pageSize >= data.containers.length;
     previews.setBusy(busy || !data || disposed);
+    privateServices.setBusy(busy || !data || disposed);
     workspaces.setBusy(busy || !data || disposed);
   }
 
@@ -177,6 +182,8 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   function render() {
     if (!data) return;
     previews.sync(data.containers, previewsSupported);
+    privateServices.sync(data.containers);
+    document.querySelector<HTMLElement>('#containers-title')!.firstChild!.textContent = privateServices.supported ? 'Private Services & containers ' : 'Containers ';
     if (Array.isArray(data.sizes)) {
       const key = JSON.stringify(data.sizes);
       if (key !== sizeOptionsKey) {
@@ -209,7 +216,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       renderImages();
     }
     if (terminal && !data.containers.some(c => c.id === terminal?.id && c.createdAt === terminal?.createdAt)) closeTerminal(true);
-    list.hidden = data.containers.length === 0;
+    list.hidden = data.containers.length === 0 && privateServices.networks.length === 0;
     page = Math.min(page, Math.max(0, Math.ceil(data.containers.length / pageSize) - 1));
     pagination.hidden = data.containers.length <= pageSize;
     range.textContent = `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, data.containers.length)} of ${data.containers.length}`;
@@ -225,8 +232,8 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     usageStarts.textContent = `${remaining.toLocaleString()} / ${data.limits.maxStartsPerMonth.toLocaleString()}`;
     usageStartsDetail.textContent = `${data.usage.starts.toLocaleString()} starts used · Resets monthly (UTC)`;
     status.textContent = '';
-    empty.hidden = data.containers.length !== 0;
-    count.textContent = String(data.containers.length);
+    empty.hidden = data.containers.length !== 0 || privateServices.networks.length !== 0;
+    count.textContent = String(data.containers.length + privateServices.networks.length);
     count.hidden = false;
     const hours = Math.round(data.limits.maxSessionMs / 3600000);
     const idleMinutes = Math.round(data.limits.idleTimeoutMs / 60000);
@@ -235,24 +242,29 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       : 'An active subscription is required to create containers.';
     if (access && (!data.containers.some(c => c.id === access?.id && c.createdAt === access?.createdAt) || access.expiresAt <= Date.now())) access = null;
     const rows = data.containers.slice(page * pageSize, (page + 1) * pageSize);
-    const rowVersion = JSON.stringify({ page, rows, access, previewsSupported, observability, persistence, today: new Date().toDateString() });
+    const rowVersion = JSON.stringify({ page, rows, access, previewsSupported, observability, persistence, privateServices: privateServices.stateKey, today: new Date().toDateString() });
     if (rowVersion === renderedRows) { controls(); return; }
     const focused = list.contains(document.activeElement) ? document.activeElement as HTMLElement : null;
     const focusedRow = focused?.closest<HTMLElement>('[data-container-id]');
     const focus = focusedRow ? { id: focusedRow.dataset.containerId, createdAt: focusedRow.dataset.createdAt,
       action: focused!.dataset.action, start: (focused as HTMLInputElement).selectionStart, end: (focused as HTMLInputElement).selectionEnd } : null;
     list.replaceChildren();
+    const groups = privateServices.buildGroups(list, rows);
     for (const container of rows) {
-      const row = document.createElement('li');
-      row.className = 'container-row';
+      const row = document.createElement('tr');
+      row.className = 'machine-table-row';
+      const member = privateServices.membership(container);
+      const body = groups.get(member?.network ?? '')!;
       row.dataset.containerId = container.id;
       row.dataset.createdAt = container.createdAt;
-      const details = document.createElement('div');
-      details.className = 'container-details';
+      const details = document.createElement('td');
+      details.className = 'machine-column-0';
+      details.dataset.label = 'Name';
+      details.classList.add('container-details');
       const heading = document.createElement('div');
       heading.className = 'container-row-heading';
       const name = document.createElement('strong');
-      name.textContent = container.imageName || container.name || container.id;
+      name.textContent = member?.member.name || container.name || container.id;
       const state = document.createElement('p');
       state.className = 'dashboard-status';
       const expiry = new Date(container.expiresAt);
@@ -263,7 +275,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       badge.className = 'container-state';
       badge.dataset.state = container.status;
       badge.textContent = running ? 'Running' : container.status === 'starting' ? 'Starting…' : container.status === 'stopping' ? 'Stopping…' : container.status;
-      heading.append(name, badge);
+      heading.append(name);
       const identity = document.createElement('code');
       identity.textContent = container.id.slice(0, 8); identity.title = container.id;
       state.append(identity);
@@ -274,7 +286,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       }
       const expires = document.createElement('span');
       expires.textContent = `Stops by ${expiry.toLocaleString([], expiryOptions)}`;
-      state.append(expires);
+      details.title = expires.textContent;
       const stop = document.createElement('button');
       stop.type = 'button';
       stop.className = 'dashboard-retry button-danger';
@@ -303,15 +315,34 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       shell.dataset.requiresRunning = 'true';
       shell.dataset.running = String(running);
       shell.addEventListener('click', () => connectTerminal(container));
-      actions.append(shell, connect, stop);
-      row.append(details, actions);
-      previews.attach(row, actions, container);
-      observations.attach(actions, container);
-      workspaces.attach(actions,container);
-      actions.append(stop);
-      list.append(row);
+      const menu = document.createElement('details'); menu.className = 'container-action-menu';
+      const menuToggle = document.createElement('summary'); menuToggle.textContent = '•••';
+      menuToggle.setAttribute('aria-label', `Actions for ${member?.member.name || container.name || container.id}`);
+      const menuActions = document.createElement('div'); menuActions.className = 'container-menu-items';
+      menuActions.append(connect, stop); menu.append(menuToggle, menuActions); actions.append(shell, menu);
+      const cell = (text: string, index: number, label: string) => {
+        const td = document.createElement('td'); td.className = `machine-column-${index}`; td.dataset.label = label; td.textContent = text; return td;
+      };
+      const stateCell = cell('', 1, 'Status'); stateCell.append(badge);
+      const imageCell = cell(container.imageName || '—', 2, 'Image');
+      const serviceCell = cell(member ? member.member.port === undefined ? 'Caller only' : `http://${member.member.name}.internal` : '—', 3, 'Private service');
+      if (member?.member.port !== undefined) {
+        const port = document.createElement('span'); port.className = 'private-port'; port.textContent = `Port ${member.member.port}`; serviceCell.append(port);
+      }
+      const started = cell(new Date(container.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }), 4, 'Last started');
+      const actionsCell = cell('', 5, 'Actions'); actionsCell.append(actions);
+      row.append(details, stateCell, imageCell, serviceCell, started, actionsCell); body.append(row);
+      const expansion = document.createElement('tr'); expansion.className = 'machine-preview-row';
+      const expansionCell = document.createElement('td'); expansionCell.colSpan = 6; expansion.append(expansionCell);
+      previews.attach(expansionCell, menuActions, container);
+      observations.attach(menuActions, container);
+      workspaces.attach(menuActions,container);
+      privateServices.attach(menuActions, container);
+      menuActions.append(stop);
+      if (expansionCell.children.length) body.append(expansion);
       if (access?.id === container.id) {
-        const connection = document.createElement('li');
+        const connectionRow = document.createElement('tr'); connectionRow.className = 'machine-ssh-row';
+        const connection = document.createElement('td'); connection.colSpan = 6; connectionRow.append(connection);
         connection.className = 'container-ssh';
         connection.dataset.containerId = container.id;
         connection.dataset.createdAt = container.createdAt;
@@ -341,7 +372,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
         install.target = '_blank';
         install.rel = 'noopener noreferrer';
         connection.append(label, copy, note, install);
-        list.append(connection);
+        body.append(connectionRow);
       }
     }
     renderedRows = rowVersion;
@@ -420,6 +451,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       workspaces.configure(persistence);
       observations.configure(observability);
       data = result;
+      privateServices.configure(capabilities?.networking?.privateServices === true);
       render();
       error.hidden = true;
     } catch {
@@ -513,6 +545,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   }
 
   function dispose() {
+    privateServices.dispose();
     workspaces.dispose();
     observations.dispose();
     previews.dispose();
@@ -527,6 +560,15 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     controls();
   }
 
+  list.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    const menu = (event.target as HTMLElement).closest<HTMLDetailsElement>('.container-action-menu');
+    if (menu) { menu.open = false; menu.querySelector<HTMLElement>('summary')!.focus(); }
+  });
+  list.addEventListener('click', event => {
+    const menu = (event.target as HTMLElement).closest<HTMLDetailsElement>('.container-action-menu');
+    list.querySelectorAll<HTMLDetailsElement>('.container-action-menu[open]').forEach(other => { if (other !== menu) other.open = false; });
+  });
   sizePicker.addEventListener('change', controls);
   openLaunch.addEventListener('click', () => {
     launchError.hidden = true;
