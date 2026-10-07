@@ -62,3 +62,23 @@ test('expected conflicts remain identifiable; untrusted errors are hidden and wr
   await assert.rejects(client.create('demo'), { message: 'private_services_unavailable' });
   assert.equal(calls, 1); assert.equal(notified, true);
 });
+
+
+test('network page requests encode search and pagination and validate server metadata', async () => {
+  const client = createPrivateServicesClient({ fetcher: async input => {
+    const url = new URL(String(input));
+    assert.equal(url.searchParams.get('search'), 'Demo & app');
+    assert.equal(url.searchParams.get('page'), '2');
+    assert.equal(url.searchParams.get('limit'), '10');
+    return Response.json({ networks: [{ name: 'demo', members: [member] }], total: 11, totalNetworks: 16, page: 2, limit: 10 });
+  } });
+  assert.deepEqual(await client.listPage({ search: 'Demo & app', page: 2, limit: 10 }), {
+    networks: [{ name: 'demo', members: [member] }], total: 11, page: 2,
+  });
+  for (const metadata of [{ total: -1 }, { page: 0 }, { limit: 100 }, { totalNetworks: 0 }, { total: '11' }]) {
+    const invalid = createPrivateServicesClient({ fetcher: async () => Response.json({
+      networks: [{ name: 'demo', members: [] }], total: 11, totalNetworks: 16, page: 2, limit: 10, ...metadata,
+    }) });
+    await assert.rejects(invalid.listPage({ search: '', page: 2, limit: 10 }), /invalid_response/);
+  }
+});

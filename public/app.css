@@ -265,3 +265,12 @@
 @media (prefers-reduced-motion: reduce) {
   .app-body button, .machine-option { transition: none; }
 }
+
+.app-body .network-filters { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+.app-body .network-filters[hidden] { display: none; }
+.app-body .network-filters label { font-size: 14px; }
+.app-body .network-filters input { box-sizing: border-box; width: 280px; max-width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--control-border); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; }
+@media (max-width: 480px) {
+  .app-body .network-filters { align-items: stretch; flex-direction: column; gap: 4px; }
+  .app-body .network-filters input { width: 100%; }
+}

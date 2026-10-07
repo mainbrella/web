@@ -50,7 +50,17 @@
             <p class="dashboard-status" role="status"></p><p class="dashboard-error" role="alert" hidden></p>
             <button type="button" class="dashboard-retry" disabled>Refresh Private Services</button>
           </div>
+          <div id="network-filters" class="network-filters" hidden>
+            <label for="network-search">Search networks</label>
+            <input id="network-search" type="search" placeholder="Network name" maxlength="63" autocomplete="off" aria-controls="container-list">
+          </div>
+          <p id="networks-empty" class="dashboard-status" role="status" hidden>No networks match your search.</p>
           <div id="container-list" class="machine-groups" hidden></div>
+          <nav id="network-pagination" class="container-pagination" aria-label="Network pages" hidden>
+            <button id="networks-previous" class="dashboard-retry" type="button">Previous</button>
+            <span id="networks-range" aria-live="polite"></span>
+            <button id="networks-next" class="dashboard-retry" type="button">Next</button>
+          </nav>
           <section id="container-observations" class="container-observations" aria-labelledby="history-title" hidden>
             <div class="history-heading"><h3 id="history-title" tabindex="-1">History</h3><div class="container-actions"><button type="button" class="dashboard-retry" data-history-refresh>Refresh history</button><button type="button" class="dashboard-retry" data-history-close>Close</button></div></div>
             <p class="dashboard-status" data-history-identity></p>

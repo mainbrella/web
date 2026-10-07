@@ -48,9 +48,10 @@ const messages: Record<string, string> = {
 };
 
 export function createPrivateServicesClient({ fetcher = fetch, onUnauthenticated, signal }: ClientOptions = {}) {
-  async function request(path: 'networks' | 'members', method = 'GET', network?: string, body?: object) {
+  async function request(path: 'networks' | 'members', method = 'GET', network?: string, body?: object, query?: { search: string; page: number; limit: number }) {
     const url = new URL(`${API_ORIGIN}/private-services/${path}`);
     if (network !== undefined) url.searchParams.set('network', network);
+    if (query) for (const [key, value] of Object.entries(query)) url.searchParams.set(key, String(value));
     const response = await fetcher(url, { method, credentials: 'include', redirect: 'error',
       signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000),
       headers: { accept: 'application/json', ...(body ? { 'content-type': 'application/json' } : {}) },
@@ -62,6 +63,14 @@ export function createPrivateServicesClient({ fetcher = fetch, onUnauthenticated
   }
   return {
     async list() { return privateNetworks(await request('networks')); },
+    async listPage(query: { search: string; page: number; limit: number }) {
+      const result = await request('networks', 'GET', undefined, undefined, query);
+      const networks = privateNetworks(result);
+      if (![result.total, result.totalNetworks, result.page, result.limit].every(Number.isSafeInteger)
+        || result.total < networks.length || result.totalNetworks < result.total || result.page < 1
+        || result.limit !== query.limit || networks.length > result.limit) throw new Error('invalid_response');
+      return { networks, total: result.total as number, page: result.page as number };
+    },
     async create(name: string) {
       if (!validPrivateName(name)) throw new Error('invalid_request');
       const result = await request('networks', 'POST', undefined, { name });
@@ -112,6 +121,16 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
   const networkCount = document.querySelector<HTMLElement>('#usage-networks')!;
   const networkDetail = document.querySelector<HTMLElement>('#usage-networks-detail')!;
   const containerDetail = document.querySelector<HTMLElement>('#usage-network-containers')!;
+  const filters = document.querySelector<HTMLElement>('#network-filters')!;
+  const search = document.querySelector<HTMLInputElement>('#network-search')!;
+  const pagination = document.querySelector<HTMLElement>('#network-pagination')!;
+  const previous = document.querySelector<HTMLButtonElement>('#networks-previous')!;
+  const next = document.querySelector<HTMLButtonElement>('#networks-next')!;
+  const range = document.querySelector<HTMLElement>('#networks-range')!;
+  const noResults = document.querySelector<HTMLElement>('#networks-empty')!;
+  const pageSize = 10;
+  let visibleNetworks: PrivateNetwork[] = [], page = 1, total = 0, pageVersion = 0, pageBusy = false, pageKnown = false;
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
   const collapse = new Map<string, boolean>();
   const abort = new AbortController();
   const client = createPrivateServicesClient({ onUnauthenticated, signal: abort.signal });
@@ -120,7 +139,13 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
   let editing: { network: string; member: PrivateMember } | null = null;
 
   function controls() {
-    const disabled = busy || externalBusy || disposed;
+    filters.hidden = !known || (!networks.length && !search.value);
+    pagination.hidden = !known || total <= pageSize;
+    noResults.hidden = !known || !pageKnown || pageBusy || total !== 0 || !search.value.trim();
+    previous.disabled = busy || externalBusy || disposed || pageBusy || page <= 1;
+    next.disabled = busy || externalBusy || disposed || pageBusy || page * pageSize >= total;
+    range.textContent = `${total ? (page - 1) * pageSize + 1 : 0}–${Math.min(page * pageSize, total)} of ${total} networks`;
+    const disabled = busy || externalBusy || disposed || pageBusy;
     const issuanceDisabled = disabled || !supported;
     newNetwork.hidden = !supported; newNetwork.disabled = issuanceDisabled || !known;
     refresh.disabled = disabled;
@@ -140,6 +165,33 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
     error.textContent = isError ? message : ''; error.hidden = !isError;
   }
 
+  async function loadPage() {
+    clearTimeout(searchTimer);
+    const current = ++pageVersion;
+    pageBusy = true; controls();
+    try {
+      const result = await client.listPage({ search: search.value.trim(), page, limit: pageSize });
+      if (disposed || current !== pageVersion) return;
+      visibleNetworks = result.networks; page = result.page; total = result.total; pageKnown = true;
+      feedback('');
+    } catch {
+      if (disposed || current !== pageVersion) return;
+      visibleNetworks = []; total = 0; pageKnown = false;
+      host.hidden = false;
+      feedback('Could not load network results. Refresh Private Services to try again.', true);
+    } finally {
+      if (!disposed && current === pageVersion) { pageBusy = false; onChanged(); controls(); }
+    }
+  }
+
+  search.addEventListener('input', () => {
+    page = 1; pageVersion++; pageBusy = true; controls();
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => loadPage(), 250);
+  });
+  previous.onclick = () => { if (!previous.disabled) { page--; loadPage(); } };
+  next.onclick = () => { if (!next.disabled) { page++; loadPage(); } };
+
   async function load() {
     if (disposed || busy) return;
     const current = version;
@@ -148,7 +200,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
     try {
       const result = await client.list();
       if (disposed || current !== version) return;
-      networks = result; known = true; host.hidden = !supported && !networks.length; feedback(''); onChanged();
+      networks = result; known = true; host.hidden = !supported && !networks.length; feedback(''); await loadPage(); onChanged();
     } catch {
       if (disposed || current !== version) return;
       known = false;
@@ -185,6 +237,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
           const result = await client.list();
           if (disposed || current !== version) return;
           networks = result; known = true;
+          await loadPage();
           host.hidden = !supported && !networks.length;
         }
         catch {
@@ -261,7 +314,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
     get networks() { return known ? networks : []; },
     get supported() { return supported; },
     get visible() { return supported || networks.length > 0; },
-    get stateKey() { return JSON.stringify([supported, known, networks]); },
+    get stateKey() { return JSON.stringify([supported, known, networks, visibleNetworks]); },
     membership(machine: ContainerIdentity) { return known ? membership(machine) : null; },
     sync(machines: Container[]) {
       containers = machines;
@@ -291,7 +344,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
     },
     buildGroups(list: HTMLElement, machines: Container[]) {
       const bodies = new Map<string, HTMLTableSectionElement>();
-      const groups = [null, ...(known ? networks : [])];
+      const groups = [null, ...(known ? visibleNetworks : [])];
       for (const network of groups) {
         const key = network?.name ?? '', members = machines.filter(machine => (this.membership(machine)?.network ?? '') === key);
         if (!network && !members.length) continue;
@@ -332,6 +385,6 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
       }
       return bodies;
     },
-    dispose() { disposed = true; version++; abort.abort(); networkDialog.close(); memberDialog.close(); networks = []; host.hidden = true; },
+    dispose() { disposed = true; version++; pageVersion++; clearTimeout(searchTimer); abort.abort(); networkDialog.close(); memberDialog.close(); networks = []; host.hidden = true; filters.hidden = true; pagination.hidden = true; noResults.hidden = true; },
   };
 }

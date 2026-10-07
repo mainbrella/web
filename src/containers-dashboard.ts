@@ -254,7 +254,8 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       const row = document.createElement('tr');
       row.className = 'machine-table-row';
       const member = privateServices.membership(container);
-      const body = groups.get(member?.network ?? '')!;
+      const body = groups.get(member?.network ?? '');
+      if (!body) continue;
       row.dataset.containerId = container.id;
       row.dataset.createdAt = container.createdAt;
       const details = document.createElement('td');
