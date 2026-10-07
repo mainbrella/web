@@ -110,6 +110,20 @@ h3 { font-size: 18px; line-height: 1.4; letter-spacing: -.015em; }
 .legal-content h2 { margin-top: 32px; font-size: 20px; line-height: 1.4; letter-spacing: 0; }
 .legal-content p { margin-top: 12px; }
 .legal-content a { color: var(--blue); text-decoration: underline; text-underline-offset: 4px; }
+.press-article { margin-top: 32px; }
+.press-wordmark { width: 166px; height: auto; }
+.press-article-body { display: grid; grid-template-columns: 240px minmax(0, 1fr); align-items: start; gap: 24px; margin-top: 20px; }
+.press-thumbnail { display: block; overflow: hidden; border-radius: 6px; }
+.press-thumbnail img { width: 100%; height: auto; }
+.press-content .press-article h2 { margin-top: 0; font-size: 22px; line-height: 1.4; }
+.press-content .press-article h2 a { color: var(--ink); text-decoration: none; }
+.press-content .press-article h2 a:hover { color: var(--blue); text-decoration: underline; }
+.press-content .press-byline { color: var(--muted); font-size: 14px; }
+.press-byline span { margin: 0 4px; }
+.press-resources { margin-top: 32px; }
+@media (max-width: 600px) {
+  .press-article-body { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}
 @media (max-width: 1000px) {
   .wrap { padding-right: 32px; padding-left: 32px; }
   .hero { gap: 32px; padding-top: 48px; padding-bottom: 48px; }
