@@ -75,10 +75,14 @@ export function siteChromePlugin(): Plugin {
             .replace('</body>', '<script type="module" src="/src/agent-setup.ts"></script>\n  </body>');
         }
         const { header, footer } = siteChrome(context.path);
-        return html.replace('<!-- site-header -->', header).replace('<!-- site-footer -->', footer)
+        html = html.replace('<!-- site-header -->', header).replace('<!-- site-footer -->', footer)
           .replace('<!-- app-header -->', appChrome(context.path))
-          .replace('<!-- cookie-consent -->', cookieDialog)
-          .replace('</body>', '<script type="module" src="/src/acquisition.ts"></script>\n  </body>');
+          .replace('<!-- cookie-consent -->', cookieDialog);
+        // Every entry page needs a dialog, including pages without a placeholder.
+        if (!html.includes('id="cookie-consent"')) {
+          html = html.replace('</body>', `${cookieDialog}  </body>`);
+        }
+        return html.replace('</body>', '<script type="module" src="/src/acquisition.ts"></script>\n  </body>');
       },
     },
   };

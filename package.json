@@ -7,6 +7,7 @@
     "build": "npm run type-check && vite build",
     "preview": "wrangler dev",
     "deploy": "npm run build && wrangler deploy",
+    "deploy:redirect": "wrangler deploy --config wrangler.redirect.jsonc",
     "test": "tsx --test src/*.test.ts scripts/*.test.mjs",
     "docs:sync": "node scripts/sync-agent-docs.mjs",
     "docs:check": "node scripts/sync-agent-docs.mjs --check",

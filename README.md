@@ -8,9 +8,15 @@ npm run type-check # Strict TypeScript checks, including browser tests
 npm run build     # Type-check, then build the static site into dist/
 npm run preview   # Preview the built site with Wrangler
 npm run deploy    # Build, then deploy dist/ with Wrangler
+npm run deploy:redirect # Deploy the www.mainbrella.com redirect
 npm run doctor    # Read-only agent setup diagnostics (MAINBRELLA_API_KEY)
 npm run verify:agent # Create, execute hello over HTTP, and clean up; consumes one start
 ```
+
+`www.mainbrella.com` uses a separate Worker configured in
+`wrangler.redirect.jsonc`. It returns a permanent 301 redirect to
+`https://mainbrella.com`, preserving paths and query strings. Deploying it
+provisions the custom domain's DNS and TLS through Cloudflare.
 
 Browser code in `src/`, its tests, the Vite configuration, and build plugins use
 strict TypeScript. Vite compiles browser modules to JavaScript; `tsx` runs the

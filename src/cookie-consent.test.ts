@@ -5,13 +5,15 @@ import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
 import { createRequire, registerHooks } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import config from '../vite.config.ts';
+import { siteChromePlugin } from '../scripts/site-chrome-plugin.ts';
 
 const preferences = await readFile(new URL('./cookie-preferences.ts', import.meta.url), 'utf8');
 const modal = await readFile(new URL('./cookie-consent.ts', import.meta.url), 'utf8');
 const source = transpileModule(preferences.replace(/^export /gm, '') + '\n' + modal.replace(/^import .*;\n/m, ''), { compilerOptions: { target: ScriptTarget.ES2022, module: ModuleKind.None } }).outputText;
 const consentKey = 'mainbrella-cookie-consent';
 
-function visit({ local = new Map(), session = new Map(), blockedLocal = false, blockedSession = false } = {}) {
+function visit({ local = new Map(), session = new Map(), blockedLocal = false, blockedSession = false, html = '<dialog id="cookie-consent">' } = {}) {
   const scripts: string[] = [];
   const scriptElements: { src: string; id?: string; async?: boolean }[] = [];
   const cookieWrites: string[] = [];
@@ -30,7 +32,7 @@ function visit({ local = new Map(), session = new Map(), blockedLocal = false, b
   });
   const window = { localStorage: storage(local, blockedLocal), sessionStorage: storage(session, blockedSession), dispatchEvent() {} };
   const document = {
-    querySelector: (selector: string) => selector === '#cookie-consent' ? dialog : { focus() {} },
+    querySelector: (selector: string) => selector === '#cookie-consent' ? (html.includes('id="cookie-consent"') ? dialog : null) : { focus() {} },
     querySelectorAll: () => [settings],
     documentElement: { classList: { add() {}, remove() {} } },
     createElement: (tag: string) => ({ tag }),
@@ -44,6 +46,40 @@ function visit({ local = new Map(), session = new Map(), blockedLocal = false, b
     choose(choice: string) { listeners.get('click')({ target: { closest: () => ({ dataset: { consent: choice } }) } }); },
   };
 }
+
+test('every page entry includes one working consent dialog before tracking can load', async () => {
+  const hook = siteChromePlugin().transformIndexHtml;
+  assert.ok(hook && typeof hook === 'object' && 'handler' in hook);
+  const pluginContext = {} as ThisParameterType<typeof hook.handler>;
+  const inputs = config.build?.rollupOptions?.input as Record<string, string>;
+  assert.ok(Object.keys(inputs).length > 0);
+  for (const filename of Object.values(inputs)) {
+    const path = '/' + filename.slice(new URL('../', import.meta.url).pathname.length);
+    const html: unknown = await hook.handler.call(pluginContext, await readFile(filename, 'utf8'), { path, filename });
+    assert.equal(typeof html, 'string');
+    if (typeof html !== 'string') throw new Error('Expected rendered HTML');
+    assert.equal((html.match(/id="cookie-consent"/g) || []).length, 1, path);
+    assert.match(html, /src="\/src\/acquisition\.ts"/, path);
+    assert.match(html, /data-consent="accepted"/, path);
+    assert.match(html, /data-consent="rejected"/, path);
+
+    const first = visit({ html });
+    assert.equal(first.dialog.open, true, path);
+    assert.deepEqual(first.scripts, [], path);
+    assert.deepEqual(first.cookieWrites, [], path);
+    first.choose('rejected');
+    const returning = visit({ html, local: first.local });
+    assert.equal(returning.dialog.open, false, path);
+    assert.deepEqual(returning.scripts, [], path);
+    assert.deepEqual(returning.cookieWrites, [], path);
+    returning.reopen();
+    returning.choose('accepted');
+    assert.equal(returning.scripts.length, 4, path);
+    const accepted = visit({ html, local: returning.local });
+    assert.equal(accepted.dialog.open, false, path);
+    assert.equal(accepted.scripts.length, 4, path);
+  }
+});
 
 test('first visit and Reject All never load trackers or write cookies, including after reload', () => {
   const first = visit();
