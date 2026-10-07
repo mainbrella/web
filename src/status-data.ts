@@ -7,13 +7,15 @@ export const components: Record<string, string> = {
   ssh: 'SSH gateway', images: 'Image builds', billing: 'Billing',
 };
 const states = new Set(['operational', 'degraded', 'outage', 'unknown']);
+const coreComponents = new Set(['website', 'api', 'auth']);
 export function currentComponents(status: Partial<PublicStatus> | null, now = Date.now()) {
   const freshness = Math.min((status?.staleAfterMs ?? 0) > 0 ? status!.staleAfterMs! : 900_000, 900_000);
-  return Object.entries(components).map(([component, name]) => {
+  return Object.entries(components).flatMap(([component, name]) => {
     const record = status?.components?.find(item => item?.component === component);
     const timestamp = Date.parse(record?.checkedAt ?? "");
+    if (!coreComponents.has(component) && !Number.isFinite(timestamp)) return [];
     const fresh = Number.isFinite(timestamp) && timestamp <= now && now - timestamp < freshness && record?.stale !== true;
-    return { ...record, component, name, state: fresh && states.has(record?.state ?? "") ? record!.state : 'unknown' };
+    return [{ ...record, component, name, state: fresh && states.has(record?.state ?? "") ? record!.state : 'unknown' }];
   });
 }
 export function historyPath(input: unknown) {

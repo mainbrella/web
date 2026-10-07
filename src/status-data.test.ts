@@ -27,13 +27,30 @@ test('missing, future, and invalid observations are unknown', () => {
   assert.equal(values.get('website'), 'unknown');
 });
 
-test('current status always includes all seven known components', () => {
+test('unobserved workflow components are omitted while core components remain visible', () => {
   const rows = currentComponents({ components: [] }, now);
 
-  assert.equal(rows.length, 7);
+  assert.deepEqual(rows.map(item => item.component), ['website', 'api', 'auth']);
+  assert.deepEqual(rows.map(item => item.name), ['Website', 'API', 'Authentication']);
+  assert.ok(rows.every(item => item.state === 'unknown'));
+  assert.deepEqual(currentComponents(null, now), rows);
+});
+
+test('workflow placeholders are hidden and recorded workflow checks retain their health state', () => {
+  const workflows = ['provisioning', 'ssh', 'images', 'billing'];
+  const placeholders = workflows.map(component => ({ component, state: 'unknown' }));
+  assert.equal(currentComponents({ components: placeholders }, now).length, 3);
+
+  const observations = workflows.map((component, index) => ({
+    component,
+    state: index === 0 ? 'degraded' : 'operational',
+    checkedAt: new Date(now).toISOString(),
+  }));
+  const rows = currentComponents({ components: observations }, now);
   assert.deepEqual(rows.map(item => item.component), Object.keys(components));
   assert.deepEqual(rows.map(item => item.name), Object.values(components));
-  assert.ok(rows.every(item => item.state === 'unknown'));
+  assert.deepEqual(rows.slice(3).map(item => item.state), ['degraded', 'operational', 'operational', 'operational']);
+  assert.ok(currentComponents({ components: observations }, now + 900_000).slice(3).every(item => item.state === 'unknown'));
 });
 
 test('explicitly stale observations stay unknown even while their timestamp is fresh', () => {
