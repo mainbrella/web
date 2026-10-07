@@ -106,7 +106,7 @@ export function createContainerObservations({ onUnauthenticated }: Pick<ClientOp
       button.setAttribute('aria-controls', host.id);
       button.onclick = () => {
         abort?.abort(); version++; busy = false; selected = { ...container }; sourceButton = button; events = []; cursor = 0;
-        title.textContent = `History · ${container.imageName || container.name || container.id}`;
+        title.textContent = `History · ${container.name || container.imageName || container.id}`;
         identity.textContent = `${container.id} · Created ${new Date(container.createdAt).toLocaleString()}`;
         webhooks.select(container, capabilities.webhooks === true);
         rows.replaceChildren(); metrics.hidden = true; more.hidden = true; host.hidden = false; title.focus(); load();

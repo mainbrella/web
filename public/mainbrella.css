@@ -450,18 +450,18 @@ button:disabled { opacity: .65; cursor: wait; }
 .container-image-picker { flex-wrap: wrap; }
 .container-image-picker .dashboard-status { flex-basis: 100%; margin: 0; }
 .container-image-picker label { flex-shrink: 0; }
-.container-image-picker select { flex: 1; min-width: 0; max-width: 100%; }
+.container-image-picker :is(select, input) { flex: 1; min-width: 0; max-width: 100%; }
 .image-form-details { margin-top: 16px; }
 .image-form-details summary { cursor: pointer; min-height: 44px; display: list-item; align-content: center; }
 .image-form { display: grid; gap: 8px; max-width: 640px; padding: 8px 0; }
 .image-form label { margin-top: 8px; font-weight: 600; }
 .image-form label span { font-weight: 400; }
-.image-form input, .image-form textarea, .container-image-picker select { box-sizing: border-box; width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid #465260; border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; }
+.image-form input, .image-form textarea, .container-image-picker :is(select, input) { box-sizing: border-box; width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid #465260; border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; }
 .image-form input[type="file"] { padding: 8px; font-size: 14px; }
 .image-form textarea { font: 13px/1.5 monospace; resize: vertical; }
 .image-form .dashboard-status { font-size: 14px; }
 .image-form .button { justify-self: start; margin-top: 8px; min-height: 44px; }
-.image-form input:focus-visible, .image-form textarea:focus-visible, .container-image-picker select:focus-visible, .image-form-details summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.image-form input:focus-visible, .image-form textarea:focus-visible, .container-image-picker :is(select, input):focus-visible, .image-form-details summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 .image-logs { margin-top: 16px; min-width: 0; }
 .image-logs pre { max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px; margin-top: 12px; background: var(--surface); font: 13px/1.5 monospace; }
 

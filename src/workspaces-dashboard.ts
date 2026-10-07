@@ -72,8 +72,8 @@ export function createWorkspacesDashboard({onUnauthenticated,onChanged}: { onUna
     }catch(caught){ const cause = caught instanceof Error ? caught : new Error("Unexpected error");if(!disposed){error.textContent=messages[cause.message]??(action==='restore'?'Restore may have started. Refresh containers before retrying.':'Could not update this workspace. Refresh to check its state.');error.hidden=false;}}
     finally{busy=false;if(!disposed){controls();await onChanged();await load();}}
   }
-  function open(container: ContainerIdentity & { imageName?: string }){
-    selected=pending?pending.container:container;if(!pending){name.value=container.imageName||'My workspace';stop.checked=false;}
+  function open(container: ContainerIdentity & { name?: string; imageName?: string }){
+    selected=pending?pending.container:container;if(!pending){name.value=container.name||container.imageName||'My workspace';stop.checked=false;}
     dialogError.hidden=true;dialogStatus.textContent=pending?'Retry uses the original save request.':'';controls();dialog.showModal();name.focus();
   }
   form.onsubmit=async event=>{

@@ -55,7 +55,7 @@
 .launch-heading { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 20px; }
 .dashboard-body .container-image-picker { display: flex; flex-wrap: nowrap; gap: 12px; width: 100%; margin: 0 0 20px; }
 .dashboard-body .container-image-picker label { color: var(--muted); font-size: 13px; }
-.dashboard-body .container-image-picker select { min-height: 44px; padding: 8px 32px 8px 12px; border-color: var(--control-border); background-color: var(--paper); font-size: 13px; cursor: pointer; }
+.dashboard-body .container-image-picker :is(select, input) { min-height: 44px; padding: 8px 32px 8px 12px; border-color: var(--control-border); background-color: var(--paper); font-size: 13px; cursor: pointer; }
 .machine-picker { min-width: 0; margin: 0; padding: 0; border: 0; }
 .machine-picker legend { margin-bottom: 8px; padding: 0; color: var(--muted); font-size: 12px; }
 .machine-options { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }

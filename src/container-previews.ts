@@ -186,7 +186,7 @@ export function createContainerPreviews({ onUnauthenticated }: Pick<ClientOption
     panel.id = `previews-${container.id}`;
     panel.hidden = true;
     panel.setAttribute('role', 'group');
-    panel.setAttribute('aria-label', `Previews for ${container.imageName || container.id}`);
+    panel.setAttribute('aria-label', `Previews for ${container.name || container.imageName || container.id}`);
     toggle.setAttribute('aria-controls', panel.id);
     const form = document.createElement('form');
     const label = document.createElement('label');

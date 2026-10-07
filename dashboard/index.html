@@ -128,6 +128,11 @@
             <h2 id="launch-title">New container</h2>
             <button id="container-launch-close" class="dashboard-retry" type="button" aria-label="Close new container dialog">Close</button>
           </div>
+          <form id="container-launch-form">
+          <div class="container-image-picker">
+            <label for="container-name">Name</label>
+            <input id="container-name" type="text" required maxlength="80" autocomplete="off" placeholder="My container" disabled>
+          </div>
           <div class="container-image-picker">
             <label for="container-image">Image</label>
             <select id="container-image" disabled><option value="">Node 24 + TypeScript</option></select>
@@ -141,10 +146,11 @@
               <p id="container-size-rate" class="dashboard-status"></p>
               <p id="container-limits" class="dashboard-status">Checking your plan’s container limits…</p>
             </div>
-            <button id="container-create" class="button button-small" type="button" disabled aria-describedby="container-limits container-size-rate">Create container</button>
+            <button id="container-create" class="button button-small" type="submit" disabled aria-describedby="container-limits container-size-rate">Create container</button>
           </div>
           <p id="container-launch-status" class="dashboard-status" role="status"></p>
           <p id="container-launch-error" class="dashboard-error" role="alert" hidden></p>
+          </form>
         </dialog>
         <details id="saved-workspaces" class="dashboard-images" hidden>
           <summary>Saved workspaces</summary>
