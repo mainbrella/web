@@ -1,4 +1,10 @@
 import type { Plugin } from 'vite';
+import { readFile } from 'node:fs/promises';
+
+const agentCopyButton = `<button class="agent-copy-cta" type="button" data-copy-agent-setup aria-describedby="hero-agent-copy-status" hidden>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="12" height="15" rx="1.5" /><path d="M4 7v14h12" /></svg>
+  <span>Setup for agents</span>
+</button>`;
 
 const navigation: [string, string][] = [
   ['Docs', '/docs/'], ['Pricing', '/pricing/'],
@@ -61,7 +67,13 @@ export function siteChromePlugin(): Plugin {
     name: 'site-chrome',
     transformIndexHtml: {
       order: 'pre',
-      handler(html, context) {
+      async handler(html, context) {
+        if (html.includes('<!-- agent-setup -->')) {
+          const setup = await readFile(new URL('../partials/agent-setup.html', import.meta.url), 'utf8');
+          html = html.replace('<!-- agent-setup -->', setup)
+            .replace('<!-- agent-copy-cta -->', agentCopyButton)
+            .replace('</body>', '<script type="module" src="/src/agent-setup.ts"></script>\n  </body>');
+        }
         const { header, footer } = siteChrome(context.path);
         return html.replace('<!-- site-header -->', header).replace('<!-- site-footer -->', footer)
           .replace('<!-- app-header -->', appChrome(context.path))
