@@ -136,6 +136,15 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
   const abort = new AbortController();
   const client = createPrivateServicesClient({ onUnauthenticated, signal: abort.signal });
   let networks: PrivateNetwork[] = [], containers: Container[] = [];
+  const memberships = new Map<string, { network: string; member: PrivateMember }>();
+
+  function setNetworks(value: PrivateNetwork[]) {
+    networks = value;
+    memberships.clear();
+    for (const network of networks) for (const member of network.members) {
+      memberships.set(generationKey(member), { network: network.name, member });
+    }
+  }
   let active = false;
   let supported = false, known = false, busy = false, externalBusy = false, disposed = false, version = 0;
   let editing: { network: string; member: PrivateMember } | null = null;
@@ -204,7 +213,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
     try {
       const result = await client.list();
       if (disposed || current !== version) return;
-      networks = result; known = true; host.hidden = !supported && !networks.length; feedback(''); await loadPage(); onChanged();
+      setNetworks(result); known = true; host.hidden = !supported && !networks.length; feedback(''); await loadPage(); onChanged();
     } catch {
       if (disposed || current !== version) return;
       known = false;
@@ -240,7 +249,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
         try {
           const result = await client.list();
           if (disposed || current !== version) return;
-          networks = result; known = true;
+          setNetworks(result); known = true;
           await loadPage();
           host.hidden = !supported && !networks.length;
         }
@@ -279,11 +288,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
   }
 
   function membership(machine: ContainerIdentity) {
-    for (const network of networks) {
-      const member = network.members.find(value => generationKey(value) === generationKey(machine));
-      if (member) return { network: network.name, member };
-    }
-    return null;
+    return memberships.get(generationKey(machine)) ?? null;
   }
 
   function privateButton(text: string, click: () => void, unavailable = false) {
@@ -346,14 +351,19 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
       if (supported) actions.append(privateButton(member ? 'Edit service' : 'Attach to network', () => openMember(member?.network, machine, member?.member), machine.status !== 'running' || !networks.length));
       if (member) actions.append(privateButton('Detach', () => detach(member.network, member.member)));
     },
-    buildGroups(list: HTMLElement, machines: Container[], view: 'containers' | 'networks') {
-      const bodies = new Map<string, HTMLTableSectionElement>();
+    buildGroups(list: HTMLElement, machines: Container[], view: 'containers' | 'networks', renderMembers: (body: HTMLTableSectionElement, members: Container[]) => void) {
+      const machinesByNetwork = new Map<string, Container[]>();
+      for (const machine of machines) {
+        const key = this.membership(machine)?.network ?? '';
+        const members = machinesByNetwork.get(key) ?? [];
+        members.push(machine); machinesByNetwork.set(key, members);
+      }
+      const machineKeys = new Set(containers.map(generationKey));
       const groups = view === 'networks' ? (known ? visibleNetworks : []) : [null];
       for (const network of groups) {
-        const key = network?.name ?? '', members = machines.filter(machine => (this.membership(machine)?.network ?? '') === key);
+        const key = network?.name ?? '', members = machinesByNetwork.get(key) ?? [];
         if (!network && !members.length) continue;
         const group = document.createElement('details'); group.className = 'machine-group'; group.open = collapse.get(key) ?? !network;
-        group.ontoggle = () => { if (group.isConnected) collapse.set(key, group.open); };
         const summary = document.createElement('summary');
         const title = document.createElement('strong'); title.textContent = network?.name ?? (this.visible && !known ? 'Containers' : 'Standalone containers');
         const count = document.createElement('span'); count.className = 'section-count'; count.textContent = String(network?.members.length ?? members.length);
@@ -361,34 +371,48 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
         const note = document.createElement('span'); note.className = 'dashboard-status group-note';
         note.textContent = network ? 'Private HTTP services · public previews are opt-in' : this.visible && !known ? 'Network membership unavailable' : 'Containers without private service attachments';
         summary.append(title, count); if (network) summary.append(label); summary.append(note); group.append(summary);
-        if (network) {
-          const tools = document.createElement('div'); tools.className = 'container-actions group-tools';
-          if (supported) tools.append(privateButton('Attach machine', () => openMember(network.name), !containers.some(machine => machine.status === 'running' && !membership(machine))));
-          tools.append(privateButton('Delete network', () => { if (window.confirm(`Delete empty network ${network.name}?`)) operate(() => client.delete(network.name), 'Network deleted.'); }, network.members.length > 0));
-          tools.lastElementChild!.setAttribute('title', network.members.length ? 'Detach all machines before deleting this network.' : 'Delete this empty network');
-          group.append(tools);
-        }
-        const table = document.createElement('table'); table.className = 'machine-table'; table.setAttribute('aria-label', network ? `Machines in ${network.name}` : 'Standalone containers');
-        const head = table.createTHead().insertRow();
-        for (const [index, text] of ['Name', 'Status', 'Image', 'Private service', 'Last started', 'Actions'].entries()) {
-          const cell = document.createElement('th'); cell.scope = 'col'; cell.textContent = text; cell.className = `machine-column-${index}`; head.append(cell);
-        }
-        const body = table.createTBody(); bodies.set(key, body); group.append(table); list.append(group);
-        if (network) for (const member of network.members.filter(member => !containers.some(machine => generationKey(member) === generationKey(machine)))) {
-          const row = body.insertRow(); row.className = 'machine-table-row stale-member';
-          const info = row.insertCell(); info.textContent = member.name;
-          const identity = document.createElement('code'); identity.className = 'machine-identity'; identity.textContent = member.id; info.append(identity);
-          row.insertCell().textContent = containers.some(machine => machine.id === member.id) ? 'Replaced' : 'Not running';
-          row.insertCell().textContent = '—';
-          const address = row.insertCell(); address.textContent = member.port === undefined ? 'Caller only' : `http://${member.name}.internal → ${member.port}`;
-          row.insertCell().textContent = new Date(member.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-          row.insertCell().append(privateButton('Detach', () => detach(network.name, member)));
-          [...row.cells].forEach((cell, index) => { cell.className += ` machine-column-${index}`; cell.dataset.label = head.cells[index].textContent!; });
-        }
-        if (network && !network.members.length) { const cell = body.insertRow().insertCell(); cell.colSpan = 6; cell.className = 'dashboard-status group-empty'; cell.textContent = 'No machines attached.'; }
+        let populated = false;
+        const populate = () => {
+          if (populated) return;
+          populated = true;
+          if (network) {
+            const tools = document.createElement('div'); tools.className = 'container-actions group-tools';
+            if (supported) tools.append(privateButton('Attach machine', () => openMember(network.name), !containers.some(machine => machine.status === 'running' && !membership(machine))));
+            tools.append(privateButton('Delete network', () => { if (window.confirm(`Delete empty network ${network.name}?`)) operate(() => client.delete(network.name), 'Network deleted.'); }, network.members.length > 0));
+            tools.lastElementChild!.setAttribute('title', network.members.length ? 'Detach all machines before deleting this network.' : 'Delete this empty network');
+            group.append(tools);
+          }
+          const table = document.createElement('table'); table.className = 'machine-table'; table.setAttribute('aria-label', network ? `Machines in ${network.name}` : 'Standalone containers');
+          const head = table.createTHead().insertRow();
+          for (const [index, text] of ['Name', 'Status', 'Image', 'Private service', 'Last started', 'Actions'].entries()) {
+            const cell = document.createElement('th'); cell.scope = 'col'; cell.textContent = text; cell.className = `machine-column-${index}`; head.append(cell);
+          }
+          const body = table.createTBody(); group.append(table);
+          if (network) for (const member of network.members.filter(member => !machineKeys.has(generationKey(member)))) {
+            const row = body.insertRow(); row.className = 'machine-table-row stale-member';
+            const info = row.insertCell(); info.textContent = member.name;
+            const identity = document.createElement('code'); identity.className = 'machine-identity'; identity.textContent = member.id; info.append(identity);
+            row.insertCell().textContent = containers.some(machine => machine.id === member.id) ? 'Replaced' : 'Not running';
+            row.insertCell().textContent = '—';
+            const address = row.insertCell(); address.textContent = member.port === undefined ? 'Caller only' : `http://${member.name}.internal → ${member.port}`;
+            row.insertCell().textContent = new Date(member.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+            row.insertCell().append(privateButton('Detach', () => detach(network.name, member)));
+            [...row.cells].forEach((cell, index) => { cell.className += ` machine-column-${index}`; cell.dataset.label = head.cells[index].textContent!; });
+          }
+          if (network && !network.members.length) { const cell = body.insertRow().insertCell(); cell.colSpan = 6; cell.className = 'dashboard-status group-empty'; cell.textContent = 'No machines attached.'; }
+          renderMembers(body, members);
+          controls();
+        };
+        group.ontoggle = () => {
+          if (!group.isConnected) return;
+          collapse.set(key, group.open);
+          if (group.open) populate();
+        };
+        // Collapsed networks only need their summary until the user opens them.
+        if (group.open) populate();
+        list.append(group);
       }
-      return bodies;
     },
-    dispose() { disposed = true; version++; pageVersion++; clearTimeout(searchTimer); abort.abort(); networkDialog.close(); memberDialog.close(); networks = []; host.hidden = true; filters.hidden = true; pagination.hidden = true; noResults.hidden = true; },
+    dispose() { disposed = true; version++; pageVersion++; clearTimeout(searchTimer); abort.abort(); networkDialog.close(); memberDialog.close(); setNetworks([]); host.hidden = true; filters.hidden = true; pagination.hidden = true; noResults.hidden = true; },
   };
 }

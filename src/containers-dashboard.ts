@@ -258,133 +258,133 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     const focus = focusedRow ? { id: focusedRow.dataset.containerId, createdAt: focusedRow.dataset.createdAt,
       action: focused!.dataset.action, start: (focused as HTMLInputElement).selectionStart, end: (focused as HTMLInputElement).selectionEnd } : null;
     list.replaceChildren();
-    const groups = privateServices.buildGroups(list, rows, activeTab === 'networks' ? 'networks' : 'containers');
-    for (const container of rows) {
-      const row = document.createElement('tr');
-      row.className = 'machine-table-row';
-      const member = privateServices.membership(container);
-      const body = groups.get(member?.network ?? '');
-      if (!body) continue;
-      row.dataset.containerId = container.id;
-      row.dataset.createdAt = container.createdAt;
-      const details = document.createElement('td');
-      details.className = 'machine-column-0';
-      details.dataset.label = 'Name';
-      details.classList.add('container-details');
-      const heading = document.createElement('div');
-      heading.className = 'container-row-heading';
-      const name = document.createElement('strong');
-      name.textContent = container.name || member?.member.name || container.id;
-      const state = document.createElement('p');
-      state.className = 'dashboard-status';
-      const expiry = new Date(container.expiresAt);
-      const expiryOptions: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit',
-        ...(expiry.toDateString() !== new Date().toDateString() ? { month: 'short', day: 'numeric' } : {}) };
-      const running = container.status === 'running';
-      const badge = document.createElement('span');
-      badge.className = 'container-state';
-      badge.dataset.state = container.status;
-      badge.textContent = running ? 'Running' : container.status === 'starting' ? 'Starting…' : container.status === 'stopping' ? 'Stopping…' : container.status;
-      heading.append(name);
-      const identity = document.createElement('code');
-      identity.textContent = container.id.slice(0, 8); identity.title = container.id;
-      state.append(identity);
-      if (container.size) {
-        const size = document.createElement('span');
-        size.textContent = data.sizes?.find(item => item.id === container.size)?.name ?? container.size;
-        state.append(size);
-      }
-      const expires = document.createElement('span');
-      expires.textContent = `Stops by ${expiry.toLocaleString([], expiryOptions)}`;
-      state.append(expires);
-      const stop = document.createElement('button');
-      stop.type = 'button';
-      stop.className = 'dashboard-retry button-danger';
-      stop.textContent = 'Stop';
-      stop.dataset.action = 'stop';
-      stop.setAttribute('aria-label', `Stop ${container.name || container.id}`);
-      stop.addEventListener('click', () => {
-        if (window.confirm(`Stop ${container.name || container.id}? Its files will be lost.`)) mutate('DELETE', container.id, container.createdAt);
-      });
-      details.append(heading, state);
-      const actions = document.createElement('div');
-      actions.className = 'container-actions';
-      const connect = document.createElement('button');
-      connect.type = 'button';
-      connect.className = 'dashboard-retry';
-      connect.textContent = 'SSH';
-      connect.dataset.action = 'ssh';
-      connect.dataset.requiresRunning = 'true';
-      connect.dataset.running = String(running);
-      connect.addEventListener('click', () => connectSSH(container));
-      const shell = document.createElement('button');
-      shell.type = 'button';
-      shell.className = 'dashboard-retry container-terminal-action';
-      shell.textContent = 'Open terminal';
-      shell.dataset.action = 'terminal';
-      shell.dataset.requiresRunning = 'true';
-      shell.dataset.running = String(running);
-      shell.addEventListener('click', () => connectTerminal(container));
-      const menu = document.createElement('details'); menu.className = 'container-action-menu';
-      const menuToggle = document.createElement('summary'); menuToggle.textContent = '•••';
-      menuToggle.setAttribute('aria-label', `Actions for ${container.name || member?.member.name || container.id}`);
-      const menuActions = document.createElement('div'); menuActions.className = 'container-menu-items';
-      menuActions.append(connect, stop); menu.append(menuToggle, menuActions); actions.append(shell, menu);
-      const cell = (text: string, index: number, label: string) => {
-        const td = document.createElement('td'); td.className = `machine-column-${index}`; td.dataset.label = label; td.textContent = text; return td;
-      };
-      const stateCell = cell('', 1, 'Status'); stateCell.append(badge);
-      const imageCell = cell(container.imageName || '—', 2, 'Image');
-      const serviceCell = cell(member ? member.member.port === undefined ? 'Caller only' : `http://${member.member.name}.internal` : '—', 3, 'Private service');
-      if (member?.member.port !== undefined) {
-        const port = document.createElement('span'); port.className = 'private-port'; port.textContent = `Port ${member.member.port}`; serviceCell.append(port);
-      }
-      const started = cell(new Date(container.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }), 4, 'Last started');
-      const actionsCell = cell('', 5, 'Actions'); actionsCell.append(actions);
-      row.append(details, stateCell, imageCell, serviceCell, started, actionsCell); body.append(row);
-      const expansion = document.createElement('tr'); expansion.className = 'machine-preview-row';
-      const expansionCell = document.createElement('td'); expansionCell.colSpan = 6; expansion.append(expansionCell);
-      previews.attach(expansionCell, menuActions, container);
-      observations.attach(menuActions, container);
-      workspaces.attach(menuActions,container);
-      privateServices.attach(menuActions, container);
-      menuActions.append(stop);
-      if (expansionCell.children.length) body.append(expansion);
-      if (access?.id === container.id) {
-        const connectionRow = document.createElement('tr'); connectionRow.className = 'machine-ssh-row';
-        const connection = document.createElement('td'); connection.colSpan = 6; connectionRow.append(connection);
-        connection.className = 'container-ssh';
-        connection.dataset.containerId = container.id;
-        connection.dataset.createdAt = container.createdAt;
-        const label = document.createElement('label');
-        label.textContent = 'SSH command';
-        const command = document.createElement('textarea');
-        command.readOnly = true;
-        command.rows = 3;
-        command.value = access.command;
-        command.dataset.action = 'ssh-command';
-        label.append(command);
-        const copy = document.createElement('button');
-        copy.type = 'button';
-        copy.className = 'dashboard-retry';
-        copy.textContent = 'Copy command';
-        copy.dataset.action = 'copy';
-        copy.addEventListener('click', async () => {
-          try { await navigator.clipboard.writeText(command.value); copy.textContent = 'Copied'; }
-          catch { command.focus(); command.select(); }
+    privateServices.buildGroups(list, rows, activeTab === 'networks' ? 'networks' : 'containers', (body, members) => {
+      for (const container of members) {
+        const row = document.createElement('tr');
+        row.className = 'machine-table-row';
+        const member = privateServices.membership(container);
+        row.dataset.containerId = container.id;
+        row.dataset.createdAt = container.createdAt;
+        const details = document.createElement('td');
+        details.className = 'machine-column-0';
+        details.dataset.label = 'Name';
+        details.classList.add('container-details');
+        const heading = document.createElement('div');
+        heading.className = 'container-row-heading';
+        const name = document.createElement('strong');
+        name.textContent = container.name || member?.member.name || container.id;
+        const state = document.createElement('p');
+        state.className = 'dashboard-status';
+        const expiry = new Date(container.expiresAt);
+        const expiryOptions: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit',
+          ...(expiry.toDateString() !== new Date().toDateString() ? { month: 'short', day: 'numeric' } : {}) };
+        const running = container.status === 'running';
+        const badge = document.createElement('span');
+        badge.className = 'container-state';
+        badge.dataset.state = container.status;
+        badge.textContent = running ? 'Running' : container.status === 'starting' ? 'Starting…' : container.status === 'stopping' ? 'Stopping…' : container.status;
+        heading.append(name);
+        const identity = document.createElement('code');
+        identity.textContent = container.id.slice(0, 8); identity.title = container.id;
+        state.append(identity);
+        if (container.size) {
+          const size = document.createElement('span');
+          size.textContent = data?.sizes?.find(item => item.id === container.size)?.name ?? container.size;
+          state.append(size);
+        }
+        const expires = document.createElement('span');
+        expires.textContent = `Stops by ${expiry.toLocaleString([], expiryOptions)}`;
+        state.append(expires);
+        const stop = document.createElement('button');
+        stop.type = 'button';
+        stop.className = 'dashboard-retry button-danger';
+        stop.textContent = 'Stop';
+        stop.dataset.action = 'stop';
+        stop.setAttribute('aria-label', `Stop ${container.name || container.id}`);
+        stop.addEventListener('click', () => {
+          if (window.confirm(`Stop ${container.name || container.id}? Its files will be lost.`)) mutate('DELETE', container.id, container.createdAt);
         });
-        const note = document.createElement('p');
-        note.className = 'dashboard-status';
-        note.textContent = `Requires cloudflared on your computer. Access expires at ${new Date(access.expiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}. Keep this command private.`;
-        const install = document.createElement('a');
-        install.href = 'https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/';
-        install.textContent = 'Install cloudflared';
-        install.target = '_blank';
-        install.rel = 'noopener noreferrer';
-        connection.append(label, copy, note, install);
-        body.append(connectionRow);
+        details.append(heading, state);
+        const actions = document.createElement('div');
+        actions.className = 'container-actions';
+        const connect = document.createElement('button');
+        connect.type = 'button';
+        connect.className = 'dashboard-retry';
+        connect.textContent = 'SSH';
+        connect.dataset.action = 'ssh';
+        connect.dataset.requiresRunning = 'true';
+        connect.dataset.running = String(running);
+        connect.addEventListener('click', () => connectSSH(container));
+        const shell = document.createElement('button');
+        shell.type = 'button';
+        shell.className = 'dashboard-retry container-terminal-action';
+        shell.textContent = 'Open terminal';
+        shell.dataset.action = 'terminal';
+        shell.dataset.requiresRunning = 'true';
+        shell.dataset.running = String(running);
+        shell.addEventListener('click', () => connectTerminal(container));
+        const menu = document.createElement('details'); menu.className = 'container-action-menu';
+        const menuToggle = document.createElement('summary'); menuToggle.textContent = '•••';
+        menuToggle.setAttribute('aria-label', `Actions for ${container.name || member?.member.name || container.id}`);
+        const menuActions = document.createElement('div'); menuActions.className = 'container-menu-items';
+        menuActions.append(connect, stop); menu.append(menuToggle, menuActions); actions.append(shell, menu);
+        const cell = (text: string, index: number, label: string) => {
+          const td = document.createElement('td'); td.className = `machine-column-${index}`; td.dataset.label = label; td.textContent = text; return td;
+        };
+        const stateCell = cell('', 1, 'Status'); stateCell.append(badge);
+        const imageCell = cell(container.imageName || '—', 2, 'Image');
+        const serviceCell = cell(member ? member.member.port === undefined ? 'Caller only' : `http://${member.member.name}.internal` : '—', 3, 'Private service');
+        if (member?.member.port !== undefined) {
+          const port = document.createElement('span'); port.className = 'private-port'; port.textContent = `Port ${member.member.port}`; serviceCell.append(port);
+        }
+        const started = cell(new Date(container.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }), 4, 'Last started');
+        const actionsCell = cell('', 5, 'Actions'); actionsCell.append(actions);
+        row.append(details, stateCell, imageCell, serviceCell, started, actionsCell); body.append(row);
+        const expansion = document.createElement('tr'); expansion.className = 'machine-preview-row';
+        const expansionCell = document.createElement('td'); expansionCell.colSpan = 6; expansion.append(expansionCell);
+        previews.attach(expansionCell, menuActions, container);
+        observations.attach(menuActions, container);
+        workspaces.attach(menuActions,container);
+        privateServices.attach(menuActions, container);
+        menuActions.append(stop);
+        if (expansionCell.children.length) body.append(expansion);
+        if (access?.id === container.id) {
+          const connectionRow = document.createElement('tr'); connectionRow.className = 'machine-ssh-row';
+          const connection = document.createElement('td'); connection.colSpan = 6; connectionRow.append(connection);
+          connection.className = 'container-ssh';
+          connection.dataset.containerId = container.id;
+          connection.dataset.createdAt = container.createdAt;
+          const label = document.createElement('label');
+          label.textContent = 'SSH command';
+          const command = document.createElement('textarea');
+          command.readOnly = true;
+          command.rows = 3;
+          command.value = access.command;
+          command.dataset.action = 'ssh-command';
+          label.append(command);
+          const copy = document.createElement('button');
+          copy.type = 'button';
+          copy.className = 'dashboard-retry';
+          copy.textContent = 'Copy command';
+          copy.dataset.action = 'copy';
+          copy.addEventListener('click', async () => {
+            try { await navigator.clipboard.writeText(command.value); copy.textContent = 'Copied'; }
+            catch { command.focus(); command.select(); }
+          });
+          const note = document.createElement('p');
+          note.className = 'dashboard-status';
+          note.textContent = `Requires cloudflared on your computer. Access expires at ${new Date(access.expiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}. Keep this command private.`;
+          const install = document.createElement('a');
+          install.href = 'https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/';
+          install.textContent = 'Install cloudflared';
+          install.target = '_blank';
+          install.rel = 'noopener noreferrer';
+          connection.append(label, copy, note, install);
+          body.append(connectionRow);
+        }
       }
-    }
+      controls();
+    });
     renderedRows = rowVersion;
     controls();
     if (focus) {
