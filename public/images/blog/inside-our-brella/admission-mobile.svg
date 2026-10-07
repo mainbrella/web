@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="640" viewBox="0 0 440 640" role="img" aria-labelledby="title desc">
+<title id="title">Sequential reservations, overlapping boots</title><desc id="desc">The account saves each reservation in sequence, then independent runtimes boot concurrently. Time is schematic.</desc>
+<defs>
+<marker id="ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#242d35"/></marker>
+<marker id="blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#315f82"/></marker>
+<marker id="red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#a23832"/></marker>
+<marker id="muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#58636d"/></marker>
+</defs>
+<rect width="440" height="640" fill="#f5f3ed"/>
+<text x="24" y="35" fill="#242d35" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="600" text-anchor="start">Reserve in order; boot in parallel</text>
+<text x="24" y="63" fill="#58636d" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" text-anchor="start">Schematic time ↓</text>
+<text x="70" y="106" fill="#242d35" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" text-anchor="middle">Account</text>
+<text x="182" y="106" fill="#242d35" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" text-anchor="middle">c17</text>
+<text x="277" y="106" fill="#242d35" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" text-anchor="middle">c18</text>
+<text x="372" y="106" fill="#242d35" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" text-anchor="middle">c19</text>
+<path d="M70 125 V570" fill="none" stroke="#58636d" stroke-width="2" stroke-dasharray="7 6" marker-end="url(#muted)"/>
+<path d="M87 175 H182" fill="none" stroke="#315f82" stroke-width="2" marker-end="url(#blue)"/>
+<rect x="52" y="157" width="36" height="36" rx="2" fill="#242d35" stroke="none" stroke-width="2"/>
+<text x="70" y="182" fill="#f5f3ed" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" text-anchor="middle">1</text>
+<path d="M87 270 H277" fill="none" stroke="#315f82" stroke-width="2" marker-end="url(#blue)"/>
+<rect x="52" y="252" width="36" height="36" rx="2" fill="#242d35" stroke="none" stroke-width="2"/>
+<text x="70" y="277" fill="#f5f3ed" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" text-anchor="middle">2</text>
+<path d="M87 365 H372" fill="none" stroke="#315f82" stroke-width="2" marker-end="url(#blue)"/>
+<rect x="52" y="347" width="36" height="36" rx="2" fill="#242d35" stroke="none" stroke-width="2"/>
+<text x="70" y="372" fill="#f5f3ed" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" text-anchor="middle">3</text>
+<rect x="159" y="183" width="46" height="267" rx="2" fill="#dce6ed" stroke="#315f82" stroke-width="2"/>
+<text x="188" y="312.5" fill="#315f82" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" text-anchor="middle" transform="rotate(-90 188 312.5)">boot</text>
+<path d="M175 466 l5 5 l10 -12" fill="none" stroke="#27624e" stroke-width="3"/>
+<text x="182" y="497" fill="#27624e" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" text-anchor="middle">ready</text>
+<rect x="254" y="278" width="46" height="252" rx="2" fill="#dce6ed" stroke="#315f82" stroke-width="2"/>
+<text x="283" y="400.0" fill="#315f82" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" text-anchor="middle" transform="rotate(-90 283 400.0)">boot</text>
+<path d="M270 546 l5 5 l10 -12" fill="none" stroke="#27624e" stroke-width="3"/>
+<text x="277" y="577" fill="#27624e" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" text-anchor="middle">ready</text>
+<rect x="349" y="373" width="46" height="122" rx="2" fill="#dce6ed" stroke="#315f82" stroke-width="2"/>
+<text x="378" y="430.0" fill="#315f82" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" text-anchor="middle" transform="rotate(-90 378 430.0)">boot</text>
+<path d="M365 511 l5 5 l10 -12" fill="none" stroke="#27624e" stroke-width="3"/>
+<text x="372" y="542" fill="#27624e" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" text-anchor="middle">ready</text>
+<text x="24" y="610" fill="#58636d" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" text-anchor="start">■ = reservation committed to storage</text>
+</svg>

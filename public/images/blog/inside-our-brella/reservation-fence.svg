@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="560" viewBox="0 0 920 560" role="img" aria-labelledby="title desc">
+<title id="title">A delayed boot reaches a reused slot</title><desc id="desc">Cancel 41 precedes boot 42. Delayed boot 41 is rejected and late cancel 41 leaves the replacement running. Time runs down.</desc>
+<defs>
+<marker id="ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#242d35"/></marker>
+<marker id="blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#315f82"/></marker>
+<marker id="red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#a23832"/></marker>
+<marker id="muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#58636d"/></marker>
+</defs>
+<rect width="920" height="560" fill="#f5f3ed"/>
+<text x="32" y="38" fill="#242d35" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="600" text-anchor="start">The older message arrives last</text>
+<text x="32" y="67" fill="#58636d" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="400" text-anchor="start">Schematic time ↓</text>
+<text x="152" y="96" fill="#242d35" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" text-anchor="middle">Account</text>
+<text x="694" y="96" fill="#242d35" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" text-anchor="middle">Runtime · c17</text>
+<path d="M152 110 V510" fill="none" stroke="#58636d" stroke-width="2" stroke-dasharray="7 6"/>
+<path d="M694 110 V510" fill="none" stroke="#58636d" stroke-width="2" stroke-dasharray="7 6"/>
+<rect x="685" y="250" width="18" height="260" rx="0" fill="#cce2d6" stroke="none" stroke-width="2"/>
+<path d="M152 120 C405 120 442 350 694 350" fill="none" stroke="#a23832" stroke-width="2" stroke-dasharray="7 6" marker-end="url(#red)"/>
+<text x="275" y="116" fill="#a23832" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" text-anchor="start">boot 41 · delayed in transit</text>
+<path d="M152 175 H694" fill="none" stroke="#242d35" stroke-width="2" marker-end="url(#ink)"/>
+<text x="520" y="161" fill="#242d35" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" text-anchor="middle">cancel 41</text>
+<path d="M152 250 H694" fill="none" stroke="#315f82" stroke-width="2" marker-end="url(#blue)"/>
+<text x="520" y="236" fill="#315f82" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" text-anchor="middle">boot 42</text>
+<path d="M152 447 H694" fill="none" stroke="#58636d" stroke-width="2" marker-end="url(#muted)"/>
+<text x="520" y="433" fill="#58636d" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" text-anchor="middle">cancel 41 · late cleanup</text>
+<text x="724" y="181" fill="#58636d" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" text-anchor="start">canceled: 41</text>
+<text x="724" y="256" fill="#27624e" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" text-anchor="start">accepted: 42</text>
+<path d="M686 342 L702 358 M686 358 L702 342" fill="none" stroke="#a23832" stroke-width="3"/>
+<text x="724" y="346" fill="#a23832" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" text-anchor="start">reject boot 41</text>
+<text x="724" y="375" fill="#a23832" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" text-anchor="start">41 ≤ 42</text>
+<text x="724" y="453" fill="#58636d" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" text-anchor="start">ignore stop 41</text>
+<text x="724" y="482" fill="#58636d" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" text-anchor="start">41 &lt; 42</text>
+<text x="32" y="540" fill="#27624e" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" text-anchor="start">The green interval is the replacement’s lifetime; old messages cannot take ownership.</text>
+</svg>

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="590" viewBox="0 0 920 590" role="img" aria-labelledby="title desc">
+<title id="title">A saved handle separates recovery from uncertainty</title><desc id="desc">A retry recovers a saved provider handle. If only capture intent remains, the operation stays unresolved and capture is not repeated.</desc>
+<defs>
+<marker id="ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#242d35"/></marker>
+<marker id="blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#315f82"/></marker>
+<marker id="red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#a23832"/></marker>
+<marker id="muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#58636d"/></marker>
+</defs>
+<rect width="920" height="590" fill="#f5f3ed"/>
+<text x="32" y="38" fill="#242d35" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="600" text-anchor="start">What survived the lost answer?</text>
+<text x="460" y="95" fill="#242d35" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" text-anchor="middle">Provider capture attempt</text>
+<path d="M460 112 V148" fill="none" stroke="#242d35" stroke-width="2"/>
+<path d="M460 148 H232 V212" fill="none" stroke="#242d35" stroke-width="2" marker-end="url(#ink)"/>
+<path d="M460 148 H688 V212" fill="none" stroke="#242d35" stroke-width="2" marker-end="url(#ink)"/>
+<text x="232" y="184" fill="#27624e" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" text-anchor="middle">Handle saved before reply loss</text>
+<text x="688" y="184" fill="#a23832" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" text-anchor="middle">Handle lost before durable write</text>
+<path d="M112 223 H332 l20 20 V356 H112 Z" fill="#fffefd" stroke="#58636d" stroke-width="2"/>
+<path d="M332 223 v20 h20" fill="none" stroke="#58636d" stroke-width="2"/>
+<text x="128" y="262" fill="#242d35" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" text-anchor="start">save: a7…</text>
+<text x="128" y="299" fill="#58636d" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" text-anchor="start">handle:</text>
+<text x="128" y="332" fill="#315f82" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" text-anchor="start">snap: b9…</text>
+<path d="M568 223 H788 l20 20 V356 H568 Z" fill="#fffefd" stroke="#58636d" stroke-width="2"/>
+<path d="M788 223 v20 h20" fill="none" stroke="#58636d" stroke-width="2"/>
+<text x="584" y="262" fill="#242d35" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" text-anchor="start">save: a7…</text>
+<text x="584" y="299" fill="#58636d" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" text-anchor="start">handle:</text>
+<path d="M584 328 h208" fill="none" stroke="#58636d" stroke-width="2" stroke-dasharray="7 6"/>
+<text x="460" y="392" fill="#58636d" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" text-anchor="middle">Durable runtime receipts</text>
+<path d="M232 414 V441" fill="none" stroke="#315f82" stroke-width="2" marker-end="url(#blue)"/>
+<path d="M688 414 V441" fill="none" stroke="#242d35" stroke-width="2" marker-end="url(#ink)"/>
+<text x="232" y="474" fill="#315f82" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" text-anchor="middle">Retry reads handle; account commits</text>
+<text x="688" y="474" fill="#a23832" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" text-anchor="middle">Retry returns 503 · unresolved</text>
+<path d="M808 289 H877 V88 H620" fill="none" stroke="#a23832" stroke-width="2" stroke-dasharray="7 6" marker-end="url(#red)"/>
+<path d="M869 195 L885 211 M869 211 L885 195" fill="none" stroke="#a23832" stroke-width="3"/>
+<text x="688" y="511" fill="#a23832" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" text-anchor="middle">No recapture</text>
+<rect x="145" y="532" width="18" height="18" rx="0" fill="#27624e" stroke="none" stroke-width="2"/>
+<text x="180" y="549" fill="#27624e" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" text-anchor="start">Stop allowed</text>
+<path d="M565 532 l20 10 l-20 10 Z" fill="#27624e"/>
+<text x="601" y="549" fill="#27624e" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" text-anchor="start">Save leaves source intact</text>
+<text x="32" y="580" fill="#58636d" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="400" text-anchor="start">The dashed return path is blocked: a saved intent is not permission to repeat capture.</text>
+</svg>
