@@ -73,7 +73,7 @@ export function createImagesDashboard({ onUnauthenticated, onImagesChanged, onSe
     if (!data) return;
     const key = JSON.stringify(data.images);
     const remaining = Math.max(0, data.limits.maxBuildsPerMonth - data.usage.builds);
-    status.textContent = !data.buildsEnabled ? 'Custom image builds are not available yet. Choose a prebuilt image above.'
+    status.textContent = !data.buildsEnabled ? 'Custom image builds are not available yet. Choose a stock image in the Stock Images tab.'
       : data.images.length ? `${remaining} image builds remaining this month.`
         : `You have no custom images. ${remaining} image builds remaining this month.`;
     if (key !== renderKey) {
@@ -167,7 +167,6 @@ export function createImagesDashboard({ onUnauthenticated, onImagesChanged, onSe
       if (disposed) return;
       document.querySelector<HTMLInputElement>('#image-name')!.value = '';
       context.value = ''; file.value = '';
-      document.querySelector<HTMLDetailsElement>('#custom-images-details')!.open = false;
       data?.images.unshift(result.image); if (data) data.usage.builds++; render();
       status.textContent = 'Image build queued. You can leave this page while it builds.';
     } catch (caught) {

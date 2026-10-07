@@ -41,6 +41,11 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   const openLaunch = document.querySelector<HTMLButtonElement>('#container-launch-open')!;
   const launchStatus = document.querySelector<HTMLElement>('#container-launch-status')!;
   const launchError = document.querySelector<HTMLElement>('#container-launch-error')!;
+  const imageTabs = [...document.querySelectorAll<HTMLButtonElement>('[data-image-tab]')];
+  const stockPanel = document.querySelector<HTMLElement>('#stock-images-panel')!;
+  const customPanel = document.querySelector<HTMLElement>('#custom-images-panel')!;
+  const customLaunch = document.querySelector<HTMLElement>('#custom-image-launch')!;
+  let imageTab: 'stock' | 'custom' = 'stock';
   const refresh = document.querySelector<HTMLButtonElement>('#containers-refresh')!;
   const list = document.querySelector<HTMLElement>('#container-list')!;
   const status = document.querySelector<HTMLElement>('#containers-status')!;
@@ -132,7 +137,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   }
 
   function controls() {
-    create.disabled = busy || disposed || !canCreateContainer(data, selectedSize()) || (!catalog.length && !customImages.length);
+    create.disabled = busy || disposed || !canCreateContainer(data, selectedSize()) || !(imageTab === 'stock' ? catalog.length : customImages.length);
     openLaunch.disabled = busy || disposed || !data;
     refresh.disabled = busy || disposed;
     imageSelect.disabled = busy || disposed;
@@ -615,6 +620,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   selectTab('containers');
   sizePicker.addEventListener('change', controls);
   openLaunch.addEventListener('click', () => {
+    selectImageTab('stock');
     launchError.hidden = true;
     launch.showModal();
     containerName.focus();
@@ -629,18 +635,43 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   containerName.addEventListener('input', () => containerName.setCustomValidity(''));
   launchForm.addEventListener('submit', event => { event.preventDefault(); mutate('POST'); });
   refresh.addEventListener('click', () => load());
+  function selectImageTab(tab: typeof imageTab) {
+    imageTab = tab;
+    for (const button of imageTabs) {
+      const selected = button.dataset.imageTab === tab;
+      button.setAttribute('aria-selected', String(selected));
+      button.tabIndex = selected ? 0 : -1;
+    }
+    stockPanel.hidden = tab !== 'stock';
+    customPanel.hidden = tab !== 'custom';
+    (tab === 'stock' ? stockPanel : customLaunch).append(launchForm);
+    launchError.hidden = true;
+    renderImages();
+    controls();
+  }
+  imageTabs.forEach((button, index) => {
+    button.addEventListener('click', () => selectImageTab(button.dataset.imageTab as typeof imageTab));
+    button.addEventListener('keydown', event => {
+      const target = event.key === 'ArrowRight' ? (index + 1) % imageTabs.length
+        : event.key === 'ArrowLeft' ? (index + imageTabs.length - 1) % imageTabs.length
+        : event.key === 'Home' ? 0 : event.key === 'End' ? imageTabs.length - 1 : -1;
+      if (target < 0) return;
+      event.preventDefault();
+      imageTabs[target].click();
+      imageTabs[target].focus();
+    });
+  });
   function renderImages() {
-    const key = JSON.stringify([catalog, customImages]);
+    launchForm.hidden = imageTab === 'custom' && !customImages.length;
+    const key = JSON.stringify([imageTab, catalog, customImages]);
     if (key === imageOptionsKey) return;
     imageOptionsKey = key;
     const selected = imageSelect.value;
     imageSelect.replaceChildren();
-    for (const image of catalog) imageSelect.add(new Option(image.name, image.id === 'node' ? '' : `catalog:${image.id}`));
-    if (customImages.length) {
-      const group = document.createElement('optgroup');
-      group.label = 'Your custom images';
-      for (const image of customImages) group.append(new Option(image.name, image.id));
-      imageSelect.append(group);
+    if (imageTab === 'stock') {
+      for (const image of catalog) imageSelect.add(new Option(image.name, image.id === 'node' ? '' : `catalog:${image.id}`));
+    } else {
+      for (const image of customImages) imageSelect.add(new Option(image.name, image.id));
     }
     if (!imageSelect.options.length) {
       const option = new Option('No images available', '');
@@ -651,9 +682,10 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   }
   function setImages(images: Image[]) { customImages = images; renderImages(); controls(); }
   function selectImage(id: string) {
+    selectImageTab('custom');
     imageSelect.value = id;
     launchError.hidden = true;
-    launch.showModal();
+    if (!launch.open) launch.showModal();
     containerName.focus();
   }
   previous.addEventListener('click', () => { if (!previous.disabled) { page--; render(); previous.focus(); } });

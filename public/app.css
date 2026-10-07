@@ -105,12 +105,12 @@
 .app-body .container-row > .container-actions .button-danger { margin-left: 6px; border-color: var(--line); color: #ffb4ab; }
 .app-body .button-danger:hover:not(:disabled), .app-body .key-revoke:hover:not(:disabled) { border-color: #925a58; background: #ffb4ab0a; }
 
-/* Secondary tools expand in place and use the same field and panel treatment. */
-.dashboard-body .dashboard-images { margin-top: 0; border-top: 1px solid var(--line); }
-.dashboard-body .dashboard-images > summary { width: 100%; min-height: 56px; color: var(--ink); font-size: 14px; font-weight: 500; }
-.dashboard-body .dashboard-images > summary::marker { color: var(--muted); font-size: 11px; }
-.dashboard-body .dashboard-images > summary:hover { color: var(--blue); }
-.custom-images-content { padding-bottom: 20px; }
+/* Image sources share the launch dialog's field and tab treatment. */
+.launch-image-tabs { margin: 8px 0 16px; }
+.container-launch .custom-images-content { padding-bottom: 0; }
+.container-launch .image-form { max-width: none; }
+.container-launch .container-row { flex-wrap: wrap; overflow-wrap: anywhere; }
+.container-launch .image-form input[type="file"] { min-width: 0; }
 .image-form-heading { margin-top: 20px; }
 .app-body .image-form { max-width: 720px; }
 .app-body .image-form label { font-size: 13px; font-weight: 500; }

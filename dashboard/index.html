@@ -148,29 +148,66 @@
             <h2 id="launch-title">New container</h2>
             <button id="container-launch-close" class="dashboard-retry" type="button" aria-label="Close new container dialog">Close</button>
           </div>
-          <form id="container-launch-form">
-          <div class="container-image-picker">
-            <label for="container-name">Name</label>
-            <input id="container-name" type="text" required maxlength="80" autocomplete="off" placeholder="My container" disabled>
+          <div class="resource-tabs launch-image-tabs" role="tablist" aria-label="Image source">
+            <button id="stock-images-tab" type="button" role="tab" aria-selected="true" aria-controls="stock-images-panel" data-image-tab="stock">Stock Images</button>
+            <button id="custom-images-tab" type="button" role="tab" aria-selected="false" aria-controls="custom-images-panel" tabindex="-1" data-image-tab="custom">Custom Images</button>
           </div>
-          <div class="container-image-picker">
-            <label for="container-image">Image</label>
-            <select id="container-image" disabled><option value="">Node 24 + TypeScript</option></select>
+          <div id="stock-images-panel" role="tabpanel" aria-labelledby="stock-images-tab">
+            <form id="container-launch-form">
+              <div class="container-image-picker">
+                <label for="container-name">Name</label>
+                <input id="container-name" type="text" required maxlength="80" autocomplete="off" placeholder="My container" disabled>
+              </div>
+              <div class="container-image-picker">
+                <label for="container-image">Image</label>
+                <select id="container-image" disabled><option value="">Node 24 + TypeScript</option></select>
+              </div>
+              <fieldset id="container-size" class="machine-picker" disabled aria-describedby="container-size-rate">
+                <legend>Machine size</legend>
+                <div id="machine-options" class="machine-options"><p class="dashboard-status">Loading machine sizes…</p></div>
+              </fieldset>
+              <div class="launch-footer">
+                <div class="launch-notes">
+                  <p id="container-size-rate" class="dashboard-status"></p>
+                  <p id="container-limits" class="dashboard-status">Checking your plan’s container limits…</p>
+                </div>
+                <button id="container-create" class="button button-small" type="submit" disabled aria-describedby="container-limits container-size-rate">Create container</button>
+              </div>
+              <p id="container-launch-status" class="dashboard-status" role="status"></p>
+              <p id="container-launch-error" class="dashboard-error" role="alert" hidden></p>
+            </form>
           </div>
-          <fieldset id="container-size" class="machine-picker" disabled aria-describedby="container-size-rate">
-            <legend>Machine size</legend>
-            <div id="machine-options" class="machine-options"><p class="dashboard-status">Loading machine sizes…</p></div>
-          </fieldset>
-          <div class="launch-footer">
-            <div class="launch-notes">
-              <p id="container-size-rate" class="dashboard-status"></p>
-              <p id="container-limits" class="dashboard-status">Checking your plan’s container limits…</p>
+          <div id="custom-images-panel" role="tabpanel" aria-labelledby="custom-images-tab" hidden>
+            <div id="custom-image-launch"></div>
+            <div class="custom-images-content">
+              <p id="images-status" class="dashboard-status" role="status">Loading images…</p>
+              <ul id="image-list" class="container-list" aria-label="Custom images" hidden></ul>
+              <h3 class="image-form-heading">Build an image</h3>
+              <form id="image-form" class="image-form">
+                <label for="image-name">Image name</label>
+                <input id="image-name" name="name" type="text" required maxlength="80" placeholder="Python workspace" autocomplete="off" />
+                <label for="image-file">Load Dockerfile or Containerfile <span class="dashboard-status">(optional)</span></label>
+                <input id="image-file" type="file" aria-describedby="image-source-note" />
+                <label for="image-dockerfile">Dockerfile</label>
+                <textarea id="image-dockerfile" name="dockerfile" rows="7" required spellcheck="false" aria-describedby="image-source-note">FROM mainbrella:base
+
+# Install additional tools here.
+WORKDIR /workspace</textarea>
+                <p id="image-source-note" class="dashboard-status">Start with FROM mainbrella:base to keep terminal support. Single-stage Dockerfiles only, up to 16 KiB. Containers use a workspace shell; CMD and ENTRYPOINT do not start your app.</p>
+                <label for="image-context">Build context <span class="dashboard-status">(optional)</span></label>
+                <input id="image-context" name="context" type="file" accept=".tar.gz" aria-describedby="image-context-note" />
+                <p id="image-context-note" class="dashboard-status">A .tar.gz archive up to 512 KiB for COPY instructions. Put files at the archive root and exclude secrets.</p>
+                <p class="dashboard-status">Builder includes 10 image builds per month, up to 5 minutes each, and 3 saved images. Failed builds count toward the allowance.</p>
+                <button id="image-build" class="button button-small" type="submit" disabled>Build image</button>
+              </form>
+              <section id="image-logs" class="image-logs" aria-labelledby="image-logs-title" hidden>
+              <div class="terminal-heading"><h3 id="image-logs-title">Build output</h3><button class="dashboard-retry" type="button">Close output</button></div>
+              <pre tabindex="0" aria-label="Build output"></pre>
+              </section>
+              <p id="images-error" class="dashboard-error" role="alert" hidden></p>
+              <button id="images-refresh" class="dashboard-retry" type="button" disabled>Refresh images</button>
             </div>
-            <button id="container-create" class="button button-small" type="submit" disabled aria-describedby="container-limits container-size-rate">Create container</button>
           </div>
-          <p id="container-launch-status" class="dashboard-status" role="status"></p>
-          <p id="container-launch-error" class="dashboard-error" role="alert" hidden></p>
-          </form>
         </dialog>
         <dialog id="workspace-save-dialog" class="workspace-save-dialog" aria-labelledby="workspace-save-title">
           <form>
@@ -183,37 +220,6 @@
             <div class="container-actions"><button type="submit" class="button button-small">Save workspace</button><button type="button" class="dashboard-retry" data-workspace-cancel>Cancel</button></div>
           </form>
         </dialog>
-        <details id="custom-images-details" class="dashboard-images">
-          <summary>Custom images</summary>
-          <div class="custom-images-content">
-          <p id="images-status" class="dashboard-status" role="status">Loading images…</p>
-          <ul id="image-list" class="container-list" aria-label="Custom images" hidden></ul>
-            <h3 class="image-form-heading">Build an image</h3>
-            <form id="image-form" class="image-form">
-              <label for="image-name">Image name</label>
-              <input id="image-name" name="name" type="text" required maxlength="80" placeholder="Python workspace" autocomplete="off" />
-              <label for="image-file">Load Dockerfile or Containerfile <span class="dashboard-status">(optional)</span></label>
-              <input id="image-file" type="file" aria-describedby="image-source-note" />
-              <label for="image-dockerfile">Dockerfile</label>
-              <textarea id="image-dockerfile" name="dockerfile" rows="7" required spellcheck="false" aria-describedby="image-source-note">FROM mainbrella:base
-
-# Install additional tools here.
-WORKDIR /workspace</textarea>
-              <p id="image-source-note" class="dashboard-status">Start with FROM mainbrella:base to keep terminal support. Single-stage Dockerfiles only, up to 16 KiB. Containers use a workspace shell; CMD and ENTRYPOINT do not start your app.</p>
-              <label for="image-context">Build context <span class="dashboard-status">(optional)</span></label>
-              <input id="image-context" name="context" type="file" accept=".tar.gz" aria-describedby="image-context-note" />
-              <p id="image-context-note" class="dashboard-status">A .tar.gz archive up to 512 KiB for COPY instructions. Put files at the archive root and exclude secrets.</p>
-              <p class="dashboard-status">Builder includes 10 image builds per month, up to 5 minutes each, and 3 saved images. Failed builds count toward the allowance.</p>
-              <button id="image-build" class="button button-small" type="submit" disabled>Build image</button>
-            </form>
-          <section id="image-logs" class="image-logs" aria-labelledby="image-logs-title" hidden>
-            <div class="terminal-heading"><h3 id="image-logs-title">Build output</h3><button class="dashboard-retry" type="button">Close output</button></div>
-            <pre tabindex="0" aria-label="Build output"></pre>
-          </section>
-          <p id="images-error" class="dashboard-error" role="alert" hidden></p>
-          <button id="images-refresh" class="dashboard-retry" type="button" disabled>Refresh images</button>
-          </div>
-        </details>
       </div>
       <noscript><p>Enable JavaScript to view your dashboard.</p></noscript>
     </main>
