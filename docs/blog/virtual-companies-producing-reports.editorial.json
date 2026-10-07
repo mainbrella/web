@@ -1,0 +1,27 @@
+{
+  "route": "/blog/virtual-companies-producing-reports/",
+  "status": "Editorial draft in requested completed-project voice; reporting application not yet implemented. Not deployed.",
+  "verifiedInfrastructureFacts": [
+    "15 networks with 32 running container generations each were verified during provisioning.",
+    "A local /24 Docker bridge exhausted 253 usable addresses; 253 task proxies were moved to an overflow bridge and command execution rechecked.",
+    "100 workspaces were confirmed ready and their exact source generations stopped; 380 workload containers remained running at that verification."
+  ],
+  "applicationClaimsToVerifyBeforePublication": [
+    "Implement the four shared service roles and 28-worker topology.",
+    "Implement application task leases, expiration, attempt fencing and durable completion deduplication.",
+    "Create synthetic company datasets and independently validated profit-change calculations.",
+    "Generate inspectable report.html, metrics.csv, exceptions.csv and provenance manifests.",
+    "Exercise streaming, cancellation, reassignments, service restarts and restored-generation membership registration.",
+    "Collect actual measurements; the draft intentionally contains no invented reporting throughput or latency figures."
+  ],
+  "illustrations": {
+    "generationTool": "built-in image_gen",
+    "companyNetworks": "Use case: illustration-story. Asset type: transparent editorial illustration for a deeply technical Mainbrella blog article, viewed on a near-black #0d1014 website. Primary request: an elegant hand-drafted isometric cutaway of a miniature fictional company's distributed report-making system. Show three clearly separate compact office/workshop islands representing private service networks; each island contains four taller server/workstation modules around a neatly aligned cluster of tiny worker cubes. Thin pale blue routed lines connect workers to their own island's modules and terminate at a small stack of report pages bearing miniature bar charts. Keep all interconnects local to their island, no cables between islands. A small blue umbrella-shaped architectural canopy on each island references the platform subtly. Style: refined technical editorial ink drawing, precise architectural line work, lightly textured blue and cool white fills, friendly and witty but not cartoon robots; tactile miniature engineering model. Wide landscape composition, carefully spaced, entire objects visible, medium detail legible at 760px wide. Palette pale blue, cool white, graphite, a few restrained muted green validation marks. Background: genuinely transparent alpha, no background plane, no sky, no floor rectangle, no gradients or drop shadows, no black filled background. No words, no letters, no logos, no watermark, no fake UI. This is a conceptual illustration, not a counted topology diagram.",
+    "companyNetworksEdit": "Edit the supplied conceptual Mainbrella engineering illustration. Preserve the three isometric company islands, umbrella canopies, server modules, report pages, perspective, pen-and-ink style and pale blue/white palette. Remove ONLY the diffuse blue/gray background glow and haze surrounding the islands so all empty space outside the object silhouettes is fully transparent alpha; do not fill it with black or any other color. The tiny worker cubes should be plain compute modules: remove their face features while keeping their shape and connections. Keep the illustrated island structures intact. No new text, no new objects, no new background, no floor behind the islands, no watermark.",
+    "reportPipeline": "Use case: illustration-story. Asset type: transparent technical editorial illustration, companion asset for Mainbrella virtual-company reporting article on dark #0d1014. Primary request: show a left-to-right assembly of a business report, drawn like a precise isometric exploded engineering model. Left: a few small stacks of tabular data sheets flowing into a compact array of worker server cubes. Middle: one visibly distinct validation gate inspecting three result sheets, two with green check marks and one with a small amber discrepancy symbol routed to a separate exception tray. Right: an open completed report with clean blue bar-chart shapes and a plain spreadsheet output sheet. Arrows should convey data -> parallel workers -> validation -> report, with exceptions visibly branching out. Sparse, readable at article width, all objects fully visible, no decorative scenery. Style: architectural pen-and-ink with understated lightly textured pale-blue and cool-white fills, coherent isometric perspective, warm editorial wit without characters, same visual language as an engineering notebook illustration. Wide landscape composition. Background must be actual transparent alpha everywhere outside the objects; no floor, no solid background rectangle, no gradient or shadow wash. No words, no letters, no numbers, no brand logos, no watermark; diagram captions will be HTML.",
+    "assets": [
+      "public/images/blog/virtual-companies-producing-reports/company-networks.webp",
+      "public/images/blog/virtual-companies-producing-reports/report-pipeline.webp"
+    ]
+  }
+}

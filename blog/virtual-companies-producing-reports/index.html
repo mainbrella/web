@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="A technical tour of fifteen synthetic companies, 480 Linux containers, private HTTP services, parallel analysis, report validation, and saved workspaces on Mainbrella." />
+    <meta name="theme-color" content="#0d1014" />
+    <link rel="canonical" href="https://mainbrella.com/blog/virtual-companies-producing-reports/" />
+    <meta property="og:title" content="Fifteen companies, 480 containers, one awkward profit question · Mainbrella" />
+    <meta property="og:description" content="Building a distributed reporting demo with private services, generation-bound execution, and verifiable artifacts." />
+    <meta property="og:url" content="https://mainbrella.com/blog/virtual-companies-producing-reports/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:image" content="https://mainbrella.com/images/blog/virtual-companies-producing-reports/company-networks.webp" />
+    <meta property="og:image:alt" content="Three miniature company networks, each with its own compute modules and report output." />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <link rel="stylesheet" href="/blog/virtual-companies-producing-reports/article.css" />
+    <title>Fifteen companies, 480 containers, one awkward profit question · Mainbrella</title>
+  </head>
+  <body class="info-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap virtual-companies">
+      <!-- Editorial draft: completed-project voice requested before the reporting application is implemented.
+           Provisioning and save/stop facts are verified. Application behavior is the intended implementation.
+           See docs/blog/virtual-companies-producing-reports.editorial.json before publishing. -->
+      <article>
+        <a class="article-back" href="/blog/">← Engineering blog</a>
+        <h1>Fifteen companies, 480 containers, one awkward profit question</h1>
+        <p class="article-meta"><time datetime="2026-10-07">October 7, 2026</time> · Mainbrella Engineering</p>
+
+        <p>Margin of Error Ltd had a problem: sales were growing, but profit was shrinking. Someone needed to explain where the money went. We gave the problem to a collection of Linux containers. Then we gave fourteen other companies the same treatment.</p>
+        <p>The companies were synthetic. Their invoices, returns, inventory, and suspiciously generous discounts were synthetic too. The compute was real: fifteen private service networks, thirty-two containers per network, and a report pipeline that had to finish with numbers we could check. A fictional business can still have a very real double-counting bug.</p>
+        <p>We built this as a substantial Mainbrella demo. A viewer could ask a company a question, watch its analysts work, inspect a failed attempt, and open the resulting HTML report and CSV files. The interesting part was getting all those operations to agree about whose data they were processing, which attempt owned the work, and whether the final answer was actually supported by the records.</p>
+
+        <figure class="article-figure">
+          <img src="/images/blog/virtual-companies-producing-reports/company-networks.webp" width="1536" height="1024" alt="Conceptual cutaway of three separate company networks. Each contains shared service modules, worker modules, and its own report output under a blue umbrella." fetchpriority="high" />
+          <figcaption>Each company had its own service namespace. The illustration shows three companies; the complete layout used fifteen networks with thirty-two members apiece.</figcaption>
+        </figure>
+
+        <h2 id="company">What counted as a company</h2>
+        <p>A company was one network and a small reporting application distributed across its members. Four containers supplied shared services; the other twenty-eight ran analysis jobs. We kept the code in Node, used small JSON shards, and gave every role a useful job.</p>
+        <div class="docs-table-scroll" role="region" aria-label="Roles in each company network" tabindex="0">
+          <table class="docs-table company-roles">
+            <caption>One company: 4 service containers + 28 workers = 32 members.</caption>
+            <thead><tr><th scope="col">Role</th><th scope="col">Count</th><th scope="col">Responsibility</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Coordinator</th><td>1</td>Task leases, attempt IDs, progress, and completion records.</td></tr>
+              <tr><th scope="row">Data service</th><td>1</td>Immutable input shards, schemas, and content hashes.</td></tr>
+              <tr><th scope="row">Artifact service</th><td>1</td>Accepted results, CSV exports, and the rendered report.</td></tr>
+              <tr><th scope="row">Validator</th><td>1</td>Independent checks on totals, coverage, and provenance.</td></tr>
+              <tr><th scope="row">Analysts</th><td>28</td>Partitioned calculations for revenue, returns, costs, and margin changes.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>The coordinator handed out bounded tasks: compare two months of returns in a region, compute the effect of a discount, reconcile a product category. Those tasks were easy to partition and cheap enough for Lite machines, which have 256 MiB of memory. A container could answer one question without loading an entire company’s history.</p>
+        <p>The LLM-facing controller lived outside the company containers. It turned questions into analysis plans and, when needed, generated analysis code. Model credentials and the Mainbrella API key stayed with that controller. The workers received code and task data. The validator did arithmetic.</p>
+
+        <h2 id="provisioning">The launch manifest was part of the application</h2>
+        <p>Before launching anything, we read <code>GET /capabilities</code> and authenticated <code>GET /containers</code>. The deployment had to advertise private services, the selected image, and the execution and file operations we needed. The account needed enough starts, container slots, concurrent compute units, and runtime allowance for the batch.</p>
+        <p>Our Scale account allowed 500 simultaneous containers and 640 concurrent compute units. The full layout used 480 Lite machines, each costing one concurrent unit. The network contract allowed sixteen networks per account and thirty-two members per network. Fifteen companies fitted those limits. The leftover network slot was useful breathing room, rather than an invitation to found another conglomerate.</p>
+        <p>We recorded every intended creation before sending its request. This is the core of the server-side launch code; a batch runner called it with bounded concurrency.</p>
+        <pre class="docs-code"><code>// Server-side Node. Keep this key out of company containers.
+import { randomUUID } from &#x27;node:crypto&#x27;;
+import { mkdir, writeFile, rename } from &#x27;node:fs/promises&#x27;;
+
+const origin = process.env.MAINBRELLA_API_URL
+  ?? &#x27;http://localhost:8787&#x27;;
+const key = process.env.MAINBRELLA_LOCAL_API_KEY
+  ?? process.env.MAINBRELLA_API_KEY;
+if (!key) throw new Error(&#x27;Provision a server-side API key&#x27;);
+
+async function api(path, { method = &#x27;GET&#x27;, body, headers = {} } = {}) {
+  const response = await fetch(new URL(path, origin), {
+    method,
+    headers: {
+      Authorization: `Bearer ${key}`,
+      ...(body === undefined ? {} : { &#x27;Content-Type&#x27;: &#x27;application/json&#x27; }),
+      ...headers,
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    redirect: &#x27;error&#x27;,
+    signal: AbortSignal.timeout(90_000),
+  });
+  if (!response.ok) throw new Error(`Mainbrella HTTP ${response.status}`);
+  return response.json();
+}
+
+async function journal(name, value) {
+  await mkdir(&#x27;.mainbrella&#x27;, { recursive: true, mode: 0o700 });
+  const path = `.mainbrella/${name}.json`;
+  await writeFile(`${path}.tmp`, JSON.stringify(value), { mode: 0o600 });
+  await rename(`${path}.tmp`, path);
+}
+
+const operation = {
+  key: randomUUID(),
+  issuedAt: new Date().toISOString(),
+  body: { catalogId: &#x27;node&#x27;, size: &#x27;lite&#x27; },
+};
+await journal(operation.key, operation); // Before the network request.
+const started = await api(&#x27;/containers&#x27;, {
+  method: &#x27;POST&#x27;, body: operation.body,
+  headers: { &#x27;Idempotency-Key&#x27;: operation.key },
+});
+const { creation } = started;
+if (creation?.status !== &#x27;running&#x27;) {
+  throw new Error(&#x27;Reconcile the saved creation key and body&#x27;);
+}
+const machine = started.containers.find(c =&gt;
+  c.id === creation.containerId &amp;&amp; c.createdAt === creation.createdAt
+  &amp;&amp; c.status === &#x27;running&#x27;);
+if (!machine) throw new Error(&#x27;Running generation missing&#x27;);
+const identity = { id: machine.id, createdAt: machine.createdAt };
+await journal(operation.key, { ...operation, identity });</code></pre>
+        <p>That little journal matters when the response disappears. The backend might have reserved a slot and started a machine already. We reconciled an ambiguous creation with the same body and <code>Idempotency-Key</code>, within the twenty-four-hour recovery window. A fresh UUID would describe a fresh launch.</p>
+        <p>The implementation is readable in <a href="https://github.com/mainbrella/backend/blob/main/containers/container-account-core.js">container-account-core.js</a>. The account Durable Object serializes admission, reserves the slot and quota, and stores the keyed creation record. Boot happens outside the reservation lock. Pending slots still count toward capacity, so concurrent requests cannot all claim the same last available machine.</p>
+        <p>We kept both <code>id</code> and <code>createdAt</code> for every running container. IDs identify slots; the returned timestamp identifies a particular generation in that slot. An analyst called <code>c17</code> today can be a different analyst after a stop. A delayed cleanup request needs enough information to tell them apart.</p>
+
+        <h2 id="routing">A worker asked for a task at coordinator.internal</h2>
+        <p>Each network reused the same service names: <code>coordinator</code>, <code>data</code>, <code>artifacts</code>, and <code>validator</code>. We registered a service’s application port when it accepted requests. Workers joined as caller-only members, without an exposed service port.</p>
+        <pre class="docs-code"><code>// coordinator and worker are previously recorded { id, createdAt } pairs.
+const network = &#x27;margin-of-error&#x27;;
+await api(&#x27;/private-services/networks&#x27;, {
+  method: &#x27;POST&#x27;, body: { name: network },
+});
+const membership = &#x27;/private-services/members?&#x27;
+  + new URLSearchParams({ network });
+await api(membership, {
+  method: &#x27;PUT&#x27;,
+  body: { ...coordinator, name: &#x27;coordinator&#x27;, port: 8080 },
+});
+await api(membership, {
+  method: &#x27;PUT&#x27;,
+  body: { ...worker, name: &#x27;analyst-01&#x27; }, // Caller-only member.
+});
+
+// Inside that worker: port 80 is the private HTTP routing entry point.
+const response = await fetch(&#x27;http://coordinator.internal/tasks/next&#x27;);
+if (!response.ok) throw new Error(`Queue HTTP ${response.status}`);
+const task = await response.json();</code></pre>
+        <p>The URL inside the worker used plain HTTP on port 80. The registered coordinator listened on port 8080. Mainbrella resolved that indirection using the source’s account, network membership, and exact container generation.</p>
+        <p><a href="https://github.com/mainbrella/backend/blob/main/containers/private-services-runtime.js">private-services-runtime.js</a> installs an outbound HTTP interceptor for <code>*.internal</code>. Its relay strips reserved identity headers from the guest request and supplies trusted source identity through the runtime entrypoint. The worker cannot select another account by inventing an <code>x-mainbrella-user</code> header.</p>
+        <p>In <a href="https://github.com/mainbrella/backend/blob/main/containers/private-services.js">PrivateServicesController.route()</a>, the account-owned registry finds the source network and a destination member with the requested name and a registered port. The destination rechecks its generation and registration under its lifecycle lock before opening the application port. The routing path also rechecks membership around response release, because a detach or replacement can race an in-flight request.</p>
+        <p>This was private HTTP service routing. It did not turn the demo into a general TCP network, provide PostgreSQL connections, or change outbound internet policy. The prototype bounded request and response bodies to 1 MiB and requests to ten seconds. We served small shards and paginated records. Every company could call its own <code>data.internal</code>; a report from Margin of Error could not resolve a differently named service registered only in another company’s network.</p>
+        <p>Private Services required <code>networking.privateServices: true</code> and deployment enablement. This project exercised the local prototype. Those routing checks describe the feature we used; they do not establish an enterprise tenancy or compliance claim.</p>
+
+        <h2 id="leases">A task lease was a different thing from a container lease</h2>
+        <p>We still needed an application scheduler. Mainbrella supplied compute and command lifecycle; the coordinator supplied business tasks. Its queue leased a shard to a particular attempt and accepted one valid completion for the task.</p>
+        <pre class="docs-code"><code>// Application protocol; Mainbrella does not supply this task queue.
+{
+  &quot;runId&quot;: &quot;profit-2026-09&quot;,
+  &quot;taskId&quot;: &quot;returns-west&quot;,
+  &quot;attemptId&quot;: &quot;returns-west-02&quot;,
+  &quot;leaseToken&quot;: &quot;&lt;opaque token issued by the coordinator&gt;&quot;,
+  &quot;inputSha256&quot;: &quot;&lt;hash of the assigned input shard&gt;&quot;,
+  &quot;leaseExpiresAt&quot;: &quot;&lt;application task deadline&gt;&quot;,
+  &quot;inputUrl&quot;: &quot;http://data.internal/shards/returns-west.json&quot;
+}</code></pre>
+        <p>A worker could die after calculating a result but before acknowledging completion. The coordinator could reassign the task after its application lease expired. An old attempt might then wake up and submit its answer. We checked the attempt ID, lease token, deadline, and input hash before accepting that answer. This kept a late worker from overwriting a newer result.</p>
+        <p>Completion was deduplicated by <code>(runId, taskId)</code> in the application’s durable records. Input shards were immutable. Results carried the shard hash and analysis version. We could inspect what a worker had calculated without guessing which dataset happened to be current when it started.</p>
+        <p>A task’s deadline described ownership of a piece of analysis. The container’s lease described how long the compute could exist. Expiring one did not magically renew the other.</p>
+
+        <h2 id="execution">Longer jobs got a retained execution ID</h2>
+        <p>For a quick probe, foreground <code>POST /containers/exec</code> was enough. Its maximum timeout was sixty seconds. For an analyst processing a batch or a shared service running for a demonstration segment, we used managed execution and retained the job ID alongside its container identity.</p>
+        <pre class="docs-code"><code>// worker.mjs has already been uploaded into /workspace/demo.
+const query = new URLSearchParams(worker);
+const execution = {
+  key: randomUUID(),
+  body: {
+    argv: [&#x27;node&#x27;, &#x27;/workspace/demo/worker.mjs&#x27;],
+    timeoutMs: 120_000,
+  },
+};
+await journal(execution.key, { ...execution, container: worker });
+const job = await api(`/containers/executions?${query}`, {
+  method: &#x27;POST&#x27;, body: execution.body,
+  headers: { &#x27;Idempotency-Key&#x27;: execution.key },
+});
+await journal(execution.key, { ...execution, container: worker, jobId: job.id });
+
+// SSE: /containers/executions/{job.id}/events?...&amp;cursor=0
+// Poll: /containers/executions/{job.id}?...
+// Cancel: DELETE /containers/executions/{job.id}?...
+// Closing the SSE connection only detaches the viewer.</code></pre>
+        <p>The <code>argv</code> form passed literal arguments without constructing a shell command. The two-minute timeout fitted under managed execution’s fifteen-minute maximum; every job was also bounded by its container’s remaining lease. Shared services were restarted deliberately between demonstration segments as their managed jobs ended. A permanently running company would need an explicit service lifecycle beyond that segment.</p>
+        <p><a href="https://github.com/mainbrella/backend/blob/main/containers/executions.js">executions.js</a> persists the execution identity before starting the process. Matching keyed retries recover the same job for the retained one-hour window. SSE events carry increasing sequence numbers. On reconnect, the controller resumed with the last processed sequence as <code>cursor</code> and ignored duplicates.</p>
+        <p>Closing a browser tab detached its stream. Cancellation required deleting the retained execution and checking the resulting terminal status. We also checked <code>exitCode</code>, <code>timedOut</code>, and <code>outputTruncated</code>; a clipped JSON result with a cheerful opening brace was not a completed analysis.</p>
+        <p>The runtime allowed four concurrent command/file operations per container, with bounded output. Managed history retained up to thirty-two jobs during its retention window. We used one analyst job to process a finite batch of task leases, rather than generating a separate retained execution for every invoice.</p>
+
+        <figure class="article-figure article-figure-wide">
+          <img src="/images/blog/virtual-companies-producing-reports/report-pipeline.webp" width="1904" height="826" alt="Data sheets feed parallel worker modules, then a validation stage. Accepted results flow into a report and spreadsheet; discrepancies branch into a separate exception tray." loading="lazy" decoding="async" />
+          <figcaption>The report pipeline: immutable inputs → parallel analysis → independent validation → artifacts. Exceptions remained visible instead of being blended into the final totals.</figcaption>
+        </figure>
+
+        <h2 id="validation">The accountant did not get a temperature setting</h2>
+        <p>The report could contain an LLM-written explanation. Its financial totals came from deterministic code. We represented money in integer cents, validated schemas, and retained row counts and input hashes. For larger totals, the same design could use decimal arithmetic or <code>BigInt</code> with an explicit serialization format.</p>
+        <pre class="docs-code"><code>// Money stays in integer cents. Inputs are schema-checked first.
+const profitCents = revenueCents - cogsCents - operatingExpenseCents;
+const explainedChangeCents = contributions.reduce(
+  (sum, item) =&gt; sum + item.deltaCents, 0,
+);
+assert.equal(explainedChangeCents, currentProfitCents - previousProfitCents);
+assert.equal(result.inputSha256, assignedTask.inputSha256);
+assert.equal(result.attemptId, assignedTask.attemptId);
+assert.equal(result.leaseToken, assignedTask.leaseToken);
+assert.ok(Date.now() &lt; Date.parse(assignedTask.leaseExpiresAt));
+// Atomically accept at most one valid completion for this runId/taskId.</code></pre>
+        <p>The validator independently recomputed the relevant aggregates and checked that the contributions explained the profit change. Missing shards, duplicate completions, mixed analysis versions, and expired attempts were errors. A worker’s exit code of zero established that its process had finished successfully. It did not establish that subtraction had occurred in the correct direction.</p>
+        <p>For each company, the artifact service assembled <code>report.html</code>, <code>metrics.csv</code>, <code>exceptions.csv</code>, and a manifest containing input hashes, analysis versions, and accepted task IDs. The narrative linked to the calculations behind its claims. Every reported cause had an inspectable trail back to the source records.</p>
+        <p>We escaped data when rendering HTML, kept generated scripts outside the report, and rendered the report without executing arbitrary worker-supplied markup. A company name was a string, even when it had strong opinions about closing a <code>&lt;script&gt;</code> tag.</p>
+        <p>The controller retrieved bounded files through <code>GET /containers/files</code>, with encoded paths and the exact generation. File writes used raw bytes through <code>PUT</code>, required an existing parent directory, and replaced regular files atomically. The write path in <a href="https://github.com/mainbrella/backend/blob/main/containers/files.js">files.js</a> rejects symlink targets; reads can follow symlinks inside the owned guest. Larger exports needed an explicit chunking or portable-export workflow. None of these files belonged in stdout.</p>
+
+        <h2 id="docker">The 254th local address was already spoken for</h2>
+        <p>The first infrastructure problem arrived during provisioning. After 253 task containers had attached, three launch requests returned HTTP 503. The account allowance was large enough. Docker’s local default bridge was a <code>/24</code>, and its 253 usable container addresses were occupied.</p>
+        <p>That was a local runtime networking limit, separate from Mainbrella’s fifteen logical company networks. We paused launches, retained the ambiguous creation keys, and moved only task-owned Docker proxies to a larger, dedicated bridge. We identified each proxy by running <code>hostname</code> through the recorded container generation, then checked command execution after moving it. All 253 migrated proxies passed that check.</p>
+        <p>The three failed creations were subsequently confirmed stopped through their original keys. Only then did we prepare intentional replacement launches. Provisioning resumed and the final check matched all 480 running generations against fifteen membership lists of thirty-two.</p>
+        <p>That detour belonged in the demo. A dropped launch response should leave a recoverable creation record, rather than a 481st employee nobody remembered hiring.</p>
+
+        <h2 id="workspaces">Saving the work came before stopping the machine</h2>
+        <p>Stopping ordinarily discarded the container filesystem. We used saved workspaces when we wanted a source environment available for later restoration, and copied report artifacts outside the container before teardown.</p>
+        <pre class="docs-code"><code>const save = {
+  key: randomUUID(),
+  body: { ...worker, name: &#x27;margin-of-error-analyst-01&#x27;, stop: false },
+};
+await journal(save.key, save);
+const workspace = await api(&#x27;/workspaces&#x27;, {
+  method: &#x27;POST&#x27;, body: save.body,
+  headers: { &#x27;Idempotency-Key&#x27;: save.key },
+});
+if (workspace.status !== &#x27;ready&#x27;
+    || workspace.source.id !== worker.id
+    || workspace.source.createdAt !== worker.createdAt) {
+  throw new Error(&#x27;Save unresolved; preserve the source container&#x27;);
+}
+await journal(save.key, { ...save, workspaceId: workspace.id });
+const after = await api(&#x27;/containers?&#x27; + new URLSearchParams(worker), {
+  method: &#x27;DELETE&#x27;,
+});
+if (after.containers.some(c =&gt;
+  c.id === worker.id &amp;&amp; c.createdAt === worker.createdAt)) {
+  throw new Error(&#x27;Stop unresolved; reconcile this exact generation&#x27;);
+}</code></pre>
+        <p>The backend’s <a href="https://github.com/mainbrella/backend/blob/main/containers/workspaces.js">workspaces.js</a> reserves save capacity before capture, persists the provider handle, and optionally stops the source only after committing that snapshot. The snippet used separate save and stop requests so the controller could durably record the workspace ID between them. The API also supports <code>stop: true</code> in the save body.</p>
+        <p>Our account could retain one hundred saved workspaces. We saved the first hundred containers in manifest order, confirmed each workspace was <code>ready</code> for the exact source generation, and then confirmed those generations were absent from the running list. The remaining 380 containers stayed running. We did not delete saved workspaces to make a success counter look tidier.</p>
+        <p>A restore used <code>POST /containers</code> with <code>{ workspaceId }</code> and a fresh persisted creation key. It consumed a start and returned a new generation. Filesystem state survived; RAM, processes, previews, and network memberships did not. Restored services needed to start again and register their new identities.</p>
+        <p>The reporting application therefore kept progress in files or durable coordinator records and quiesced writers before taking a meaningful checkpoint. An in-memory queue would vanish on restore. The one hundred infrastructure saves proved the save/stop path; their count alone did not prove that a completed report could resume halfway through rendering.</p>
+
+        <h2 id="finish">What we put in front of the viewer</h2>
+        <p>The demonstration began with a company and a question. It showed leased tasks, accepted results, validation failures, and links to the generated artifacts. Selecting a task opened its container generation, managed execution ID, logs, and input hash. Canceling a slow attempt left the coordinator enough information to reassign its work.</p>
+        <p>We kept provisioning measurements separate from dispatch into an already-running worker. We also kept useful throughput separate from raw process count: completed, validated tasks per second; error rate; command latency; time until the report was available; and whether the artifact checks passed. Four hundred and eighty running containers described capacity. The files at the end described what that capacity accomplished.</p>
+        <p>Everything had a deadline. Status polling did not renew idle time. Managed execution could keep a container active while its job ran, but the hard deadline still applied. Saved workspaces had returned expiration dates and finite retention. The controller’s final responsibility was to export outputs and stop only the generations it owned.</p>
+        <p>For the implementation trail, start with the open-source <a href="https://github.com/mainbrella/backend">Mainbrella backend</a>, the <a href="/API.md">HTTP contract</a>, and the <a href="/SKILL.md">agent setup workflow</a>. Follow a creation key through admission, a generation through a private request, and a task ID into the artifact manifest. Then open <code>metrics.csv</code> and check the profit calculation yourself.</p>
+      </article>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.ts"></script>
+  </body>
+</html>

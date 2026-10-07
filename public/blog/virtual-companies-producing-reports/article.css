@@ -1,0 +1,20 @@
+/* Article-specific media; shared typography and chrome stay in mainbrella.css. */
+.virtual-companies { max-width: 880px; }
+.virtual-companies article { min-width: 0; }
+.virtual-companies h1 { max-width: 24ch; }
+.virtual-companies p { max-width: 78ch; }
+.virtual-companies .article-meta { margin-top: 12px; margin-bottom: 24px; }
+.virtual-companies .article-figure { margin: 32px 0; }
+.virtual-companies .article-figure img { width: 100%; height: auto; }
+.virtual-companies figcaption { max-width: 76ch; margin-top: 12px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.virtual-companies .docs-code { border-radius: 4px; overflow-wrap: normal; }
+.virtual-companies .docs-code code { font: inherit; }
+.virtual-companies .company-roles { min-width: 520px; }
+.virtual-companies .company-roles caption { padding-bottom: 12px; color: var(--muted); text-align: left; font-size: 14px; }
+.virtual-companies .company-roles td:nth-child(2) { color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.virtual-companies .company-roles th:first-child { width: 136px; }
+.virtual-companies .docs-table-scroll:focus-visible { outline-offset: 4px; }
+@media (max-width: 600px) {
+  .virtual-companies .docs-code { padding: 12px; font-size: 12px; }
+  .virtual-companies .article-figure { margin: 24px 0; }
+}
