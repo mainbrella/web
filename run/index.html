@@ -18,21 +18,23 @@
     <!-- app-header -->
     <main id="main" class="dashboard-main">
       <h1>Run a GitHub repository</h1>
+      <p id="run-intro" class="dashboard-status">Paste a repository URL, copy the setup prompt into Codex, then open the launch link it gives you.</p>
       <p id="run-status" class="dashboard-status" role="status">Checking your session…</p>
       <p id="run-error" class="dashboard-error" role="alert" hidden></p>
       <p id="run-access" class="dashboard-status" hidden><a id="run-sign-in" href="/login/">Sign in</a><a id="run-plans" href="/pricing/" hidden>Choose a plan</a><span id="run-access-note"></span></p>
       <form id="run-form" class="repo-run-form">
         <fieldset id="run-fields">
-          <div class="repo-run-grid">
-            <label>Public GitHub repository<input id="run-repo" name="repo" required maxlength="240" autocomplete="off" spellcheck="false" placeholder="owner/repository"></label>
-            <label>Ref <span class="dashboard-status">(optional)</span><input id="run-ref" name="ref" maxlength="200" autocomplete="off" spellcheck="false" placeholder="Default branch, tag, or commit"></label>
-            <label>Runtime<select id="run-runtime" name="catalogId"><option value="">Automatic</option><option value="node">Node 24 + TypeScript</option><option value="python">Python 3.14</option><option value="rust">Rust</option><option value="go">Go</option><option value="devops">DevOps</option></select></label>
-            <label>Machine size<select id="run-size" name="size"><option value="lite">Lite · 256 MiB</option><option value="small" selected>Small · 4 GiB</option><option value="medium">Medium · 6 GiB</option><option value="large">Large · 8 GiB</option><option value="xl">XL · 12 GiB</option></select></label>
-          </div>
+          <label>Public GitHub repository<input id="run-repo" name="repo" required maxlength="240" autocomplete="off" spellcheck="false" placeholder="https://github.com/happier-dev/happier" aria-describedby="run-repo-note"></label>
+          <p id="run-repo-note" class="dashboard-status">For example, <button id="run-example" class="repo-example" type="button">happier-dev/happier</button></p>
           <p id="run-repository" class="dashboard-status"></p>
           <details id="run-advanced">
-            <summary>Setup and web preview</summary>
-            <label>Working directory<input id="run-cwd" name="cwd" value="." maxlength="200" autocomplete="off" spellcheck="false" aria-describedby="run-cwd-note"></label>
+            <summary>Advanced launch settings</summary>
+            <div class="repo-run-grid">
+              <label>Ref <span class="dashboard-status">(optional)</span><input id="run-ref" name="ref" maxlength="200" autocomplete="off" spellcheck="false" placeholder="Default branch, tag, or commit"></label>
+              <label>Runtime<select id="run-runtime" name="catalogId"><option value="">Automatic</option><option value="node">Node 24 + TypeScript</option><option value="python">Python 3.14</option><option value="rust">Rust</option><option value="go">Go</option><option value="devops">DevOps</option></select></label>
+              <label>Machine size<select id="run-size" name="size"><option value="lite">Lite · 256 MiB</option><option value="small" selected>Small · 4 GiB</option><option value="medium">Medium · 6 GiB</option><option value="large">Large · 8 GiB</option><option value="xl">XL · 12 GiB</option></select></label>
+              <label>Working directory<input id="run-cwd" name="cwd" value="." maxlength="200" autocomplete="off" spellcheck="false" aria-describedby="run-cwd-note"></label>
+            </div>
             <p id="run-cwd-note" class="dashboard-status">Relative to /workspace/repo. The terminal opens at the repository root.</p>
             <label>Setup command <span class="dashboard-status">(optional)</span><textarea id="run-setup" name="setupCommand" rows="2" maxlength="4096" spellcheck="false" placeholder="npm ci"></textarea></label>
             <label>Start command <span class="dashboard-status">(optional)</span><textarea id="run-start" name="startCommand" rows="2" maxlength="4096" spellcheck="false" placeholder="npm run dev -- --host 0.0.0.0"></textarea></label>
@@ -40,12 +42,23 @@
             <p class="dashboard-status">Setup and start commands run in your container. Preview links last up to 15 minutes; apps that require cookies are unsupported.</p>
           </details>
         </fieldset>
+        <div class="container-actions repo-run-actions">
+          <button id="run-prompt-copy" class="button button-small" type="button" aria-describedby="run-prompt-status"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"></path></svg><span>Copy setup prompt</span></button>
+          <button id="run-submit" class="dashboard-retry" type="submit" disabled>Open terminal only</button>
+          <button id="run-share" class="dashboard-retry" type="button">Copy launch link</button>
+        </div>
+        <p id="run-prompt-status" class="dashboard-status" role="status"></p>
+        <details id="run-prompt-details"><summary>View setup prompt</summary><label class="repo-prompt-label">Prompt for Codex<textarea id="run-prompt-text" rows="12" readonly spellcheck="false"></textarea></label></details>
         <p id="run-allowance" class="dashboard-status">Each run creates a container in your account and uses your plan’s allowance.</p>
-        <div class="container-actions"><button id="run-submit" class="button button-small" type="submit" disabled>Run repository</button><button id="run-share" class="dashboard-retry" type="button">Copy launch link</button></div>
       </form>
       <section id="run-progress" hidden aria-label="Repository launch">
         <div class="repo-run-heading"><a id="run-source" target="_blank" rel="noopener noreferrer"></a><span id="run-commit" class="dashboard-status"></span><button id="run-active-share" class="dashboard-retry" type="button">Copy launch link</button></div>
         <p id="run-phase" class="dashboard-status" role="status"></p>
+        <div id="run-help" class="repo-run-help" hidden>
+          <button id="run-help-copy" class="dashboard-retry" type="button" aria-describedby="run-help-status"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"></path></svg><span>Copy Codex prompt</span></button>
+          <p id="run-help-status" class="dashboard-status" role="status">Paste into Codex to finish setup in this container.</p>
+          <details id="run-help-details"><summary>View Codex prompt</summary><label class="repo-prompt-label">Prompt for Codex<textarea id="run-help-text" rows="12" readonly spellcheck="false"></textarea></label></details>
+        </div>
         <div class="container-actions"><button id="run-retry" class="dashboard-retry" type="button" hidden>Resume launch</button><button id="run-terminal-open" class="dashboard-retry" type="button" hidden>Open terminal</button><a href="/run/" class="text-link">New run</a><a href="/dashboard/" class="text-link">Manage container</a></div>
         <div id="run-preview" hidden>
           <div class="container-actions"><button id="run-preview-create" class="dashboard-retry" type="button">Create preview link</button><a id="run-preview-open" class="button button-small" target="_blank" rel="noopener noreferrer" hidden>Open preview</a></div>

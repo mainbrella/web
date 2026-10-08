@@ -1,6 +1,7 @@
 import { API_ORIGIN, createAuthClient } from './auth.ts';
 import { createPreviewClient } from './container-previews.ts';
 import { launchIdentity, normalizeRepo, repoRunUrl, type RepoRunOptions, type RepositoryLaunch } from './repo-run-contract.ts';
+import { repoSetupPrompt, validRepo } from './repo-run-prompt.ts';
 import type { ContainerData } from './types.ts';
 
 const element = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -24,7 +25,7 @@ for (const [input, key] of [[repo, 'repo'], [ref, 'ref'], [runtime, 'catalogId']
 }
 if (!size.value) size.value = 'small';
 if (!cwd.value) cwd.value = '.';
-element<HTMLDetailsElement>('run-advanced').open = Boolean(setup.value || start.value || port.value || cwd.value !== '.');
+element<HTMLDetailsElement>('run-advanced').open = Boolean(ref.value || runtime.value || size.value !== 'small' || setup.value || start.value || port.value || cwd.value !== '.');
 let identity = launchIdentity(location.hash);
 let launch: RepositoryLaunch | null = null;
 let userId: string | null = null;
@@ -78,6 +79,39 @@ function options(): RepoRunOptions {
     ...(setup.value.trim() ? { setupCommand: setup.value.trim() } : {}), ...(start.value.trim() ? { startCommand: start.value.trim() } : {}),
     ...(port.value ? { port: port.valueAsNumber } : {}) };
 }
+function submitLabel() { return setup.value.trim() || start.value.trim() ? 'Run repository' : 'Open terminal only'; }
+function updatePrompt() {
+  const value = options();
+  const configured = Boolean(value.setupCommand || value.startCommand);
+  element<HTMLTextAreaElement>('run-prompt-text').value = validRepo(value.repo) ? repoSetupPrompt(value, location.origin) : '';
+  element<HTMLButtonElement>('run-prompt-copy').className = `button button-small${configured ? ' secondary' : ''}`;
+  submit.className = configured ? 'button button-small' : 'dashboard-retry';
+  if (identity?.kind !== 'request') submit.textContent = submitLabel();
+  element('run-intro').textContent = configured
+    ? 'This link includes launch commands. Review the settings below, then run it in your account.'
+    : 'Paste a repository URL, copy the setup prompt into Codex, then open the launch link it gives you.';
+}
+function validateRepo() {
+  repo.setCustomValidity(validRepo(repo.value) ? '' : 'Enter a public GitHub URL or owner/repository.');
+  return repo.reportValidity();
+}
+async function copyPrompt(existing = false) {
+  if (!existing && !validateRepo()) return;
+  const note = element(existing ? 'run-help-status' : 'run-prompt-status');
+  const text = element<HTMLTextAreaElement>(existing ? 'run-help-text' : 'run-prompt-text');
+  const button = element<HTMLButtonElement>(existing ? 'run-help-copy' : 'run-prompt-copy');
+  text.value = repoSetupPrompt(existing && launch ? launch.options : options(), location.origin, existing ? launch : null);
+  button.disabled = true;
+  note.textContent = '';
+  try {
+    await navigator.clipboard.writeText(text.value);
+    note.textContent = 'Prompt copied. Paste it into Codex.';
+  } catch {
+    element<HTMLDetailsElement>(existing ? 'run-help-details' : 'run-prompt-details').open = true;
+    text.focus(); text.select();
+    note.textContent = 'Could not copy automatically. The prompt is selected; copy it and paste into Codex.';
+  } finally { button.disabled = false; }
+}
 function updateSignIn() {
   const url = repoRunUrl(options(), location.origin);
   url.hash = location.hash;
@@ -105,7 +139,9 @@ function signIn() {
   logCache.clear(); pendingPreviewId = undefined; previewExpiry = 0;
   element('run-source').textContent = ''; element('run-commit').textContent = '';
   element('run-phase').textContent = ''; element('run-log-output').textContent = '';
+  element<HTMLTextAreaElement>('run-help-text').value = '';
   element('run-progress').hidden = true;
+  form.hidden = false; element('run-intro').hidden = false;
   element('run-preview-open').hidden = true;
   clearTimeout(timer);
   terminal?.dispose(); terminal = undefined; terminalHost.hidden = true;
@@ -135,6 +171,7 @@ async function resolve() {
   }
 }
 async function share(button: HTMLButtonElement) {
+  if (!launch && !validateRepo()) return;
   try {
     await navigator.clipboard.writeText(repoRunUrl(launch?.options ?? options(), location.origin).href);
     const label = button.textContent;
@@ -154,6 +191,7 @@ function openTerminal() {
 function render() {
   if (!launch) return;
   form.hidden = true;
+  element('run-intro').hidden = true;
   status.textContent = '';
   element('run-progress').hidden = false;
   const source = element<HTMLAnchorElement>('run-source');
@@ -163,6 +201,8 @@ function render() {
   const phases = { allocating: 'Creating container…', cloning: 'Cloning repository…', setup: 'Running setup… Terminal ready.',
     starting: 'Starting app and checking readiness… Terminal ready.', ready: 'Repository ready.', failed: 'Launch needs attention.', stopped: 'Container stopped.' };
   element('run-phase').textContent = phases[launch.phase];
+  element('run-help').hidden = !launch.container || !launch.shellReadyAt && launch.phase !== 'failed' || launch.phase === 'stopped';
+  element<HTMLTextAreaElement>('run-help-text').value = repoSetupPrompt(launch.options, location.origin, launch);
   if (launch.error) showError(new Error(launch.error));
   element<HTMLButtonElement>('run-terminal-open').disabled = !active;
   element<HTMLButtonElement>('run-preview-create').disabled = !active;
@@ -245,7 +285,7 @@ async function run() {
       status.textContent = ''; showError(cause); submit.textContent = 'Resume launch';
       if ([400, 402, 413, 429].includes((cause as { status?: number }).status ?? 0)) {
         identity = null; history.replaceState(null, '', repoRunUrl(options(), location.origin));
-        fields.disabled = false; submit.textContent = 'Run repository';
+        fields.disabled = false; submit.textContent = submitLabel();
       }
     }
   } finally { busy = false; submit.disabled = Boolean(userId) && !active; }
@@ -323,7 +363,17 @@ async function init() {
   } catch (cause) { if (stopped || version !== sessionVersion) return; showError(cause); status.textContent = ''; element('run-retry').hidden = false; element('run-progress').hidden = false; }
 }
 form.addEventListener('submit', event => { event.preventDefault(); void run(); });
-form.addEventListener('input', () => { port.setCustomValidity(''); updateSignIn(); });
+form.addEventListener('input', () => {
+  repo.setCustomValidity(''); port.setCustomValidity(''); element('run-prompt-status').textContent = '';
+  updatePrompt(); updateSignIn();
+});
+element('run-example').onclick = () => {
+  repo.value = 'https://github.com/happier-dev/happier';
+  repo.setCustomValidity(''); element('run-prompt-status').textContent = '';
+  updatePrompt(); updateSignIn(); void resolve();
+};
+element('run-prompt-copy').onclick = () => { void copyPrompt(); };
+element('run-help-copy').onclick = () => { void copyPrompt(true); };
 for (const input of [repo, ref, cwd]) input.addEventListener('change', () => { void resolve(); });
 for (const id of ['run-share', 'run-active-share']) element<HTMLButtonElement>(id).onclick = event => { void share(event.currentTarget as HTMLButtonElement); };
 element('run-retry').onclick = () => { if (launch) void advance(); else void init(); };
@@ -341,4 +391,5 @@ window.addEventListener('cookie-consent-change', event => {
   if ((event as CustomEvent).detail?.choice === 'accepted') { stopped = false; void init(); }
   else { stopped = true; signIn(); element('run-progress').hidden = true; }
 });
+updatePrompt();
 void init();

@@ -286,8 +286,15 @@ port connections. Its linked children are ephemeral and parent deletion cascades
 
 ## Run a GitHub repository
 
-`/run/?repo=OWNER/REPO&ref=main` prepares a public GitHub launch. The recipient signs
-in and chooses Run repository; paid or trial access is required. Small is the
+`/run/?repo=OWNER/REPO&ref=main` starts with a repository URL and **Copy setup
+prompt**. No sign-in or paid access is needed to copy. Paste the prompt into Codex
+to inspect the repository and produce an encoded launch link with setup, start,
+runtime, working directory and port selected. Happier is the example repository.
+Manual configuration is available under Advanced launch settings; commands in
+configured links are expanded for review and **Run repository** becomes primary.
+Without commands, **Open terminal only** explicitly creates just a checkout.
+
+The recipient signs in before launch; paid or trial access is required. Small is the
 default. The API resolves a commit before allocation, clones to `/workspace/repo`,
 and opens the existing terminal component there. Optional setup/start commands,
 working directory and port enable a web preview. All commands from a shared link
@@ -296,7 +303,9 @@ are shown before Run.
 Private launch IDs live in the URL fragment and are preserved through login.
 Copy launch link shares only repository settings. Reloading a private launch
 reconciles retained progress and exact generations. Failed setup keeps the shell
-available. Preview renewal reconciles one-time grants; cookie-based applications
+available. **Copy Codex prompt** on an active run includes its exact container
+generation and execution IDs so an agent can finish or repair setup in that
+container. Copy failure reveals selectable prompt text. Preview renewal reconciles one-time grants; cookie-based applications
 are unsupported. The driver advances between phases while this page is open.
 
 Deploy with the backend repository-launch API and D1 migration 013. See
@@ -473,4 +482,3 @@ Deploy with the backend repository-launch API and D1 migration 013. See
 | `under-my-umbrella`    | Rihanna reference                       |
 | `raining-men`          | Famous song                             |
 | `singing`              | Singin' in the Rain                     |
-

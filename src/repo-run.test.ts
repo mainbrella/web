@@ -20,7 +20,9 @@ class Element {
   get valueAsNumber() { return Number(this.value); }
   addEventListener(name: string, callback: (event: any) => unknown) { this.listeners.set(name, callback); }
   setCustomValidity(message: string) { this.validity = message; }
-  reportValidity() { return true; }
+  reportValidity() { return !this.validity; }
+  focus() { this.focused = true; }
+  select() { this.selected = true; }
   async fire(name: string, event: any = { preventDefault() {} }) {
     if (!this.disabled) { await this.listeners.get(name)?.(event); if (name === 'click') await this.onclick?.({ currentTarget: this }); }
   }
@@ -130,7 +132,7 @@ test('an uncertain submission locks settings and retries the same key and payloa
 test('definitive validation errors let users correct the launch before allocation', async t => {
   const f = await fixture(t); f.failCreate(400);
   await f.node('run-form').fire('submit'); await f.flush();
-  assert.equal(f.location.hash, ''); assert.equal(f.node('run-fields').disabled, false); assert.equal(f.node('run-submit').textContent, 'Run repository');
+  assert.equal(f.location.hash, ''); assert.equal(f.node('run-fields').disabled, false); assert.equal(f.node('run-submit').textContent, 'Open terminal only');
   assert.match(f.node('run-error').textContent, /Public repository not found/);
 });
 test('setup failure keeps an attached terminal and opens output without replaying setup', async t => {
@@ -139,6 +141,11 @@ test('setup failure keeps an attached terminal and opens output without replayin
   assert.equal(f.node('run-phase').textContent, 'Launch needs attention.'); assert.equal(f.node('run-logs').open, true);
   assert.equal(f.terminals.length, 1); assert.equal(f.node('run-terminal').hidden, false);
   assert.match(f.node('run-error').textContent, /Setup failed/);
+  assert.equal(f.node('run-help').hidden, false);
+  await f.node('run-help-copy').fire('click'); await f.flush();
+  assert.match(f.copied[0], /"launchId": "12345678-1234-1234-1234-123456789abc"/);
+  assert.match(f.copied[0], /"createdAt": "2026-10-08T12:00:00.000Z"/);
+  assert.match(f.copied[0], /do not allocate another/);
 });
 test('preview issuance is limited to a newly started ready app and renewal stays explicit', async t => {
   const f = await fixture(t, { search: '?repo=acme/demo&startCommand=npm+start&port=3000' });
@@ -186,4 +193,48 @@ test('partial preview issuance reconciles the returned grant ID before reissuing
   assert.deepEqual(requests.map(call => call.options.method), ['GET', 'POST', 'DELETE', 'GET', 'POST']);
   assert.equal(requests[2].url.searchParams.get('previewId'), 'd'.repeat(32));
   assert.equal(f.node('run-preview-open').hidden, false);
+});
+
+test('a repo URL alone lets signed-out users copy setup instructions without allocating or signing in', async t => {
+  const f = await fixture(t, { session: false, search: '?repo=https%3A%2F%2Fgithub.com%2Fhappier-dev%2Fhappier' });
+  assert.equal(f.node('run-advanced').open, false);
+  assert.equal(f.node('run-submit').textContent, 'Open terminal only');
+  await f.node('run-prompt-copy').fire('click'); await f.flush();
+  assert.match(f.copied[0], /https:\/\/github.com\/happier-dev\/happier/);
+  assert.match(f.node('run-prompt-status').textContent, /Prompt copied/);
+  assert.equal(f.calls.length, 0); assert.equal(f.location.href, '');
+});
+
+test('copy remains available without paid access and uses edited settings', async t => {
+  const f = await fixture(t, { paid: false });
+  f.node('run-repo').value = 'happier-dev/happier'; f.node('run-ref').value = 'feature/ports';
+  await f.node('run-form').fire('input');
+  await f.node('run-prompt-copy').fire('click'); await f.flush();
+  assert.match(f.copied[0], /feature\/ports/);
+  assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
+});
+
+test('copy validates the repository and offers a selected fallback when clipboard access fails', async t => {
+  const f = await fixture(t, { session: false, search: '' });
+  await f.node('run-prompt-copy').fire('click'); await f.flush();
+  assert.equal(f.copied.length, 0); assert.match(f.node('run-repo').validity, /public GitHub/);
+  await f.node('run-example').fire('click'); await f.flush();
+  t.mock.method(navigator.clipboard, 'writeText', async () => { throw new Error('denied'); });
+  await f.node('run-prompt-copy').fire('click'); await f.flush();
+  assert.equal(f.node('run-prompt-details').open, true);
+  assert.equal(f.node('run-prompt-text').selected, true);
+  assert.match(f.node('run-prompt-text').value, /happier-dev\/happier/);
+  assert.match(f.node('run-prompt-status').textContent, /copy it and paste/);
+  assert.equal(f.calls.length, 0);
+});
+
+test('configured links show commands and promote Run while retaining copy assistance', async t => {
+  const f = await fixture(t, { search: '?repo=happier-dev/happier&setupCommand=yarn+build&startCommand=yarn+start&port=3005' });
+  assert.equal(f.node('run-advanced').open, true);
+  assert.equal(f.node('run-submit').textContent, 'Run repository');
+  assert.equal(f.node('run-submit').className, 'button button-small');
+  assert.match(f.node('run-prompt-copy').className, /secondary/);
+  await f.node('run-prompt-copy').fire('click'); await f.flush();
+  assert.match(f.copied[0], /"port": 3005/);
+  assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
 });
