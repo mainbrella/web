@@ -301,3 +301,176 @@ are unsupported. The driver advances between phases while this page is open.
 
 Deploy with the backend repository-launch API and D1 migration 013. See
 `../backend/docs/repo-launches.md` for qualification and SDK CLI release steps.
+
+# name ideas
+
+| Repo name            | Umbrella association            |
+| -------------------- | ------------------------------- |
+| `brolly`             | British slang for umbrella      |
+| `bumbershoot`        | Playful word for umbrella       |
+| `canopy`             | Fabric covering of an umbrella  |
+| `cloudburst`         | Sudden intense rain             |
+| `cloudy`             | Clouds before rain              |
+| `collapse`           | Folding an umbrella closed      |
+| `compact`            | Pocket-sized umbrella           |
+| `cover`              | Keeps things protected          |
+| `defense`            | Protection from threats         |
+| `deploy`             | Putting an umbrella into action |
+| `downpour`           | Heavy rain                      |
+| `drizzle`            | Light rain                      |
+| `fabric`             | Material covering the frame     |
+| `flying`             | Umbrella-powered flight         |
+| `fold`               | Collapsible umbrella            |
+| `forecast`           | Predicting umbrella weather     |
+| `galoshes`           | Classic waterproof boots        |
+| `gamp`               | Old-fashioned umbrella term     |
+| `glide`              | Mary Poppins-style travel       |
+| `gust`               | Sudden burst of wind            |
+| `hail`               | Frozen precipitation            |
+| `hailstorm`          | Storm producing hail            |
+| `handle`             | Where you hold it               |
+| `haven`              | Place of safety                 |
+| `hook`               | Curved umbrella handle          |
+| `hurricane`          | Massive storm                   |
+| `inverted`           | Umbrella blown inside out       |
+| `levitate`           | Floating through the air        |
+| `lightning`          | Electrical storm                |
+| `monsoon`            | Seasonal heavy rains            |
+| `nylon`              | Common umbrella material        |
+| `open`               | Opening an umbrella             |
+| `overcast`           | Cloud-covered sky               |
+| `parasol`            | Umbrella designed for sun       |
+| `poppins`            | Mary Poppins flying             |
+| `pongee`             | Water-resistant fabric          |
+| `portable`           | Easy to carry                   |
+| `privacy`            | Umbrella as a visual barrier    |
+| `puddle`             | Rainwater collecting            |
+| `rainbow`            | Appears after rain              |
+| `rainboots`          | Footwear for rainy days         |
+| `raincoat`           | Companion rain protection       |
+| `raindance`          | Ritual associated with rain     |
+| `raindrop`           | Individual drop of rain         |
+| `rainfall`           | Rain coming down                |
+| `refuge`             | Safe place during storms        |
+| `repellent`          | Water-repelling surface         |
+| `ribs`               | Structural supports             |
+| `romance`            | Sharing an umbrella             |
+| `sanctuary`          | Protected space                 |
+| `shade`              | Protection from sunlight        |
+| `shadow`             | Area sheltered from light       |
+| `shaft`              | Central pole                    |
+| `shelter`            | Protection from weather         |
+| `shield`             | Defense against elements        |
+| `shower`             | Brief rainfall                  |
+| `sidewalk`           | Walking with umbrellas          |
+| `singin-in-the-rain` | Famous musical reference        |
+| `sleet`              | Frozen rain                     |
+| `snowflake`          | Snow and winter weather         |
+| `spokes`             | Umbrella's radial supports      |
+| `splash`             | Water hitting the ground        |
+| `storm`              | Severe weather                  |
+| `streetlight`        | Rainy nighttime streets         |
+| `sunbeam`            | Ray of sunlight                 |
+| `sunblock`           | UV protection                   |
+| `sunburn`            | What umbrellas help prevent     |
+| `sunshine`           | Sunny weather                   |
+| `taxi`               | Hailing a cab in the rain       |
+| `thunder`            | Sound of a storm                |
+| `tip`                | End of an umbrella              |
+| `tornado`            | Extreme wind                    |
+| `travel`             | Umbrellas on the go             |
+| `unfurl`             | Spreading the canopy            |
+| `updraft`            | Rising air that lifts umbrellas |
+| `waterproof`         | Repels water                    |
+| `weather`            | Overall conditions              |
+| `wind`               | Wind that flips umbrellas       |
+| `windproof`          | Resistant to strong wind        |
+
+| Repo name       | Umbrella association                     |
+| --------------- | ---------------------------------------- |
+| `awning`        | Outdoor overhead rain and sun protection |
+| `beach`         | Beach umbrellas                          |
+| `boots`         | Rain boots                               |
+| `brella`        | Short for umbrella                       |
+| `bucket`        | Collecting rainwater                     |
+| `cape`          | Waterproof rain cape                     |
+| `cats-and-dogs` | Raining cats and dogs                    |
+| `climate`       | Weather conditions                       |
+| `cloak`         | Protective outerwear                     |
+| `cloud`         | Source of rain                           |
+| `coat`          | Raincoat                                 |
+| `condensation`  | Formation of water droplets              |
+| `deluge`        | Torrential rain                          |
+| `dew`           | Morning moisture                         |
+| `doppler`       | Weather radar                            |
+| `drain`         | Carries away rainwater                   |
+| `drip`          | Falling water droplets                   |
+| `droplet`       | Tiny drop of water                       |
+| `drought`       | Absence of rain                          |
+| `dry`           | What umbrellas keep you                  |
+| `dryclean`      | Keeping clothing dry                     |
+| `drydock`       | Shelter from water                       |
+| `eaves`         | Roof edges that divert rain              |
+| `flood`         | Excessive rainwater                      |
+| `fog`           | Suspended water droplets                 |
+| `fountain`      | Water spraying                           |
+| `goretex`       | Waterproof breathable fabric brand       |
+| `gutter`        | Channels rainwater                       |
+| `hood`          | Raincoat head covering                   |
+| `humidity`      | Moisture in the air                      |
+| `macintosh`     | Classic waterproof raincoat              |
+| `mist`          | Fine airborne water                      |
+| `mackintosh`    | Traditional waterproof coat              |
+| `oilskin`       | Waterproof clothing material             |
+| `overshoes`     | Waterproof shoe covers                   |
+| `petrichor`     | Smell of rain on dry ground              |
+| `poncho`        | Waterproof outer garment                 |
+| `pour`          | Heavy rainfall                           |
+| `precipitation` | Rain, snow, sleet, hail                  |
+| `raincheck`     | Postponement due to rain                 |
+| `raindrops`     | Multiple drops of rain                   |
+| `rainforest`    | Forest with heavy rainfall               |
+| `rainmaker`     | Something that produces rain             |
+| `rainstorm`     | Storm with heavy rain                    |
+| `rainwater`     | Water collected from rain                |
+| `rubber`        | Material used in rain boots              |
+| `slicker`       | Waterproof rain jacket                   |
+| `soaked`        | Completely wet                           |
+| `soggy`         | Saturated with water                     |
+| `sprinkle`      | Very light rainfall                      |
+| `squall`        | Sudden violent wind and rain             |
+| `tarpaulin`     | Waterproof protective sheet              |
+| `tarp`          | Short for tarpaulin                      |
+| `tempest`       | Violent storm                            |
+| `trenchcoat`    | Classic rainwear                         |
+| `tropical`      | Climate associated with heavy rain       |
+| `umbrella`      | The object itself                        |
+| `uv`            | Ultraviolet rays blocked by parasols     |
+| `wet`           | Opposite of dry                          |
+| `wellington`    | Wellington rain boots                    |
+
+## Some especially good ones still missing
+
+| Repo name              | Association                             |
+| ---------------------- | --------------------------------------- |
+| `penguin`              | The Penguin's trick umbrellas in Batman |
+| `cocktail`             | Tiny cocktail umbrellas                 |
+| `tiki`                 | Tropical drink umbrellas                |
+| `beachball`            | Beach umbrella scene                    |
+| `patio`                | Patio umbrellas                         |
+| `market`               | Outdoor market umbrellas                |
+| `golf`                 | Oversized golf umbrellas                |
+| `caddy`                | Golf umbrella holder                    |
+| `chimney`              | Mary Poppins rooftop imagery            |
+| `chimneysweep`         | Mary Poppins                            |
+| `practically-perfect`  | Mary Poppins catchphrase                |
+| `supercalifragilistic` | Mary Poppins song                       |
+| `parachute`            | Umbrella-like descent                   |
+| `totes`                | Well-known umbrella brand               |
+| `totesmagoats`         | Playful association with Totes          |
+| `ella`                 | Rihanna's Umbrella                      |
+| `ella-ella`            | Famous umbrella song refrain            |
+| `under-my-umbrella`    | Rihanna reference                       |
+| `raining-men`          | Famous song                             |
+| `singing`              | Singin' in the Rain                     |
+
