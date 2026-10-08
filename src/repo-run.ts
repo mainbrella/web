@@ -12,21 +12,11 @@ const error = element('run-error');
 const submit = element<HTMLButtonElement>('run-submit');
 const terminalHost = element('run-terminal');
 const repo = element<HTMLInputElement>('run-repo');
-const ref = element<HTMLInputElement>('run-ref');
-const runtime = element<HTMLSelectElement>('run-runtime');
-const size = element<HTMLSelectElement>('run-size');
-const cwd = element<HTMLInputElement>('run-cwd');
-const setup = element<HTMLTextAreaElement>('run-setup');
-const start = element<HTMLTextAreaElement>('run-start');
-const port = element<HTMLInputElement>('run-port');
 const params = new URLSearchParams(location.search);
-for (const [input, key] of [[repo, 'repo'], [ref, 'ref'], [runtime, 'catalogId'], [size, 'size'], [cwd, 'cwd'], [setup, 'setupCommand'], [start, 'startCommand'], [port, 'port']] as const) {
-  if (params.has(key)) input.value = params.get(key)!;
-}
-if (!size.value) size.value = 'small';
-if (!cwd.value) cwd.value = '.';
-element<HTMLDetailsElement>('run-advanced').open = Boolean(ref.value || runtime.value || size.value !== 'small' || setup.value || start.value || port.value || cwd.value !== '.');
+repo.value = params.get('repo') ?? '';
 let identity = launchIdentity(location.hash);
+// Agent-generated links retain their launch settings without manual editors.
+const launchMode = Boolean(identity || params.get('catalogId') || params.get('setupCommand') || params.get('startCommand'));
 let launch: RepositoryLaunch | null = null;
 let userId: string | null = null;
 let active = false;
@@ -40,7 +30,6 @@ let pendingPreviewId: string | undefined;
 let previewAttempted = false;
 let launchedHere = false;
 let stopped = false;
-let resolveVersion = 0;
 let sessionVersion = 0;
 let logsBusy = false;
 const logCache = new Map<string, { text: string; finished: boolean }>();
@@ -74,22 +63,26 @@ function showError(cause: unknown) {
   error.hidden = false;
 }
 function options(): RepoRunOptions {
-  return { repo: normalizeRepo(repo.value), ...(ref.value.trim() ? { ref: ref.value.trim() } : {}),
-    ...(runtime.value ? { catalogId: runtime.value } : {}), size: size.value, cwd: cwd.value.trim() || '.',
-    ...(setup.value.trim() ? { setupCommand: setup.value.trim() } : {}), ...(start.value.trim() ? { startCommand: start.value.trim() } : {}),
-    ...(port.value ? { port: port.valueAsNumber } : {}) };
+  return { repo: normalizeRepo(repo.value), size: params.get('size') || 'small', cwd: params.get('cwd') || '.',
+    ...(params.get('ref') ? { ref: params.get('ref')! } : {}),
+    ...(params.get('catalogId') ? { catalogId: params.get('catalogId')! } : {}),
+    ...(params.get('setupCommand') ? { setupCommand: params.get('setupCommand')! } : {}),
+    ...(params.get('startCommand') ? { startCommand: params.get('startCommand')! } : {}),
+    ...(params.get('port') ? { port: Number(params.get('port')) } : {}) };
 }
-function submitLabel() { return setup.value.trim() || start.value.trim() ? 'Run repository' : 'Open terminal only'; }
+function submitLabel() { return 'Run repository'; }
 function updatePrompt() {
+  element('run-copy-step').hidden = launchMode;
+  submit.hidden = !launchMode;
+  element('run-allowance').hidden = !launchMode;
+  element('run-intro').hidden = !launchMode;
+  element('run-repo-label').textContent = launchMode ? 'GitHub repository' : '1. Paste the GitHub URL';
+  repo.readOnly = launchMode;
+  const config = element('run-config');
+  config.hidden = !launchMode;
   const value = options();
-  const configured = Boolean(value.setupCommand || value.startCommand);
-  element<HTMLTextAreaElement>('run-prompt-text').value = validRepo(value.repo) ? repoSetupPrompt(value, location.origin) : '';
-  element<HTMLButtonElement>('run-prompt-copy').className = `button button-small${configured ? ' secondary' : ''}`;
-  submit.className = configured ? 'button button-small' : 'dashboard-retry';
-  if (identity?.kind !== 'request') submit.textContent = submitLabel();
-  element('run-intro').textContent = configured
-    ? 'This link includes launch commands. Review the settings below, then run it in your account.'
-    : 'Paste a repository URL, copy the setup prompt into Codex, then open the launch link it gives you.';
+  config.textContent = [value.ref && `Ref: ${value.ref}`, `Runtime: ${value.catalogId || 'Automatic'} · Size: ${value.size}`, `Directory: ${value.cwd}`,
+    value.setupCommand && `Setup: ${value.setupCommand}`, value.startCommand && `Start: ${value.startCommand}`, value.port !== undefined && `Preview port: ${value.port}`].filter(Boolean).join('\n');
 }
 function validateRepo() {
   repo.setCustomValidity(validRepo(repo.value) ? '' : 'Enter a public GitHub URL or owner/repository.');
@@ -105,9 +98,10 @@ async function copyPrompt(existing = false) {
   note.textContent = '';
   try {
     await navigator.clipboard.writeText(text.value);
-    note.textContent = 'Prompt copied. Paste it into Codex.';
+    note.textContent = 'Copied. Paste into Codex to get your launch link.';
   } catch {
-    element<HTMLDetailsElement>(existing ? 'run-help-details' : 'run-prompt-details').open = true;
+    if (existing) element<HTMLDetailsElement>('run-help-details').open = true;
+    else element('run-prompt-fallback').hidden = false;
     text.focus(); text.select();
     note.textContent = 'Could not copy automatically. The prompt is selected; copy it and paste into Codex.';
   } finally { button.disabled = false; }
@@ -153,22 +147,6 @@ function signIn() {
   submit.disabled = false;
   submit.formNoValidate = true;
   updateSignIn();
-}
-async function resolve() {
-  const version = ++resolveVersion;
-  if (!userId || !repo.value || identity || stopped) return;
-  const query = new URLSearchParams({ repo: normalizeRepo(repo.value), cwd: cwd.value.trim() || '.' });
-  if (ref.value.trim()) query.set('ref', ref.value.trim());
-  element('run-repository').textContent = 'Checking repository…';
-  try {
-    const result = await request<RepositoryLaunch['repository']>(`/repo-launches/resolve?${query}`);
-    if (version !== resolveVersion || launch || identity || stopped) return;
-    runtime.options[0].textContent = `Automatic · ${result.suggestedCatalogId}`;
-    element('run-repository').textContent = `${result.repo} · ${result.ref} · ${result.commit.slice(0, 12)}`;
-  } catch (cause) {
-    if (version !== resolveVersion || launch || identity || stopped) return;
-    element('run-repository').textContent = messages[cause instanceof Error ? cause.message : ''] ?? 'Repository lookup unavailable. Run will validate it again.';
-  }
 }
 async function share(button: HTMLButtonElement) {
   if (!launch && !validateRepo()) return;
@@ -265,11 +243,13 @@ async function run() {
   if (busy || !active || stopped) return;
   const version = sessionVersion;
   const value = options();
-  port.setCustomValidity(Boolean(value.startCommand) === (value.port !== undefined) ? '' : 'Supply a start command and preview port together.');
+  if (Boolean(value.startCommand) !== (value.port !== undefined)) {
+    error.textContent = 'This launch link needs both a start command and preview port. Ask Codex for a corrected link.';
+    error.hidden = false; return;
+  }
   if (!form.reportValidity()) return;
   busy = true;
   launchedHere = true;
-  resolveVersion++;
   submit.disabled = true; fields.disabled = true;
   error.hidden = true;
   status.textContent = 'Validating repository…';
@@ -359,23 +339,17 @@ async function init() {
       launch = state;
       render();
       if (active) void advance();
-    } else void resolve();
+    }
   } catch (cause) { if (stopped || version !== sessionVersion) return; showError(cause); status.textContent = ''; element('run-retry').hidden = false; element('run-progress').hidden = false; }
 }
-form.addEventListener('submit', event => { event.preventDefault(); void run(); });
+form.addEventListener('submit', event => { event.preventDefault(); if (launchMode) void run(); else void copyPrompt(); });
 form.addEventListener('input', () => {
-  repo.setCustomValidity(''); port.setCustomValidity(''); element('run-prompt-status').textContent = '';
-  updatePrompt(); updateSignIn();
-});
-element('run-example').onclick = () => {
-  repo.value = 'https://github.com/happier-dev/happier';
   repo.setCustomValidity(''); element('run-prompt-status').textContent = '';
-  updatePrompt(); updateSignIn(); void resolve();
-};
-element('run-prompt-copy').onclick = () => { void copyPrompt(); };
+  element('run-prompt-fallback').hidden = true;
+  if (launchMode) updateSignIn();
+});
 element('run-help-copy').onclick = () => { void copyPrompt(true); };
-for (const input of [repo, ref, cwd]) input.addEventListener('change', () => { void resolve(); });
-for (const id of ['run-share', 'run-active-share']) element<HTMLButtonElement>(id).onclick = event => { void share(event.currentTarget as HTMLButtonElement); };
+for (const id of ['run-active-share']) element<HTMLButtonElement>(id).onclick = event => { void share(event.currentTarget as HTMLButtonElement); };
 element('run-retry').onclick = () => { if (launch) void advance(); else void init(); };
 element('run-terminal-open').onclick = openTerminal;
 element('run-preview-create').onclick = () => { void createPreview(); };
@@ -386,10 +360,11 @@ const expiryTimer = setInterval(() => {
 }, 1000);
 window.addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
 window.addEventListener('pagehide', () => { stopped = true; clearTimeout(timer); clearInterval(expiryTimer); terminal?.dispose(); });
-window.addEventListener('auth-change', () => { stopped = true; signIn(); element('run-progress').hidden = true; });
+window.addEventListener('auth-change', () => { if (!launchMode) return; stopped = true; signIn(); element('run-progress').hidden = true; });
 window.addEventListener('cookie-consent-change', event => {
+  if (!launchMode) return;
   if ((event as CustomEvent).detail?.choice === 'accepted') { stopped = false; void init(); }
   else { stopped = true; signIn(); element('run-progress').hidden = true; }
 });
 updatePrompt();
-void init();
+if (launchMode) void init();

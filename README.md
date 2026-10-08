@@ -286,13 +286,12 @@ port connections. Its linked children are ephemeral and parent deletion cascades
 
 ## Run a GitHub repository
 
-`/run/?repo=OWNER/REPO&ref=main` starts with a repository URL and **Copy setup
-prompt**. No sign-in or paid access is needed to copy. Paste the prompt into Codex
-to inspect the repository and produce an encoded launch link with setup, start,
-runtime, working directory and port selected. Happier is the example repository.
-Manual configuration is available under Advanced launch settings; commands in
-configured links are expanded for review and **Run repository** becomes primary.
-Without commands, **Open terminal only** explicitly creates just a checkout.
+`/run/?repo=OWNER/REPO` has two steps: paste the GitHub URL and **Copy to
+clipboard**. No sign-in, paid access, or API requests are needed to copy. Paste
+the prompt into Codex to inspect the repository and produce an encoded launch
+link with setup, start, runtime, working directory and port selected. There are
+no manual configuration controls or alternative CTAs. Agent-configured links
+show their settings read-only with a single **Run repository** confirmation.
 
 The recipient signs in before launch; paid or trial access is required. Small is the
 default. The API resolves a commit before allocation, clones to `/workspace/repo`,

@@ -2,24 +2,15 @@
 .repo-run-form { max-width: 720px; margin-top: 20px; }
 #run-intro { max-width: 720px; margin-top: 8px; }
 .repo-run-form fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
-.repo-run-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
 .repo-run-form label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
-.repo-run-form label > .dashboard-status { display: contents; }
 .repo-run-form :is(input, select, textarea) { width: 100%; min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid var(--control-border); border-radius: 4px; background: var(--paper); color: var(--ink); }
 .repo-run-form textarea { resize: vertical; font-family: ui-monospace, monospace; font-size: 13px; }
 .run-body details { margin-top: 16px; }
 .run-body summary { min-height: 44px; align-content: center; cursor: pointer; font-size: 13px; }
-#run-advanced label { margin-top: 12px; }
-#run-advanced .repo-run-grid label { margin-top: 0; }
-#run-advanced .repo-run-grid { margin-top: 8px; }
-#run-advanced .repo-port { max-width: 180px; }
 #run-allowance { margin: 16px 0 12px; }
-#run-status:empty, #run-repository:empty, #run-prompt-status:empty { display: none; }
 .repo-run-actions { margin-top: 16px; }
 .run-body :is(#run-prompt-copy, #run-help-copy) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; }
 .run-body :is(#run-prompt-copy, #run-help-copy) svg { flex-shrink: 0; }
-.repo-run-form #run-prompt-copy.secondary { background: transparent; color: var(--ink); border: 1px solid var(--control-border); }
-.repo-example { min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; font-size: inherit; }
 .run-body .repo-prompt-label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
 .run-body .repo-prompt-label textarea { width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--control-border); border-radius: 4px; background: var(--paper); color: var(--ink); font: 12px/1.6 ui-monospace, monospace; resize: vertical; }
 .repo-run-help { max-width: 720px; margin: 12px 0; }
@@ -33,4 +24,7 @@
 .run-body .terminal-output { height: clamp(280px, 52dvh, 560px); min-height: 280px; }
 .run-body .container-actions { flex-wrap: wrap; gap: 8px 16px; }
 .run-body .text-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; }
-@media (max-width: 600px) { .repo-run-grid { grid-template-columns: minmax(0, 1fr); } .run-body .dashboard-main { padding-left: 16px; padding-right: 16px; } }
+.repo-step { margin: 0 0 8px; font-size: 13px; }
+.repo-run-config { max-height: 320px; overflow: auto; margin: 16px 0; font: 13px/1.6 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+#run-prompt-fallback { margin-top: 16px; }
+@media (max-width: 600px) { .run-body .dashboard-main { padding-left: 16px; padding-right: 16px; } }
