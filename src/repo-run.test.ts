@@ -31,7 +31,8 @@ class Element {
   }
 }
 const flush = async () => { for (let i = 0; i < 4; i++) await new Promise(resolve => setImmediate(resolve)); };
-async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=node', hash = '', session = true, paid = true, state: initialState = null as RepositoryLaunch | null, stored = {} as Record<string, string> } = {}) {
+type ExecutionRecord = { stdout?: string; stderr?: string; status?: string; exitCode?: number | null; timedOut?: boolean; outputTruncated?: boolean };
+async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=node', hash = '', session = true, paid = true, state: initialState = null as RepositoryLaunch | null, stored = {} as Record<string, string>, executions: initialExecutions = {} as Record<string, ExecutionRecord | ExecutionRecord[]>, unavailableExecutions = [] as string[], executionGate: initialExecutionGate = null as Promise<void> | null } = {}) {
   const nodes = new Map<string, Element>();
   const node = (id: string) => { if (!nodes.has(id)) nodes.set(id, new Element()); return nodes.get(id)!; };
   node('run-submit').textContent = 'Run repository';
@@ -57,7 +58,8 @@ async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=nod
   t.mock.method(globalThis, 'setInterval', ((callback: () => unknown) => { intervals.push(callback); return ++timer; }) as any);
   t.mock.method(globalThis, 'clearInterval', (() => {}) as any);
   let state = initialState;
-  let failCreate = 0, previewFailure = false, setupFailure = false, gate: Promise<void> | null = null;
+  let failCreate = 0, previewFailure = false, setupFailure = false, gate: Promise<void> | null = null, executionGate = initialExecutionGate;
+  const executionCalls = new Map<string, number>();
   property('fetch', async (input: string | URL, options: RequestInit = {}) => {
     const url = new URL(input); const body = options.body ? JSON.parse(options.body as string) : null;
     calls.push({ url, options, body });
@@ -70,10 +72,17 @@ async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=nod
         repository: { repo: body.repo, ref: body.ref || 'main', commit: 'a'.repeat(40), suggestedCatalogId: 'node', manifests: [] },
         container: null, executions: {}, createdAt: Date.now(), shellReadyAt: null, previewReadyAt: null, error: null };
     } else if (url.pathname.endsWith('/advance')) {
-      if (state!.phase === 'allocating') { state!.phase = 'cloning'; state!.container = { id: 'small', createdAt: '2026-10-08T12:00:00.000Z', expiresAt: '2099-01-01T00:00:00.000Z' }; }
-      else if (state!.phase === 'cloning') { state!.shellReadyAt = Date.now(); state!.phase = state!.options.setupCommand ? 'setup' : state!.options.startCommand ? 'starting' : 'ready'; }
-      else if (state!.phase === 'setup') { state!.phase = setupFailure ? 'failed' : state!.options.startCommand ? 'starting' : 'ready'; state!.error = setupFailure ? 'setup_failed' : null; }
+      if (state!.phase === 'allocating') { state!.phase = 'cloning'; state!.container = { id: 'small', createdAt: '2026-10-08T12:00:00.000Z', expiresAt: '2099-01-01T00:00:00.000Z' }; state!.executions = { cloning: 'clone-exec' }; }
+      else if (state!.phase === 'cloning') { state!.shellReadyAt = Date.now(); state!.phase = state!.options.setupCommand ? 'setup' : state!.options.startCommand ? 'starting' : 'ready'; if (state!.options.setupCommand) state!.executions.setup = 'setup-exec'; else if (state!.options.startCommand) state!.executions.starting = 'start-exec'; }
+      else if (state!.phase === 'setup') { state!.phase = setupFailure ? 'failed' : state!.options.startCommand ? 'starting' : 'ready'; if (state!.phase === 'starting') state!.executions.starting = 'start-exec'; state!.error = setupFailure ? 'setup_failed' : null; }
       else if (state!.phase === 'starting') { state!.phase = 'ready'; state!.previewReadyAt = Date.now(); }
+    } else if (/^\/containers\/executions\//.test(url.pathname)) {
+      const id = url.pathname.split('/').at(-1)!;
+      if (executionGate) await executionGate;
+      if (unavailableExecutions.includes(id)) return Response.json({ error: 'execution_history_expired' }, { status: 404 });
+      const configured = initialExecutions[id] ?? { status: 'succeeded', exitCode: 0, stdout: '', stderr: '' };
+      const index = executionCalls.get(id) ?? 0; executionCalls.set(id, index + 1);
+      return Response.json(Array.isArray(configured) ? configured[Math.min(index, configured.length - 1)] : configured);
     } else if (url.pathname === '/containers/previews') {
       if (options.method === 'GET') return Response.json({ previews: [] });
       if (options.method === 'DELETE') return Response.json({ revoked: true });
@@ -85,7 +94,7 @@ async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=nod
   await import(`./repo-run.ts?test=${++sequence}`); await flush();
   t.after(() => events.get('pagehide')?.());
   const step = async () => { const first = timeouts.entries().next().value; if (first) { timeouts.delete(first[0]); await first[1](); await flush(); } };
-  return { node, calls, copied, location, terminals, events, intervals, storage, step, flush, state: () => state,
+  return { node, calls, copied, location, terminals, events, intervals, storage, step, flush, state: () => state, executionCalls,
     failCreate(status: number) { failCreate = status; }, failPreview() { previewFailure = true; }, failSetup() { setupFailure = true; }, setGate(value: Promise<void>) { gate = value; } };
 }
 
@@ -155,6 +164,104 @@ test('setup failure keeps an attached terminal and opens output without replayin
   assert.match(f.copied[0], /"launchId": "12345678-1234-1234-1234-123456789abc"/);
   assert.match(f.copied[0], /"createdAt": "2026-10-08T12:00:00.000Z"/);
   assert.match(f.copied[0], /do not allocate another/);
+});
+test('entering setup opens launch output automatically and setup timeout is clear without command output', async t => {
+  const f = await fixture(t, { search: '?repo=acme/demo&setupCommand=npm+install', executions: { 'setup-exec': { status: 'failed', timedOut: true, exitCode: null, stdout: '', stderr: '' } } }); f.failSetup();
+  await f.node('run-form').fire('submit'); await f.flush(); await f.step();
+  assert.equal(f.node('run-phase').textContent, 'Running setup… Terminal ready.');
+  assert.equal(f.node('run-logs').open, true);
+  f.node('run-logs').open = false;
+  await f.step();
+  assert.equal(f.node('run-logs').open, true);
+  assert.match(f.node('run-log-output').textContent, /Setup timed out after 15 minutes · exit code unknown/);
+  assert.match(f.node('run-error').textContent, /Setup timed out after 15 minutes · exit code unknown/);
+  assert.doesNotMatch(f.node('run-error').textContent, /stderr/);
+});
+test('nonzero exit reports failure while stderr warnings with exit code zero remain successful', async t => {
+  const failed = await fixture(t, { search: '?repo=acme/demo&setupCommand=npm+run+build', executions: { 'setup-exec': { status: 'failed', exitCode: 7, stdout: '', stderr: 'compiler failed' } } }); failed.failSetup();
+  await failed.node('run-form').fire('submit'); await failed.flush(); await failed.step(); await failed.step();
+  assert.match(failed.node('run-log-output').textContent, /Setup failed · exit code 7/);
+  assert.match(failed.node('run-error').textContent, /Setup failed · exit code 7/);
+  assert.match(failed.node('run-help-text').value, /"status": "failed"/);
+  assert.match(failed.node('run-help-text').value, /"exitCode": 7/);
+  assert.doesNotMatch(failed.node('run-help-text').value, /compiler failed/);
+
+  const warning = await fixture(t, { search: '?repo=acme/demo&setupCommand=npm+install', executions: { 'setup-exec': { status: 'succeeded', exitCode: 0, stdout: 'installed', stderr: 'deprecated package warning' } } });
+  await warning.node('run-form').fire('submit'); await warning.flush(); await warning.step();
+  assert.match(warning.node('run-log-output').textContent, /exit code 0/);
+  assert.match(warning.node('run-log-output').textContent, /stderr:\ndeprecated package warning/);
+  assert.doesNotMatch(warning.node('run-error').textContent, /Setup failed/);
+});
+test('interrupted and canceled executions are named without requiring output', async t => {
+  for (const [status, expected] of [['interrupted', 'Setup was interrupted'], ['canceled', 'Setup was canceled']] as const) {
+    const f = await fixture(t, { hash: '#launch=12345678-1234-1234-1234-123456789abc', state: {
+      id: '12345678-1234-1234-1234-123456789abc', phase: 'failed', options: { repo: 'acme/demo', size: 'small', cwd: '.', setupCommand: 'npm install' },
+      repository: { repo: 'acme/demo', ref: 'main', commit: 'a'.repeat(40), suggestedCatalogId: 'node', manifests: [] },
+      container: { id: 'small', createdAt: '2026-10-08T12:00:00.000Z', expiresAt: '2099-01-01T00:00:00.000Z' },
+      executions: { setup: 'setup-exec' }, createdAt: Date.now(), shellReadyAt: Date.now(), previewReadyAt: null, error: 'setup_failed',
+    }, executions: { 'setup-exec': { status, exitCode: null, stdout: '', stderr: '' } } });
+    assert.match(f.node('run-log-output').textContent, new RegExp(`${expected} · exit code unknown`));
+    assert.match(f.node('run-error').textContent, new RegExp(expected));
+  }
+});
+test('output truncation is warned and cloning and starting timeouts use their own phase limits', async t => {
+  const truncated = await fixture(t, { search: '?repo=acme/demo&setupCommand=npm+install', executions: { 'setup-exec': { status: 'output_limit', exitCode: 0, outputTruncated: true, stdout: 'partial', stderr: '' } } });
+  await truncated.node('run-form').fire('submit'); await truncated.flush(); await truncated.step();
+  assert.match(truncated.node('run-log-output').textContent, /Setup reached the output limit · exit code 0/);
+  assert.match(truncated.node('run-log-output').textContent, /Warning: output was truncated/);
+
+  const cloning = await fixture(t, { executions: { 'clone-exec': { status: 'failed', timedOut: true, exitCode: null } } });
+  await cloning.node('run-form').fire('submit'); await cloning.flush();
+  cloning.node('run-logs').open = true; await cloning.node('run-logs').fire('toggle'); await cloning.flush();
+  assert.match(cloning.node('run-log-output').textContent, /Repository clone timed out after 5 minutes · exit code unknown/);
+
+  const starting = await fixture(t, { search: '?repo=acme/demo&startCommand=npm+start&port=3000', executions: { 'start-exec': { status: 'failed', timedOut: true, exitCode: null } } });
+  await starting.node('run-form').fire('submit'); await starting.flush(); await starting.step(); await starting.step();
+  starting.node('run-logs').open = true; await starting.node('run-logs').fire('toggle'); await starting.flush();
+  assert.match(starting.node('run-log-output').textContent, /App startup timed out after 4 minutes · exit code unknown/);
+});
+test('expired execution output leaves a clear fallback in the output panel', async t => {
+  const f = await fixture(t, { hash: '#launch=12345678-1234-1234-1234-123456789abc', state: {
+    id: '12345678-1234-1234-1234-123456789abc', phase: 'failed', options: { repo: 'acme/demo', size: 'small', cwd: '.' },
+    repository: { repo: 'acme/demo', ref: 'main', commit: 'a'.repeat(40), suggestedCatalogId: 'node', manifests: [] },
+    container: { id: 'small', createdAt: '2026-10-08T12:00:00.000Z', expiresAt: '2099-01-01T00:00:00.000Z' },
+    executions: { cloning: 'clone-exec' }, createdAt: Date.now(), shellReadyAt: null, previewReadyAt: null, error: 'cloning_failed',
+  }, unavailableExecutions: ['clone-exec'] });
+  f.node('run-logs').open = true; await f.node('run-logs').fire('toggle'); await f.flush();
+  assert.match(f.node('run-log-output').textContent, /cloning · Output unavailable or expired/);
+});
+test('running execution diagnostics refresh until terminal results are cached', async t => {
+  const f = await fixture(t, { hash: '#launch=12345678-1234-1234-1234-123456789abc', state: {
+    id: '12345678-1234-1234-1234-123456789abc', phase: 'failed', options: { repo: 'acme/demo', size: 'small', cwd: '.', setupCommand: 'npm install' },
+    repository: { repo: 'acme/demo', ref: 'main', commit: 'a'.repeat(40), suggestedCatalogId: 'node', manifests: [] },
+    container: { id: 'small', createdAt: '2026-10-08T12:00:00.000Z', expiresAt: '2099-01-01T00:00:00.000Z' },
+    executions: { setup: 'setup-exec' }, createdAt: Date.now(), shellReadyAt: Date.now(), previewReadyAt: null, error: 'setup_failed',
+  }, executions: { 'setup-exec': [
+    { status: 'running', exitCode: null, stdout: 'still working', stderr: '' },
+    { status: 'completed', exitCode: 0, stdout: 'finished', stderr: '' },
+  ] } });
+  assert.match(f.node('run-log-output').textContent, /still working/);
+  assert.equal(f.executionCalls.get('setup-exec'), 1);
+  await f.node('run-logs').fire('toggle'); await f.flush();
+  assert.match(f.node('run-log-output').textContent, /finished/);
+  assert.equal(f.executionCalls.get('setup-exec'), 2);
+  await f.node('run-logs').fire('toggle'); await f.flush();
+  assert.equal(f.executionCalls.get('setup-exec'), 2);
+});
+test('signing out while execution diagnostics are pending discards the private response', async t => {
+  let release!: () => void;
+  const executionGate = new Promise<void>(resolve => { release = resolve; });
+  const f = await fixture(t, { hash: '#launch=12345678-1234-1234-1234-123456789abc', executionGate, state: {
+    id: '12345678-1234-1234-1234-123456789abc', phase: 'failed', options: { repo: 'acme/demo', size: 'small', cwd: '.', setupCommand: 'npm install' },
+    repository: { repo: 'acme/demo', ref: 'main', commit: 'a'.repeat(40), suggestedCatalogId: 'node', manifests: [] },
+    container: { id: 'small', createdAt: '2026-10-08T12:00:00.000Z', expiresAt: '2099-01-01T00:00:00.000Z' },
+    executions: { setup: 'setup-exec' }, createdAt: Date.now(), shellReadyAt: Date.now(), previewReadyAt: null, error: 'setup_failed',
+  }, executions: { 'setup-exec': { status: 'failed', exitCode: 9, timedOut: false, outputTruncated: false, stdout: 'private output', stderr: '' } } });
+  f.events.get('auth-change')?.();
+  release(); await f.flush();
+  assert.equal(f.node('run-log-output').textContent, '');
+  assert.equal(f.node('run-help-text').value, '');
+  assert.equal(f.executionCalls.get('setup-exec'), 1);
 });
 test('preview issuance is limited to a newly started ready app and renewal stays explicit', async t => {
   const f = await fixture(t, { search: '?repo=acme/demo&startCommand=npm+start&port=3000' });

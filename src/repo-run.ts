@@ -1,6 +1,6 @@
 import { API_ORIGIN, createAuthClient } from './auth.ts';
 import { createPreviewClient } from './container-previews.ts';
-import { launchIdentity, normalizeRepo, repoRunUrl, type RepoRunOptions, type RepositoryLaunch } from './repo-run-contract.ts';
+import { launchIdentity, normalizeRepo, repoRunUrl, type RepoRunDiagnostics, type RepoRunExecutionDiagnostics, type RepoRunOptions, type RepositoryLaunch } from './repo-run-contract.ts';
 import { repoSetupPrompt, validRepo } from './repo-run-prompt.ts';
 import { parseRepoRunConfig, stringifyRepoRunConfig, validateRepoRunConfig } from './repo-run-config.ts';
 import type { ContainerData } from './types.ts';
@@ -45,7 +45,62 @@ let promptCopied = false;
 let preparedRepo = repo.value;
 let promptVersion = 0;
 let logsBusy = false;
-const logCache = new Map<string, { text: string; finished: boolean }>();
+type ExecutionDiagnostics = RepoRunExecutionDiagnostics & { stdout: string; stderr: string };
+type CachedExecution = { text: string; finished: boolean; diagnostics?: ExecutionDiagnostics; phase: string };
+const logCache = new Map<string, CachedExecution>();
+let renderedPhase: RepositoryLaunch['phase'] | undefined;
+const phaseDetails: Record<string, { label: string; deadline: string }> = {
+  cloning: { label: 'Repository clone', deadline: '5 minutes' },
+  setup: { label: 'Setup', deadline: '15 minutes' },
+  starting: { label: 'App startup', deadline: '4 minutes' },
+};
+function executionSummary(phase: string, execution: ExecutionDiagnostics) {
+  const details = phaseDetails[phase] ?? { label: phase, deadline: 'the phase deadline' };
+  const status = execution.status;
+  let outcome: string;
+  if (execution.timedOut || status === 'timed_out') outcome = `${details.label} timed out after ${details.deadline}`;
+  else if (execution.outputTruncated || status === 'output_limit') outcome = `${details.label} reached the output limit`;
+  else if (status === 'interrupted') outcome = `${details.label} was interrupted`;
+  else if (status === 'canceled') outcome = `${details.label} was canceled`;
+  else if (execution.exitCode !== null && execution.exitCode !== 0) outcome = `${details.label} failed`;
+  else if (status === 'failed') outcome = `${details.label} failed`;
+  else outcome = `${details.label} ${status}`;
+  const exitCode = execution.exitCode === null ? 'unknown' : String(execution.exitCode);
+  return `${outcome} · exit code ${exitCode}`;
+}
+function executionText(phase: string, execution: ExecutionDiagnostics) {
+  const lines = [`${phase} · ${execution.status}`, executionSummary(phase, execution)];
+  if (execution.outputTruncated || execution.status === 'output_limit') lines.push('Warning: output was truncated.');
+  if (execution.stdout) lines.push(`stdout:\n${execution.stdout}`);
+  if (execution.stderr) lines.push(`stderr:\n${execution.stderr}`);
+  return lines.join('\n');
+}
+function failedExecution(execution: ExecutionDiagnostics) {
+  const status = execution.status;
+  return Boolean(execution.timedOut || execution.outputTruncated || execution.exitCode !== undefined && execution.exitCode !== null && execution.exitCode !== 0
+    || ['failed', 'timed_out', 'output_limit', 'interrupted', 'canceled'].includes(status));
+}
+function updateFailureDiagnostics() {
+  if (launch?.phase !== 'failed') return;
+  const diagnostics = Object.entries(launch.executions).flatMap(([phase, id]) => {
+    const entry = logCache.get(id);
+    return entry?.diagnostics && failedExecution(entry.diagnostics) ? [{ ...entry, phase }] : [];
+  });
+  if (!diagnostics.length) return;
+  error.textContent = `${diagnostics.map(entry => executionSummary(entry.phase, entry.diagnostics!)).join('. ')}. Review Launch output or repair the container in the terminal.`;
+  error.hidden = false;
+}
+function promptDiagnostics(): RepoRunDiagnostics {
+  const result: RepoRunDiagnostics = {};
+  if (launch) for (const [phase, id] of Object.entries(launch.executions)) {
+    const entry = logCache.get(id);
+    if (entry?.diagnostics && ['cloning', 'setup', 'starting'].includes(phase)) result[phase as 'cloning' | 'setup' | 'starting'] = {
+      status: entry.diagnostics.status, exitCode: entry.diagnostics.exitCode,
+      timedOut: entry.diagnostics.timedOut, outputTruncated: entry.diagnostics.outputTruncated,
+    };
+  }
+  return result;
+}
 const messages: Record<string, string> = {
   public_repo_not_found: 'Public repository not found. Use an owner/repository name or a public GitHub URL.',
   repo_ref_not_found: 'This branch, tag, or commit was not found.',
@@ -163,7 +218,7 @@ async function copyPrompt(existing = false) {
   const note = element(existing ? 'run-help-status' : 'run-prompt-status');
   const text = element<HTMLTextAreaElement>(existing ? 'run-help-text' : 'run-prompt-text');
   const button = element<HTMLButtonElement>(existing ? 'run-help-copy' : 'run-prompt-copy');
-  text.value = repoSetupPrompt(existing && launch ? launch.options : options(), location.origin, existing ? launch : null);
+  text.value = repoSetupPrompt(existing && launch ? launch.options : options(), location.origin, existing ? launch : null, existing ? promptDiagnostics() : undefined);
   const copiedVersion = promptVersion;
   const copiedRepo = repo.value;
   const copiedText = text.value;
@@ -215,6 +270,7 @@ function signIn() {
   element('run-source').textContent = ''; element('run-commit').textContent = '';
   element('run-phase').textContent = ''; element('run-log-output').textContent = '';
   element<HTMLTextAreaElement>('run-help-text').value = '';
+  renderedPhase = undefined;
   element('run-progress').hidden = true;
   form.hidden = false; element('run-intro').hidden = !launchMode || Boolean(imported);
   element('run-preview-open').hidden = true;
@@ -262,7 +318,7 @@ function render() {
     starting: 'Starting app and checking readiness… Terminal ready.', ready: 'Repository ready.', failed: 'Launch needs attention.', stopped: 'Container stopped.' };
   element('run-phase').textContent = phases[launch.phase];
   element('run-help').hidden = !launch.container || !launch.shellReadyAt && launch.phase !== 'failed' || launch.phase === 'stopped';
-  element<HTMLTextAreaElement>('run-help-text').value = repoSetupPrompt(launch.options, location.origin, launch);
+  element<HTMLTextAreaElement>('run-help-text').value = repoSetupPrompt(launch.options, location.origin, launch, promptDiagnostics());
   if (launch.error) showError(new Error(launch.error));
   element<HTMLButtonElement>('run-terminal-open').disabled = !active;
   element<HTMLButtonElement>('run-preview-create').disabled = !active;
@@ -270,29 +326,40 @@ function render() {
   if (launch.phase === 'stopped') { terminal?.dispose(); terminal = undefined; terminalHost.hidden = true; }
   else if (launch.shellReadyAt && !terminalClosed) openTerminal();
   element('run-preview').hidden = !launch.previewReadyAt || launch.phase === 'stopped';
-  if (launch.phase === 'failed') element<HTMLDetailsElement>('run-logs').open = true;
+  if (launch.phase === 'failed' || launch.phase === 'setup' && renderedPhase !== 'setup') element<HTMLDetailsElement>('run-logs').open = true;
+  renderedPhase = launch.phase;
 }
 async function logs() {
   if (!launch?.container || logsBusy || !element<HTMLDetailsElement>('run-logs').open) return;
   const version = sessionVersion;
-  const identityQuery = new URLSearchParams({ id: launch.container.id, createdAt: launch.container.createdAt });
+  const currentLaunch = launch;
+  const container = currentLaunch.container;
+  if (!container) return;
+  const identityQuery = new URLSearchParams({ id: container.id, createdAt: container.createdAt });
   const output: string[] = [];
   logsBusy = true;
   try {
-    for (const [phase, id] of Object.entries(launch.executions)) {
+    for (const [phase, id] of Object.entries(currentLaunch.executions)) {
       if (stopped || version !== sessionVersion) return;
       let cached = logCache.get(id);
       if (!cached?.finished) {
         try {
-          const execution = await request<{ stdout: string; stderr: string; status: string }>(`/containers/executions/${id}?${identityQuery}`);
+          const execution = await request<ExecutionDiagnostics>(`/containers/executions/${id}?${identityQuery}`);
           if (stopped || version !== sessionVersion) return;
-          cached = { text: `${phase} · ${execution.status}\n${execution.stdout}${execution.stderr}`, finished: !['starting', 'running'].includes(execution.status) };
+          cached = { text: executionText(phase, execution), finished: !['starting', 'running'].includes(execution.status), diagnostics: execution, phase };
           logCache.set(id, cached);
-        } catch { cached = { text: `${phase} · Output unavailable or expired.`, finished: false }; }
+        } catch {
+          if (stopped || version !== sessionVersion) return;
+          cached = { text: `${phase} · Output unavailable or expired.`, finished: false, phase };
+        }
       }
       output.push(cached.text);
     }
-    if (!stopped && version === sessionVersion) element('run-log-output').textContent = output.join('\n\n') || 'Output will appear here.';
+    if (!stopped && version === sessionVersion) {
+      element('run-log-output').textContent = output.join('\n\n') || 'Output will appear here.';
+      if (launch?.container) element<HTMLTextAreaElement>('run-help-text').value = repoSetupPrompt(launch.options, location.origin, launch, promptDiagnostics());
+      updateFailureDiagnostics();
+    }
   } finally { logsBusy = false; }
 }
 async function advance() {

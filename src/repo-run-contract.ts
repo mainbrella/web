@@ -10,6 +10,10 @@ export interface RepositoryLaunch {
   executions: Partial<Record<'cloning' | 'setup' | 'starting', string>>;
   shellReadyAt: number | null; previewReadyAt: number | null; createdAt: number; error: string | null;
 }
+export interface RepoRunExecutionDiagnostics {
+  status: string; exitCode: number | null; timedOut: boolean; outputTruncated: boolean;
+}
+export type RepoRunDiagnostics = Partial<Record<keyof RepositoryLaunch['executions'], RepoRunExecutionDiagnostics>>;
 export function normalizeRepo(value: string): string {
   return value.trim().replace(/^https:\/\/github\.com\//i, '').replace(/\/$/, '').replace(/\.git$/, '');
 }

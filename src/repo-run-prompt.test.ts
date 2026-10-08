@@ -27,6 +27,11 @@ test('the Happier prompt delegates source inspection and requests readable YAML 
   assert.equal(prompt.includes('URLSearchParams'), false);
   assert.match(prompt, /Do not create a container or execute commands.*unless I explicitly ask/);
   assert.match(prompt, /Available API credentials are not permission/);
+  assert.match(prompt, /set -Eeuo pipefail/);
+  assert.match(prompt, /original exit code and elapsed seconds/);
+  assert.match(prompt, /workspace builds, Expo export and SQLite migrations/);
+  assert.match(prompt, /timeout --signal=TERM --kill-after=10s 180s/);
+  assert.match(prompt, /debconf warnings alone do not establish failure/);
 });
 
 test('a repair prompt identifies the exact existing container and includes execution IDs, never a preview token', () => {
@@ -43,6 +48,28 @@ test('a repair prompt identifies the exact existing container and includes execu
   assert.equal(prompt.includes(launch.container!.expiresAt), false);
   assert.match(prompt, /corrected reusable YAML configuration/);
   assert.equal(prompt.includes('/run/?'), false);
+  assert.match(prompt, /Read status, exitCode, timedOut and outputTruncated/);
+  assert.match(prompt, /null exitCode is unknown, not success/);
+  assert.match(prompt, /ps -eo pid,ppid,stat,etime,%cpu,args/);
+  assert.match(prompt, /do not start a competing installation or remove package lock files/);
+});
+
+test('repair prompts include fetched execution metadata without copying private output or unrelated fields', () => {
+  const launch: RepositoryLaunch = { id: 'private-launch', phase: 'failed', options: { repo: 'acme/demo', size: 'small', cwd: '.' },
+    repository: { repo: 'acme/demo', ref: 'main', commit: 'a'.repeat(40), suggestedCatalogId: 'node', manifests: [] },
+    container: { id: 'small', createdAt: '2026-10-08T12:00:00.000Z', expiresAt: '2026-10-08T13:00:00.000Z' },
+    executions: { setup: 'setup-execution' }, shellReadyAt: 1, previewReadyAt: null, createdAt: 1, error: 'setup_failed' };
+  const diagnostics = { setup: { status: 'timed_out', exitCode: null, timedOut: true, outputTruncated: true,
+    stdout: 'PRIVATE_OUTPUT_SENTINEL', stderr: 'PRIVATE_ERROR_SENTINEL', command: 'PRIVATE_COMMAND_SENTINEL' } };
+  const prompt = repoSetupPrompt(launch.options, 'https://mainbrella.com', launch, diagnostics);
+  assert.match(prompt, /Execution diagnostics fetched by \/run/);
+  assert.match(prompt, /"status": "timed_out"/);
+  assert.match(prompt, /"exitCode": null/);
+  assert.match(prompt, /"timedOut": true/);
+  assert.match(prompt, /"outputTruncated": true/);
+  assert.doesNotMatch(prompt, /PRIVATE_\w+_SENTINEL/);
+  const preparation = repoSetupPrompt(launch.options, 'https://mainbrella.com', null, diagnostics);
+  assert.doesNotMatch(preparation, /Execution diagnostics fetched|private-launch|setup-execution/);
 });
 
 test('only repository roots accepted by the launch API can generate prompts', () => {
