@@ -57,6 +57,7 @@ type CachedExecution = { finished: boolean; diagnostics?: ExecutionDiagnostics; 
 const logCache = new Map<string, CachedExecution>();
 type OutputStream = { controller?: AbortController; text: string; cursor: number; complete: boolean; disconnected: boolean };
 const outputStreams = new Map<string, OutputStream>();
+let outputRenderQueued = false;
 const phaseDetails: Record<string, { label: string; deadline: string; timeoutMs: number }> = {
   cloning: { label: 'Repository clone', deadline: '5 minutes', timeoutMs: 300_000 },
   setup: { label: 'Setup', deadline: '15 minutes', timeoutMs: 900_000 },
@@ -134,6 +135,7 @@ function renderStatus() {
   } else if (failure || launch.phase === 'failed') {
     title = failure ? executionSummary(failure.phase, failure.diagnostics!).split(' · ')[0] : 'Launch needs attention.';
     detail = failure ? `${executionSummary(failure.phase, failure.diagnostics!)}.` : messages[launch.error ?? ''] ?? 'The automatic launch could not continue.';
+    if (failure?.diagnostics?.outputTruncated || failure?.diagnostics?.status === 'output_limit') detail = `The launcher stopped the command because captured output reached its limit (exit code ${failure.diagnostics.exitCode ?? 'unknown'}). The last package message may be normal progress.`;
     detail += ` No preview link will arrive from this launch. ${launch.container ? 'Use Copy Codex prompt below to inspect and repair this container, or open its terminal.' : 'Review the error and start a new run.'}`;
     if (failure?.phase === 'setup') detail += ' Check whether apt or dpkg is still running before retrying an installation.';
     attention = true;
@@ -166,7 +168,7 @@ function renderStatus() {
       title = 'Output updates unavailable.';
       detail = `We cannot read the command's current output or result. We are retrying; the command may still be running. ${detail}`;
       attention = true;
-    } else if (live && current && now - current.checkedAt >= 20_000 || progressCheckedAt && now - progressCheckedAt >= 75_000) {
+    } else if ((live && current && now - current.checkedAt >= 20_000) || (progressCheckedAt && now - progressCheckedAt >= 75_000)) {
       title = 'Waiting for a progress update…';
       detail = `We cannot confirm current progress yet. A delayed response does not confirm a stuck command. ${detail}`;
       attention = true;
@@ -176,13 +178,15 @@ function renderStatus() {
       attention = true;
     } else if (live && current && now - current.changedAt >= 30_000) {
       title = `${details.label} is quiet; still checking.`;
-      detail = `The command still reports ${execution.status}, but has produced no new output recently. Quiet output does not confirm a hang. Keep waiting while we check its result. ${detail}`;
+      detail = `The command still reports ${execution.status}, but no new output has been received recently. Output can arrive in batches; silence does not confirm a hang. Keep waiting while we check its result. ${detail}`;
     } else if (execution && current?.finished) {
       detail = `${details?.label ?? 'Command'} completed. Waiting for the launcher to move to the next step. ${previewNext}`;
     }
   }
   setText('run-phase', title);
   setText('run-phase-detail', detail);
+  element('run-help').hidden = !launch.container || launch.phase === 'stopped'
+    || !(failure || launch.phase === 'failed' || launch.phase === 'ready' && !launch.previewReadyAt);
   element('run-state').setAttribute('data-state', attention ? 'attention' : 'normal');
   const activity: string[] = [];
   if (details && execution && Number.isFinite(startedAt)) {
@@ -218,6 +222,14 @@ function stopOutputStreams() {
   for (const stream of outputStreams.values()) stream.controller?.abort();
   outputStreams.clear();
 }
+function scheduleStreamRender() {
+  if (outputRenderQueued) return;
+  outputRenderQueued = true;
+  window.requestAnimationFrame(() => {
+    outputRenderQueued = false;
+    if (!stopped) { renderLogs(); renderStatus(); }
+  });
+}
 function followExecution(id: string, query: URLSearchParams) {
   const existing = outputStreams.get(id);
   if (existing?.controller || existing?.complete || stopped) return;
@@ -234,7 +246,7 @@ function followExecution(id: string, query: URLSearchParams) {
     stream.cursor = sequence; stream.text += chunk; stream.disconnected = false;
     const entry = logCache.get(id);
     if (entry) entry.changedAt = Date.now();
-    renderLogs(); renderStatus();
+    scheduleStreamRender();
   }, (result: RunOutputStatus) => {
     if (!isCurrent()) return;
     const entry = logCache.get(id);
@@ -244,7 +256,7 @@ function followExecution(id: string, query: URLSearchParams) {
       entry.checkedAt = Date.now(); entry.unavailable = false;
       stream.complete = entry.finished;
     }
-    renderLogs(); renderStatus();
+    scheduleStreamRender();
   }).catch(cause => {
     if (!isCurrent()) return;
     if (cause instanceof Error && cause.message === 'not_authenticated') { signIn(); return; }
@@ -477,7 +489,6 @@ function render() {
   source.href = `https://github.com/${launch.repository.repo}/tree/${launch.repository.commit}`;
   element('run-commit').textContent = `${launch.repository.ref} · ${launch.repository.commit.slice(0, 12)} · ${launch.options.size}`;
   renderStatus();
-  element('run-help').hidden = !launch.container || !['ready', 'failed'].includes(launch.phase) && !failureDiagnostics();
   element<HTMLTextAreaElement>('run-help-text').value = repoSetupPrompt(launch.options, location.origin, launch, promptDiagnostics());
   element<HTMLButtonElement>('run-terminal-open').disabled = !active;
   element<HTMLButtonElement>('run-preview-create').disabled = !active;
@@ -502,10 +513,16 @@ async function logs() {
         try {
           const execution = await request<ExecutionDiagnostics>(`/containers/executions/${id}?${identityQuery}`, 'GET', undefined, undefined, 15_000);
           if (stopped || version !== sessionVersion) return;
-          const changed = !cached?.diagnostics || execution.stdout !== cached.diagnostics.stdout || execution.stderr !== cached.diagnostics.stderr;
-          cached = { finished: !['starting', 'running'].includes(execution.status), diagnostics: execution, phase,
-            checkedAt: Date.now(), changedAt: changed ? Date.now() : cached!.changedAt };
-          logCache.set(id, cached);
+          const latest = logCache.get(id);
+          // A slow snapshot can arrive after the stream confirmed completion.
+          // Terminal results are immutable; never regress them to running.
+          if (latest?.finished && ['starting', 'running'].includes(execution.status)) cached = latest;
+          else {
+            const changed = !latest?.diagnostics || execution.stdout !== latest.diagnostics.stdout || execution.stderr !== latest.diagnostics.stderr;
+            cached = { finished: !['starting', 'running'].includes(execution.status), diagnostics: execution, phase,
+              checkedAt: Date.now(), changedAt: changed ? Date.now() : latest!.changedAt };
+            logCache.set(id, cached);
+          }
         } catch {
           if (stopped || version !== sessionVersion) return;
           cached = { ...cached, finished: false, phase, unavailable: true, checkedAt: cached?.checkedAt ?? 0, changedAt: cached?.changedAt ?? Date.now() };
@@ -517,7 +534,6 @@ async function logs() {
     }
     if (!stopped && version === sessionVersion) {
       if (launch?.container) element<HTMLTextAreaElement>('run-help-text').value = repoSetupPrompt(launch.options, location.origin, launch, promptDiagnostics());
-      element('run-help').hidden = !launch?.container || !['ready', 'failed'].includes(launch.phase) && !failureDiagnostics();
     }
   } finally { logsBusy = false; }
 }

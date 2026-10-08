@@ -32,8 +32,8 @@ class Element {
   }
 }
 const flush = async () => { for (let i = 0; i < 4; i++) await new Promise(resolve => setImmediate(resolve)); };
-type ExecutionRecord = { stdout?: string; stderr?: string; status?: string; exitCode?: number | null; timedOut?: boolean; outputTruncated?: boolean };
-async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=node', hash = '', session = true, paid = true, state: initialState = null as RepositoryLaunch | null, stored = {} as Record<string, string>, executions: initialExecutions = {} as Record<string, ExecutionRecord | ExecutionRecord[]>, unavailableExecutions = [] as string[], executionGate: initialExecutionGate = null as Promise<void> | null, outputEvents = {} as Record<string, string> } = {}) {
+type ExecutionRecord = { stdout?: string; stderr?: string; status?: string; exitCode?: number | null; timedOut?: boolean; outputTruncated?: boolean; startedAt?: string; cursor?: number };
+async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=node', hash = '', session = true, paid = true, state: initialState = null as RepositoryLaunch | null, stored = {} as Record<string, string>, executions: initialExecutions = {} as Record<string, ExecutionRecord | ExecutionRecord[]>, unavailableExecutions = [] as string[], executionGate: initialExecutionGate = null as Promise<void> | null, outputEvents = {} as Record<string, string | ReadableStream<Uint8Array>> } = {}) {
   const nodes = new Map<string, Element>();
   const node = (id: string) => { if (!nodes.has(id)) nodes.set(id, new Element()); return nodes.get(id)!; };
   node('run-submit').textContent = 'Run repository';
@@ -54,7 +54,7 @@ async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=nod
   property('navigator', { clipboard: { async writeText(value: string) { copied.push(value); } } });
   const storage = new Map(Object.entries(stored));
   property('sessionStorage', { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => { storage.set(key, value); } });
-  property('window', { addEventListener: (name: string, callback: unknown) => events.set(name, callback) });
+  property('window', { addEventListener: (name: string, callback: unknown) => events.set(name, callback), requestAnimationFrame: (callback: () => void) => queueMicrotask(callback) });
   t.mock.method(globalThis, 'setTimeout', ((callback: () => unknown) => { timeouts.set(++timer, callback); return timer; }) as any);
   t.mock.method(globalThis, 'clearTimeout', ((id: number) => timeouts.delete(id)) as any);
   t.mock.method(globalThis, 'setInterval', ((callback: () => unknown) => { intervals.push(callback); return ++timer; }) as any);
@@ -103,7 +103,7 @@ async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=nod
   t.after(() => events.get('pagehide')?.());
   const step = async () => { const first = timeouts.entries().next().value; if (first) { timeouts.delete(first[0]); await first[1](); await flush(); } };
   return { node, calls, copied, location, terminals, events, intervals, storage, step, flush, state: () => state, executionCalls,
-    failCreate(status: number) { failCreate = status; }, failAdvance() { failAdvance = true; }, failPreview() { previewFailure = true; }, failSetup() { setupFailure = true; }, setGate(value: Promise<void>) { gate = value; }, setAdvanceGate(value: Promise<void>) { advanceGate = value; } };
+    failCreate(status: number) { failCreate = status; }, failAdvance() { failAdvance = true; }, failPreview() { previewFailure = true; }, failSetup() { setupFailure = true; }, setGate(value: Promise<void>) { gate = value; }, setAdvanceGate(value: Promise<void>) { advanceGate = value; }, setExecutionGate(value: Promise<void>) { executionGate = value; } };
 }
 
 test('opening a shared repo link prepares settings without mutations and preserves settings through login', async t => {
@@ -315,11 +315,145 @@ test('partial preview issuance reconciles the returned grant ID before reissuing
   const f = await fixture(t, { search: '?repo=acme/demo&startCommand=npm+start&port=3000' }); f.failPreview();
   await f.node('run-form').fire('submit'); await f.flush(); await f.step(); await f.step();
   assert.equal(f.node('run-preview-open').hidden, true);
+  assert.equal(f.node('run-phase').textContent, 'App ready. Preview link needs attention.');
+  assert.match(f.node('run-phase-detail').textContent, /link creation failed/);
   await f.node('run-preview-create').fire('click'); await f.flush();
   const requests = f.calls.filter(call => call.url.pathname === '/containers/previews');
   assert.deepEqual(requests.map(call => call.options.method), ['GET', 'POST', 'DELETE', 'GET', 'POST']);
   assert.equal(requests[2].url.searchParams.get('previewId'), 'd'.repeat(32));
   assert.equal(f.node('run-preview-open').hidden, false);
+  assert.equal(f.node('run-phase').textContent, 'App ready.');
+});
+
+test('live output follows the last line by default and lets the user read earlier output', async t => {
+  const f = await fixture(t, { search: '?repo=acme/demo&setupCommand=install', executions: { 'setup-exec': [
+    { status: 'running', exitCode: null, stdout: 'first line\n', stderr: '' },
+    { status: 'running', exitCode: null, stdout: 'first line\nsecond line\n', stderr: '' },
+    { status: 'running', exitCode: null, stdout: 'first line\nsecond line\nlatest line\n', stderr: '' },
+  ] } });
+  await f.node('run-form').fire('submit'); await f.flush(); await f.step();
+  const output = f.node('run-log-output');
+  assert.equal(output.scrollTop, output.scrollHeight);
+  output.scrollTop = 0;
+  f.intervals[1](); await f.flush();
+  assert.match(output.value, /second line/);
+  assert.equal(output.scrollTop, output.scrollHeight);
+  f.node('run-output-follow').checked = false; output.scrollTop = 48;
+  f.intervals[1](); await f.flush();
+  assert.match(output.value, /latest line/); assert.equal(output.scrollTop, 48);
+  f.node('run-output-follow').checked = true; await f.node('run-output-follow').fire('change');
+  assert.equal(output.scrollTop, output.scrollHeight);
+});
+
+test('a quiet setup reports fresh checks and does not mistake silence for failure', async t => {
+  let now = Date.now(); t.mock.method(Date, 'now', () => now);
+  const f = await fixture(t, { search: '?repo=acme/demo&setupCommand=install&startCommand=serve&port=3000', executions: {
+    'setup-exec': { status: 'running', exitCode: null, stdout: 'START system packages\nUnpacking libexample\n', stderr: '' },
+  } });
+  await f.node('run-form').fire('submit'); await f.flush(); await f.step();
+  assert.match(f.node('run-phase-detail').textContent, /Current stage: system packages/);
+  assert.match(f.node('run-phase-detail').textContent, /Setup limit: 15 minutes/);
+  assert.equal(f.node('run-terminal').hidden, true);
+  now += 31_000; f.intervals[1](); await f.flush(); f.intervals[0]();
+  assert.equal(f.node('run-phase').textContent, 'Setup is quiet; still checking.');
+  assert.match(f.node('run-phase-detail').textContent, /Keep waiting/);
+  assert.match(f.node('run-activity').textContent, /Result checked 0s ago/);
+  assert.match(f.node('run-activity').textContent, /Output unchanged for 31s/);
+  assert.equal(f.node('run-retry').hidden, true);
+});
+
+test('apt timeout exit code 124 is distinct from the outer setup deadline', async t => {
+  const f = await fixture(t, { search: '?repo=acme/demo&setupCommand=install&startCommand=serve&port=3000', executions: {
+    'setup-exec': { status: 'failed', exitCode: 124, timedOut: false, stdout: 'Unpacking libexample\n', stderr: '' },
+  } });
+  await f.node('run-form').fire('submit'); await f.flush(); await f.step();
+  assert.equal(f.node('run-phase').textContent, 'Setup command reported a timeout');
+  assert.match(f.node('run-phase-detail').textContent, /exit code 124/);
+  assert.match(f.node('run-phase-detail').textContent, /No preview link will arrive/);
+  assert.doesNotMatch(f.node('run-phase-detail').textContent, /after 15 minutes/);
+  assert.equal(f.calls.some(call => call.url.pathname === '/containers/previews'), false);
+});
+
+test('progress request failure stops promises of a preview while output checks continue', async t => {
+  const f = await fixture(t, { search: '?repo=acme/demo&setupCommand=install&startCommand=serve&port=3000', executions: {
+    'setup-exec': { status: 'running', exitCode: null, stdout: 'installing\n', stderr: '' },
+  } });
+  await f.node('run-form').fire('submit'); await f.flush(); await f.step();
+  f.failAdvance(); await f.step();
+  assert.equal(f.node('run-phase').textContent, 'Progress checks paused.');
+  assert.match(f.node('run-phase-detail').textContent, /Waiting alone will not produce a preview/);
+  assert.equal(f.node('run-retry').hidden, false);
+  const before = f.executionCalls.get('setup-exec')!;
+  f.intervals[1](); await f.flush();
+  assert.equal(f.executionCalls.get('setup-exec'), before + 1);
+  assert.equal(f.node('run-phase').textContent, 'Progress checks paused.');
+  await f.node('run-retry').fire('click'); await f.flush();
+  assert.notEqual(f.node('run-phase').textContent, 'Progress checks paused.');
+  assert.equal(f.calls.filter(call => call.url.pathname === '/repo-launches' && call.options.method === 'POST').length, 1);
+});
+
+test('output checks run independently of a slow advance request', async t => {
+  const f = await fixture(t, { search: '?repo=acme/demo&setupCommand=install', executions: { 'setup-exec': [
+    { status: 'running', exitCode: null, stdout: 'before\n', stderr: '' },
+    { status: 'running', exitCode: null, stdout: 'before\nduring slow progress request\n', stderr: '' },
+  ] } });
+  await f.node('run-form').fire('submit'); await f.flush(); await f.step();
+  let release!: () => void;
+  f.setAdvanceGate(new Promise<void>(resolve => { release = resolve; }));
+  const advancing = f.step(); await f.flush();
+  f.intervals[1](); await f.flush();
+  assert.match(f.node('run-log-output').value, /during slow progress request/);
+  release(); await advancing;
+});
+
+const sse = (type: string, value: unknown) => `event: ${type}\ndata: ${JSON.stringify(value)}\n\n`;
+test('stdout and stderr stream in sequence and reconnect by cursor without duplicated lines', async t => {
+  const events = { 'setup-exec': sse('stdout', { sequence: 1, data: 'first\n' }) + sse('stderr', { sequence: 2, data: 'warning\n' }) + sse('stdout', { sequence: 3, data: 'latest\n' }) };
+  const f = await fixture(t, { search: '?repo=acme/demo&setupCommand=install', outputEvents: events, executions: {
+    'setup-exec': { status: 'running', exitCode: null, stdout: 'first\nlatest\n', stderr: 'warning\n', cursor: 3 },
+  } });
+  await f.node('run-form').fire('submit'); await f.flush(); await f.step();
+  assert.match(f.node('run-log-output').value, /first\nwarning\nlatest\n$/);
+  events['setup-exec'] += sse('stdout', { sequence: 4, data: 'after reconnect\n' });
+  f.intervals[1](); await f.flush();
+  assert.match(f.node('run-log-output').value, /latest\nafter reconnect\n$/);
+  assert.equal(f.node('run-log-output').value.split('first\n').length, 2);
+  const streams = f.calls.filter(call => call.url.pathname.endsWith('/setup-exec/events'));
+  assert.deepEqual(streams.map(call => call.url.searchParams.get('cursor')), ['0', '3']);
+});
+
+test('a terminal stream status reports the output cap without waiting for advance', async t => {
+  const f = await fixture(t, { search: '?repo=acme/demo&setupCommand=install&startCommand=serve&port=3000', executions: {
+    'setup-exec': { status: 'running', exitCode: null, stdout: '', stderr: '', cursor: 0 },
+  }, outputEvents: { 'setup-exec': sse('stdout', { sequence: 1, data: 'Unpacking libexample\n' }) + sse('status', {
+    status: 'output_limit', exitCode: null, timedOut: false, outputTruncated: true, cursor: 1,
+  }) } });
+  await f.node('run-form').fire('submit'); await f.flush(); await f.step();
+  assert.equal(f.state()!.phase, 'setup');
+  assert.equal(f.node('run-phase').textContent, 'Setup reached the output limit');
+  assert.match(f.node('run-phase-detail').textContent, /launcher stopped the command/);
+  assert.match(f.node('run-phase-detail').textContent, /No preview link will arrive/);
+  assert.match(f.node('run-log-output').value, /Unpacking libexample/);
+});
+
+test('a delayed running snapshot cannot overwrite a terminal stream result', async t => {
+  let controller!: ReadableStreamDefaultController<Uint8Array>;
+  const stream = new ReadableStream<Uint8Array>({ start(value) { controller = value; } });
+  const f = await fixture(t, { search: '?repo=acme/demo&setupCommand=install', outputEvents: { 'setup-exec': stream }, executions: {
+    'setup-exec': { status: 'running', exitCode: null, stdout: '', stderr: '', cursor: 0 },
+  } });
+  await f.node('run-form').fire('submit'); await f.flush(); await f.step();
+  let release!: () => void;
+  f.setExecutionGate(new Promise<void>(resolve => { release = resolve; }));
+  f.intervals[1](); await f.flush();
+  controller.enqueue(new TextEncoder().encode(sse('stdout', { sequence: 1, data: 'last install line\n' }) + sse('status', {
+    status: 'timed_out', exitCode: null, timedOut: true, outputTruncated: false, cursor: 1,
+  })));
+  controller.close(); await f.flush();
+  assert.equal(f.node('run-phase').textContent, 'Setup timed out after 15 minutes');
+  release(); await f.flush();
+  assert.equal(f.node('run-phase').textContent, 'Setup timed out after 15 minutes');
+  assert.match(f.node('run-log-output').value, /last install line/);
 });
 
 test('a repo URL alone lets signed-out users copy setup instructions without allocating or signing in', async t => {
