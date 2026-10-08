@@ -33,7 +33,7 @@ async function fixture(t: TestContext, { search = '?repo=acme/demo', hash = '', 
   for (const id of ['run-error', 'run-progress', 'run-terminal', 'run-preview', 'run-preview-open', 'run-retry', 'run-access']) node(id).hidden = true;
   const events = new Map(); const calls: { url: URL; options: RequestInit; body: any }[] = []; const copied: string[] = [];
   const timeouts = new Map<number, () => unknown>(); const intervals: (() => unknown)[] = []; let timer = 0;
-  const location = { origin: 'https://mainbrella.com', pathname: '/run/', search, hash, reload() {} };
+  const location = { origin: 'https://mainbrella.com', pathname: '/run/', search, hash, href: '', reload() {} };
   const property = (name: string, value: unknown) => {
     const descriptor = Object.getOwnPropertyDescriptor(globalThis, name);
     Object.defineProperty(globalThis, name, { value, configurable: true, writable: true });
@@ -84,9 +84,23 @@ async function fixture(t: TestContext, { search = '?repo=acme/demo', hash = '', 
 
 test('opening a shared repo link prepares settings without mutations and preserves settings through login', async t => {
   const f = await fixture(t, { session: false, search: '?repo=acme/demo&ref=feature%2Fa&startCommand=npm+start&port=3000' });
-  assert.equal(f.calls.length, 0); assert.equal(f.node('run-submit').disabled, true); assert.equal(f.node('run-advanced').open, true);
+  assert.equal(f.calls.length, 0); assert.equal(f.node('run-submit').disabled, false); assert.equal(f.node('run-advanced').open, true);
   const returnTo = new URL(f.node('run-sign-in').href, f.location.origin).searchParams.get('returnTo')!;
   assert.equal(new URL(returnTo, f.location.origin).searchParams.get('startCommand'), 'npm start');
+  f.node('run-ref').value = 'updated-branch';
+  await f.node('run-form').fire('submit');
+  const login = new URL(f.location.href, f.location.origin);
+  assert.equal(login.pathname, '/login/');
+  assert.equal(new URL(login.searchParams.get('returnTo')!, f.location.origin).searchParams.get('ref'), 'updated-branch');
+  assert.equal(f.calls.length, 0);
+});
+test('signed-out users can go to login without filling in a repository', async t => {
+  const f = await fixture(t, { session: false, search: '' });
+  assert.equal(f.node('run-submit').disabled, false);
+  assert.equal(f.node('run-submit').formNoValidate, true);
+  await f.node('run-form').fire('submit');
+  assert.equal(new URL(f.location.href, f.location.origin).pathname, '/login/');
+  assert.equal(f.calls.length, 0);
 });
 test('signed-in preparation and unpaid access never allocate', async t => {
   const f = await fixture(t, { paid: false });
@@ -95,6 +109,7 @@ test('signed-in preparation and unpaid access never allocate', async t => {
 });
 test('explicit Run records private identity, resumes phases and shares only settings', async t => {
   const f = await fixture(t); assert.equal(f.node('run-submit').disabled, false);
+  assert.equal(f.node('run-submit').formNoValidate, false);
   assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
   await f.node('run-form').fire('submit'); await f.flush();
   assert.match(f.location.hash, /^#launch=/); assert.equal(f.node('run-form').hidden, true);
@@ -136,8 +151,10 @@ test('preview issuance is limited to a newly started ready app and renewal stays
 test('signing out during a pending launch discards private responses and does not advance', async t => {
   const f = await fixture(t); let release!: () => void; f.setGate(new Promise<void>(resolve => { release = resolve; }));
   await f.node('run-form').fire('submit'); f.events.get('auth-change')?.(); release(); await f.flush();
-  assert.equal(f.node('run-progress').hidden, true); assert.equal(f.node('run-submit').disabled, true);
+  assert.equal(f.node('run-progress').hidden, true); assert.equal(f.node('run-submit').disabled, false);
   assert.equal(f.calls.some(call => call.url.pathname.endsWith('/advance')), false);
+  await f.node('run-form').fire('submit');
+  assert.equal(new URL(f.location.href, f.location.origin).pathname, '/login/');
 });
 
 test('reloading an uncertain request requires an explicit Resume before sending any mutation', async t => {

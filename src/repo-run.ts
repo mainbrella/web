@@ -114,7 +114,8 @@ function signIn() {
   element('run-plans').hidden = true;
   element('run-access-note').textContent = 'to run this repository in your account.';
   status.textContent = '';
-  submit.disabled = true;
+  submit.disabled = false;
+  submit.formNoValidate = true;
   updateSignIn();
 }
 async function resolve() {
@@ -216,6 +217,11 @@ async function advance() {
   } finally { busy = false; }
 }
 async function run() {
+  if (!userId) {
+    updateSignIn();
+    location.href = element<HTMLAnchorElement>('run-sign-in').href;
+    return;
+  }
   if (busy || !active || stopped) return;
   const version = sessionVersion;
   const value = options();
@@ -242,7 +248,7 @@ async function run() {
         fields.disabled = false; submit.textContent = 'Run repository';
       }
     }
-  } finally { busy = false; submit.disabled = !active; }
+  } finally { busy = false; submit.disabled = Boolean(userId) && !active; }
   if (launch && !stopped) void advance();
 }
 const previewRequest = createPreviewClient({ onUnauthenticated: signIn });
@@ -296,6 +302,7 @@ async function init() {
     if (stopped || version !== sessionVersion) return;
     if (!session) { signIn(); return; }
     userId = session.user.id;
+    submit.formNoValidate = false;
     const data = await request<ContainerData>('/containers');
     if (stopped || version !== sessionVersion) return;
     active = data.active;
