@@ -28,10 +28,10 @@ class Element {
   }
 }
 const flush = async () => { for (let i = 0; i < 4; i++) await new Promise(resolve => setImmediate(resolve)); };
-async function fixture(t: TestContext, { search = '?repo=acme/demo', hash = '', session = true, paid = true, state: initialState = null as RepositoryLaunch | null } = {}) {
+async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=node', hash = '', session = true, paid = true, state: initialState = null as RepositoryLaunch | null } = {}) {
   const nodes = new Map<string, Element>();
   const node = (id: string) => { if (!nodes.has(id)) nodes.set(id, new Element()); return nodes.get(id)!; };
-  node('run-size').value = 'small'; node('run-cwd').value = '.';
+  node('run-submit').textContent = 'Run repository';
   for (const id of ['run-error', 'run-progress', 'run-terminal', 'run-preview', 'run-preview-open', 'run-retry', 'run-access']) node(id).hidden = true;
   const events = new Map(); const calls: { url: URL; options: RequestInit; body: any }[] = []; const copied: string[] = [];
   const timeouts = new Map<number, () => unknown>(); const intervals: (() => unknown)[] = []; let timer = 0;
@@ -86,22 +86,23 @@ async function fixture(t: TestContext, { search = '?repo=acme/demo', hash = '', 
 
 test('opening a shared repo link prepares settings without mutations and preserves settings through login', async t => {
   const f = await fixture(t, { session: false, search: '?repo=acme/demo&ref=feature%2Fa&startCommand=npm+start&port=3000' });
-  assert.equal(f.calls.length, 0); assert.equal(f.node('run-submit').disabled, false); assert.equal(f.node('run-advanced').open, true);
+  assert.equal(f.calls.length, 0); assert.equal(f.node('run-submit').disabled, false); assert.equal(f.node('run-copy-step').hidden, true); assert.equal(f.node('run-repo').readOnly, true);
   const returnTo = new URL(f.node('run-sign-in').href, f.location.origin).searchParams.get('returnTo')!;
   assert.equal(new URL(returnTo, f.location.origin).searchParams.get('startCommand'), 'npm start');
-  f.node('run-ref').value = 'updated-branch';
   await f.node('run-form').fire('submit');
   const login = new URL(f.location.href, f.location.origin);
   assert.equal(login.pathname, '/login/');
-  assert.equal(new URL(login.searchParams.get('returnTo')!, f.location.origin).searchParams.get('ref'), 'updated-branch');
+  assert.equal(new URL(login.searchParams.get('returnTo')!, f.location.origin).searchParams.get('ref'), 'feature/a');
   assert.equal(f.calls.length, 0);
 });
-test('signed-out users can go to login without filling in a repository', async t => {
+test('the initial page only offers copying and Enter validates the repository', async t => {
   const f = await fixture(t, { session: false, search: '' });
-  assert.equal(f.node('run-submit').disabled, false);
-  assert.equal(f.node('run-submit').formNoValidate, true);
-  await f.node('run-form').fire('submit');
-  assert.equal(new URL(f.location.href, f.location.origin).pathname, '/login/');
+  assert.equal(f.node('run-submit').hidden, true);
+  assert.equal(f.node('run-copy-step').hidden, false);
+  assert.equal(f.node('run-access').hidden, true);
+  assert.equal(f.node('run-allowance').hidden, true);
+  await f.node('run-form').fire('submit'); await f.flush();
+  assert.equal(f.location.href, ''); assert.equal(f.copied.length, 0);
   assert.equal(f.calls.length, 0);
 });
 test('signed-in preparation and unpaid access never allocate', async t => {
@@ -132,7 +133,7 @@ test('an uncertain submission locks settings and retries the same key and payloa
 test('definitive validation errors let users correct the launch before allocation', async t => {
   const f = await fixture(t); f.failCreate(400);
   await f.node('run-form').fire('submit'); await f.flush();
-  assert.equal(f.location.hash, ''); assert.equal(f.node('run-fields').disabled, false); assert.equal(f.node('run-submit').textContent, 'Open terminal only');
+  assert.equal(f.location.hash, ''); assert.equal(f.node('run-fields').disabled, false); assert.equal(f.node('run-submit').textContent, 'Run repository');
   assert.match(f.node('run-error').textContent, /Public repository not found/);
 });
 test('setup failure keeps an attached terminal and opens output without replaying setup', async t => {
@@ -197,44 +198,47 @@ test('partial preview issuance reconciles the returned grant ID before reissuing
 
 test('a repo URL alone lets signed-out users copy setup instructions without allocating or signing in', async t => {
   const f = await fixture(t, { session: false, search: '?repo=https%3A%2F%2Fgithub.com%2Fhappier-dev%2Fhappier' });
-  assert.equal(f.node('run-advanced').open, false);
-  assert.equal(f.node('run-submit').textContent, 'Open terminal only');
-  await f.node('run-prompt-copy').fire('click'); await f.flush();
+  assert.equal(f.node('run-submit').hidden, true);
+  assert.equal(f.node('run-copy-step').hidden, false);
+  assert.equal(f.node('run-submit').textContent, 'Run repository');
+  await f.node('run-form').fire('submit'); await f.flush();
   assert.match(f.copied[0], /https:\/\/github.com\/happier-dev\/happier/);
-  assert.match(f.node('run-prompt-status').textContent, /Prompt copied/);
+  assert.match(f.node('run-prompt-status').textContent, /Copied/);
   assert.equal(f.calls.length, 0); assert.equal(f.location.href, '');
 });
 
-test('copy remains available without paid access and uses edited settings', async t => {
-  const f = await fixture(t, { paid: false });
-  f.node('run-repo').value = 'happier-dev/happier'; f.node('run-ref').value = 'feature/ports';
+test('copy remains available without paid access and uses the edited repository', async t => {
+  const f = await fixture(t, { paid: false, search: '?repo=acme/demo' });
+  f.node('run-repo').value = 'happier-dev/happier';
   await f.node('run-form').fire('input');
-  await f.node('run-prompt-copy').fire('click'); await f.flush();
-  assert.match(f.copied[0], /feature\/ports/);
+  await f.node('run-form').fire('submit'); await f.flush();
+  assert.match(f.copied[0], /happier-dev\/happier/);
+  assert.equal(f.calls.length, 0);
   assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
 });
 
 test('copy validates the repository and offers a selected fallback when clipboard access fails', async t => {
   const f = await fixture(t, { session: false, search: '' });
-  await f.node('run-prompt-copy').fire('click'); await f.flush();
+  await f.node('run-form').fire('submit'); await f.flush();
   assert.equal(f.copied.length, 0); assert.match(f.node('run-repo').validity, /public GitHub/);
-  await f.node('run-example').fire('click'); await f.flush();
+  f.node('run-repo').value = 'https://github.com/happier-dev/happier';
+  await f.node('run-form').fire('input');
   t.mock.method(navigator.clipboard, 'writeText', async () => { throw new Error('denied'); });
-  await f.node('run-prompt-copy').fire('click'); await f.flush();
-  assert.equal(f.node('run-prompt-details').open, true);
+  await f.node('run-form').fire('submit'); await f.flush();
+  assert.equal(f.node('run-prompt-fallback').hidden, false);
   assert.equal(f.node('run-prompt-text').selected, true);
   assert.match(f.node('run-prompt-text').value, /happier-dev\/happier/);
   assert.match(f.node('run-prompt-status').textContent, /copy it and paste/);
   assert.equal(f.calls.length, 0);
 });
 
-test('configured links show commands and promote Run while retaining copy assistance', async t => {
+test('configured links show read-only commands and a single launch action', async t => {
   const f = await fixture(t, { search: '?repo=happier-dev/happier&setupCommand=yarn+build&startCommand=yarn+start&port=3005' });
-  assert.equal(f.node('run-advanced').open, true);
+  assert.equal(f.node('run-copy-step').hidden, true);
+  assert.equal(f.node('run-repo').readOnly, true);
+  assert.equal(f.node('run-submit').hidden, false);
   assert.equal(f.node('run-submit').textContent, 'Run repository');
-  assert.equal(f.node('run-submit').className, 'button button-small');
-  assert.match(f.node('run-prompt-copy').className, /secondary/);
-  await f.node('run-prompt-copy').fire('click'); await f.flush();
-  assert.match(f.copied[0], /"port": 3005/);
+  assert.match(f.node('run-config').textContent, /Setup: yarn build/);
+  assert.match(f.node('run-config').textContent, /Preview port: 3005/);
   assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
 });
