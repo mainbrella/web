@@ -1,0 +1,7 @@
+Tool: built-in image_gen
+Asset: public/images/blog/when-it-rains-agents-bring-a-mainbrella/shared-workbench.webp
+Original: 1536 × 1024 pixels. WebP quality 88.
+Conceptual illustration, not a captured agent run.
+
+Generation prompt:
+Use case: illustration-story. Asset type: original editorial illustration for an engineering article titled 'When It Rains Agents, Bring a mainbrella'. Primary request: a warm, witty pen-and-ink workshop scene showing three small mechanical assistants collaborating at ONE shared wooden workbench beneath ONE sturdy blue umbrella. One assistant places a small sheet of tabular data into a tray on the left, another operates a small mechanical calculating machine on the same bench, and a third inspects the printed report emerging on the right. The data sheet and report have drawn grid/chart marks, not readable words. Above and outside the umbrella, rain falls; beneath it the shared workbench and its artifacts are dry. The umbrella and bench make one common working environment tangible. Style: refined editorial cartoon, expressive small characters, confident black ink contours, subtle watercolor washes on warm off-white paper; restrained blue umbrella and ochre brass machines, inviting workshop texture. Landscape 3:2 composition, subjects occupy most of the frame, visual relationships legible at 390px width. No boxes-and-arrows diagram, no slogans, no title or lettering, no logos, no band references, no photorealism. This is a conceptual illustration, never a captured product screenshot.
