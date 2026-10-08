@@ -512,6 +512,10 @@ button:disabled { opacity: .65; cursor: wait; }
 .platform-footer { align-items: flex-start; gap: 48px; padding-top: 32px; padding-bottom: 40px; border-top: 1px solid var(--line); }
 .footer-intro { flex: 0 1 240px; }
 .footer-intro p + p { margin-top: 12px; }
+.footer-socials { display: flex; gap: 4px; margin-top: 8px; }
+.footer-socials a { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; color: var(--muted); }
+.footer-socials a:hover { color: var(--blue); }
+.footer-socials svg { width: 20px; height: 20px; fill: currentColor; }
 .footer-columns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); flex: 1; gap: 24px; }
 .footer-columns h2 { margin: 8px 0; font-size: 14px; line-height: 1.5; letter-spacing: 0; }
 .footer-columns a { display: flex; align-items: center; min-height: 44px; color: var(--muted); font-size: 13px; }
