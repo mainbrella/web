@@ -1,5 +1,6 @@
 import test, { type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { registerHooks } from 'node:module';
 import type { RepositoryLaunch } from './repo-run-contract.ts';
 
@@ -22,7 +23,7 @@ class Element {
   setCustomValidity(message: string) { this.validity = message; }
   reportValidity() { return !this.validity; }
   focus() { this.focused = true; }
-  select() { this.selected = true; }
+  select() { this.selected = true; this.selectionStart = 0; this.selectionEnd = this.value.length; }
   setAttribute(name: string, value: string) { this[name] = value; }
   async fire(name: string, event: any = { preventDefault() {} }) {
     if (!this.disabled) { await this.listeners.get(name)?.(event); if (name === 'click') await this.onclick?.({ currentTarget: this }); }
@@ -102,6 +103,7 @@ test('the initial page only offers copying and Enter validates the repository', 
   const f = await fixture(t, { session: false, search: '' });
   assert.equal(f.node('run-submit').hidden, true);
   assert.equal(f.node('run-copy-step').hidden, true);
+  assert.equal(f.node('run-import-step').hidden, true);
   assert.equal(f.node('run-prompt-copy').disabled, true);
   assert.equal(f.node('run-access').hidden, true);
   assert.equal(f.node('run-allowance').hidden, true);
@@ -206,9 +208,11 @@ test('a repo URL alone lets signed-out users copy setup instructions without all
   const f = await fixture(t, { session: false, search: '?repo=https%3A%2F%2Fgithub.com%2Fhappier-dev%2Fhappier' });
   assert.equal(f.node('run-submit').hidden, true);
   assert.equal(f.node('run-copy-step').hidden, false);
+  assert.equal(f.node('run-import-step').hidden, true);
   assert.equal(f.node('run-submit').textContent, 'Run repository');
   await f.node('run-form').fire('submit'); await f.flush();
   assert.match(f.copied[0], /https:\/\/github.com\/happier-dev\/happier/);
+  assert.equal(f.node('run-import-step').hidden, false);
   assert.equal(f.node('run-prompt-status').textContent, 'Paste into ChatGPT or Claude, then paste its response below.');
   assert.equal(f.calls.length, 0); assert.equal(f.location.href, '');
 });
@@ -232,10 +236,14 @@ test('copy validates the repository and offers a selected fallback when clipboar
   t.mock.method(navigator.clipboard, 'writeText', async () => { throw new Error('denied'); });
   await f.node('run-form').fire('submit'); await f.flush();
   assert.equal(f.node('run-prompt-preview').hidden, false);
+  assert.equal(f.node('run-import-step').hidden, true);
   assert.equal(f.node('run-prompt-text').selected, true);
   assert.match(f.node('run-prompt-text').value, /happier-dev\/happier/);
   assert.match(f.node('run-prompt-status').textContent, /copy it and paste/);
   assert.equal(f.calls.length, 0);
+  await f.node('run-prompt-text').fire('copy');
+  assert.equal(f.node('run-import-step').hidden, false);
+  assert.equal(f.node('run-prompt-preview').hidden, true);
 });
 
 test('configured links show read-only commands and a single launch action', async t => {
@@ -251,17 +259,39 @@ test('configured links show read-only commands and a single launch action', asyn
 
 test('pasting a valid GitHub URL reveals the prompt without copying or making requests', async t => {
   const f = await fixture(t, { session: false, search: '' });
+  const html = await readFile(new URL('../run/index.html', import.meta.url), 'utf8');
   f.node('run-repo').value = 'https://github.com/happier-dev/happier';
   await f.node('run-form').fire('input', { target: f.node('run-repo'), inputType: 'insertFromPaste' });
   assert.equal(f.node('run-fields').hidden, false);
   assert.equal(f.node('run-prompt-preview').hidden, false);
+  assert.match(html, /<label id="run-prompt-preview"/);
+  assert.doesNotMatch(html, /<details id="run-prompt-preview"/);
   assert.match(f.node('run-prompt-text').value, /https:\/\/github.com\/happier-dev\/happier/);
   assert.equal(f.node('run-copy-step').hidden, false);
+  assert.equal(f.node('run-import-step').hidden, true);
   assert.equal(f.node('run-prompt-copy').disabled, false);
   assert.equal(f.copied.length, 0); assert.equal(f.calls.length, 0);
   const prompt = f.node('run-prompt-text').value;
   await f.node('run-form').fire('submit'); await f.flush();
   assert.equal(f.copied[0], prompt);
+  assert.equal(f.node('run-import-step').hidden, false);
+  assert.equal(f.node('run-prompt-preview').hidden, true);
+  f.node('run-repo').value = 'octocat/Hello-World';
+  await f.node('run-form').fire('input');
+  assert.equal(f.node('run-prompt-preview').hidden, false);
+  assert.equal(f.node('run-import-step').hidden, true);
+});
+
+test('a pending prompt copy cannot reveal step three after the repository changes', async t => {
+  const f = await fixture(t, { search: '?repo=acme/demo' });
+  let complete!: () => void;
+  t.mock.method(navigator.clipboard, 'writeText', () => new Promise<void>(resolve => { complete = resolve; }));
+  await f.node('run-form').fire('submit');
+  f.node('run-repo').value = 'https://github.com/octocat/Hello-World';
+  await f.node('run-form').fire('input');
+  assert.equal(f.node('run-import-step').hidden, true);
+  complete(); await f.flush();
+  assert.equal(f.node('run-import-step').hidden, true);
 });
 
 test('invalid pasted text keeps the URL input available and copy hidden', async t => {
@@ -286,6 +316,7 @@ test('editing the visible URL updates the prompt and hides it for invalid input'
   assert.equal(f.node('run-prompt-preview').hidden, true);
   assert.equal(f.node('run-copy-step').hidden, true);
   assert.equal(f.node('run-prompt-copy').disabled, true);
+  assert.equal(f.node('run-import-step').hidden, true);
 });
 
 const importedConfig = { repo: 'happier-dev/happier', ref: 'e'.repeat(40), catalogId: 'node', size: 'large', cwd: 'apps/web',

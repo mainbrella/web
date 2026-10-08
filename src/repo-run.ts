@@ -41,6 +41,9 @@ let previewAttempted = false;
 let launchedHere = false;
 let stopped = false;
 let sessionVersion = 0;
+let promptCopied = false;
+let preparedRepo = repo.value;
+let promptVersion = 0;
 let logsBusy = false;
 const logCache = new Map<string, { text: string; finished: boolean }>();
 const messages: Record<string, string> = {
@@ -87,7 +90,7 @@ function updatePrompt() {
   element('run-copy-step').hidden = true;
   element<HTMLButtonElement>('run-prompt-copy').disabled = true;
   element('run-prompt-preview').hidden = true;
-  element('run-import-step').hidden = Boolean(identity) || legacyMode;
+  element('run-import-step').hidden = Boolean(identity) || legacyMode || (!launchMode && !promptCopied && !configId);
   element('run-access').hidden = !launchMode || Boolean(userId && active);
   status.hidden = !launchMode;
   submit.hidden = !launchMode;
@@ -140,12 +143,16 @@ function importConfiguration() {
 }
 function preparePrompt() {
   if (launchMode) return;
+  if (repo.value !== preparedRepo) promptCopied = false;
+  preparedRepo = repo.value;
+  promptVersion++;
   const ready = validRepo(repo.value);
   const text = element<HTMLTextAreaElement>('run-prompt-text');
   text.value = ready ? repoSetupPrompt(options(), location.origin) : '';
-  element('run-prompt-preview').hidden = !ready;
+  element('run-prompt-preview').hidden = !ready || promptCopied;
   element('run-copy-step').hidden = !ready;
   element<HTMLButtonElement>('run-prompt-copy').disabled = !ready;
+  element('run-import-step').hidden = !configId && (!ready || !promptCopied);
 }
 function validateRepo() {
   repo.setCustomValidity(validRepo(repo.value) ? '' : 'Enter a public GitHub URL or owner/repository.');
@@ -157,19 +164,27 @@ async function copyPrompt(existing = false) {
   const text = element<HTMLTextAreaElement>(existing ? 'run-help-text' : 'run-prompt-text');
   const button = element<HTMLButtonElement>(existing ? 'run-help-copy' : 'run-prompt-copy');
   text.value = repoSetupPrompt(existing && launch ? launch.options : options(), location.origin, existing ? launch : null);
+  const copiedVersion = promptVersion;
+  const copiedRepo = repo.value;
+  const copiedText = text.value;
   button.disabled = true;
   note.textContent = '';
   try {
     await navigator.clipboard.writeText(text.value);
+    if (!existing && copiedVersion === promptVersion && copiedRepo === repo.value && validRepo(repo.value) && copiedText === element<HTMLTextAreaElement>('run-prompt-text').value) {
+      promptCopied = true;
+      element('run-import-step').hidden = false;
+      element('run-prompt-preview').hidden = true;
+    }
     note.textContent = existing ? 'Copied. Paste into Codex to repair this container and get reusable JSON.' : 'Paste into ChatGPT or Claude, then paste its response below.';
   } catch {
     if (existing) element<HTMLDetailsElement>('run-help-details').open = true;
-    else { element('run-prompt-preview').hidden = false; element<HTMLDetailsElement>('run-prompt-preview').open = true; }
+    else element('run-prompt-preview').hidden = false;
     text.focus(); text.select();
     note.textContent = existing
       ? 'Could not copy automatically. The prompt is selected; copy it and paste into Codex.'
       : 'Could not copy automatically. The prompt is selected; copy it and paste into ChatGPT or Claude.';
-  } finally { button.disabled = false; }
+  } finally { button.disabled = !existing && !validRepo(repo.value); }
 }
 function updateSignIn() {
   const url = configurationUrl();
@@ -426,6 +441,14 @@ form.addEventListener('input', event => {
 });
 repo.addEventListener('change', () => { preparePrompt(); });
 element('run-help-copy').onclick = () => { void copyPrompt(true); };
+element<HTMLTextAreaElement>('run-prompt-text').addEventListener('copy', () => {
+  const text = element<HTMLTextAreaElement>('run-prompt-text');
+  if (validRepo(repo.value) && text.value && text.selectionStart === 0 && text.selectionEnd === text.value.length) {
+    promptCopied = true;
+    element('run-import-step').hidden = false;
+    element('run-prompt-preview').hidden = true;
+  }
+});
 element<HTMLButtonElement>('run-active-share').onclick = event => { void copyConfiguration(event.currentTarget as HTMLButtonElement); };
 element('run-retry').onclick = () => { if (launch) void advance(); else void init(); };
 element('run-terminal-open').onclick = openTerminal;

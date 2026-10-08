@@ -26,13 +26,13 @@
         <fieldset id="run-fields">
           <label id="run-repo-label" for="run-repo">1. Paste the GitHub URL</label>
           <input id="run-repo" name="repo" required maxlength="240" autocomplete="off" spellcheck="false" placeholder="https://github.com/owner/repository">
+          <label id="run-prompt-preview" class="repo-prompt-label" for="run-prompt-text" hidden>Setup prompt<textarea id="run-prompt-text" rows="10" readonly spellcheck="false"></textarea></label>
           <div id="run-copy-step" class="repo-run-actions" hidden>
             <p class="repo-step">2. Copy the prompt into ChatGPT or Claude</p>
             <button id="run-prompt-copy" class="button button-small" type="submit" disabled aria-describedby="run-prompt-status"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V4a2 2 0 0 0-2-2H4a2 2 0 0 0 2 2v10a2 2 0 0 0 2 2h4"></path></svg><span>Copy prompt</span></button>
             <p id="run-prompt-status" class="repo-step" role="status"></p>
           </div>
-          <details id="run-prompt-preview" hidden><summary>View setup prompt</summary><label class="repo-prompt-label">Setup prompt<textarea id="run-prompt-text" rows="8" readonly spellcheck="false"></textarea></label></details>
-          <div id="run-import-step">
+          <div id="run-import-step" hidden>
             <label id="run-import-label" for="run-import-text">3. Paste AI configuration</label>
             <p id="run-import-hint" class="dashboard-status">Paste the JSON or the entire AI response.</p>
             <textarea id="run-import-text" rows="6" maxlength="100000" autocomplete="off" spellcheck="false" aria-describedby="run-import-hint run-import-status" placeholder='{"repo": "owner/repository", …}'></textarea>
