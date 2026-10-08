@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Mainbrella gives away the accounts, billing, quotas, and Linux workspaces behind an AI sandbox business. Why pay for a service you can run yourself?" />
+    <meta name="theme-color" content="#181a1b" />
+    <link rel="canonical" href="https://mainbrella.com/blog/the-benefits-of-rain/" />
+    <meta property="og:title" content="The benefits of rain · Mainbrella" />
+    <meta property="og:description" content="Run an AI sandbox platform on your Mac, sell it from your own Cloudflare account, or pay us to operate it. The software is GPL v3." />
+    <meta property="og:url" content="https://mainbrella.com/blog/the-benefits-of-rain/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:image" content="https://mainbrella.com/images/blog/the-benefits-of-rain/free-umbrella.webp" />
+    <meta property="og:image:alt" content="One engineer takes an umbrella to use themselves; another holds the same umbrella over a customer's work in the rain." />
+    <meta property="article:published_time" content="2026-10-07T00:00:00-07:00" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <link rel="stylesheet" href="/blog/inside-our-brella/article.css" />
+    <link rel="stylesheet" href="/blog/the-benefits-of-rain/article.css" />
+    <title>The benefits of rain · Mainbrella</title>
+  </head>
+  <body class="info-body brella-article-page">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap inside-brella rain-article">
+      <article>
+        <a class="article-back" href="/blog/">← Engineering blog</a>
+        <h1>The benefits of rain</h1>
+        <p class="article-meta"><time datetime="2026-10-07">October 7, 2026</time> · Andrew Arrow</p>
+
+        <p>You can fork Mainbrella, change the prices, and sell the same kind of service we sell: Linux workspaces for AI agents. We put the accounts, billing, quotas, and workspace machinery in the repository too. Which leaves an awkward business question: why would anybody pay mainbrella.com?</p>
+        <p>I think that’s a reasonable question to ask of any hosted open-source project. If running it yourself is a serious option, the subscription has to buy something useful. For us, that something is the work of operating the service.</p>
+
+        <figure class="article-figure">
+          <div class="rain-comic">
+            <div class="rain-panel"><img src="/images/blog/the-benefits-of-rain/free-umbrella.webp" width="1774" height="887" alt="Run it yourself: an engineer takes a blue umbrella from a workshop shelf while holding its blueprint." decoding="async" fetchpriority="high" /></div>
+            <div class="rain-panel rain-panel-right"><img src="/images/blog/the-benefits-of-rain/free-umbrella.webp" width="1774" height="887" alt="Have us run it: an operator holds the same blue umbrella over a customer's laptop and tends to the equipment in the rain." decoding="async" /></div>
+          </div>
+          <figcaption>Giving someone an umbrella doesn’t mean they want to spend the afternoon holding it over the equipment. Editorial illustration.</figcaption>
+        </figure>
+
+        <h2 id="workspace">The part after the model answers</h2>
+        <p>Suppose you ask an agent to analyze a CSV and build a small website showing the results. The model can write a script, but something still has to install dependencies, execute it, keep the output files, and run the web server. You probably also want to open a terminal when the result looks wrong.</p>
+        <p>Mainbrella supplies that working environment. A program can start a Linux container, write files, run commands, and read the results through HTTP or our JavaScript and Python SDKs. A person can attach through SSH or the browser terminal and inspect the same workspace. Protected preview links let them open the app running inside it. The model and its API bill are separate.</p>
+        <p><a href="https://e2b.dev/">E2B</a> and <a href="https://www.daytona.io/">Daytona</a> serve this general need too: an agent gets an isolated environment it can operate through code. They also offer infrastructure ownership options; <a href="https://e2b.dev/enterprise">E2B describes self-hosting</a>, and <a href="https://www.daytona.io/docs/en/bring-your-own-compute/">Daytona documents bring-your-own-compute deployments</a>. Open source plus a hosted service is an established model. Mainbrella’s particular bet is that a fairly complete sandbox business can fit on Cloudflare’s developer platform.</p>
+        <p>That last word, <em>business</em>, adds quite a bit to “run this command.” Someone has to decide whose machine it is, whether they have access, how much compute they can consume, and when it must stop. Those decisions are part of the product we’re sharing.</p>
+
+        <h2 id="mac">A small cloud on a Mac</h2>
+        <p>I’ve run hundreds of containers locally on a Mac using <a href="https://orbstack.dev/">OrbStack</a>, without trouble. That’s an observation from my own development setup; capacity depends on the workload and the Mac. It made the local option much more tangible than a “self-hostable” checkbox.</p>
+        <p>Wrangler, Cloudflare’s development tool, runs the Workers and local state; OrbStack supplies the Docker-compatible engine for the Linux containers. Mainbrella’s dev launcher starts the API and container Worker together. You can work on the control plane and the guest workload on one computer.</p>
+        <p>With the container engine running, the <a href="https://github.com/mainbrella/backend#local-development">backend’s local development setup</a> starts with:</p>
+        <pre class="docs-code"><code>npm ci
+npm run db:migrate:local
+npx wrangler d1 migrations apply mainbrella-preview-routes --local
+npm run dev</code></pre>
+        <p>The API is at <code>http://localhost:8787</code>, with its reference at <code>/docs</code>. Local accounts and access records are separate from production, and the app still checks entitlements. Configure local authentication and access; the included <a href="https://github.com/mainbrella/backend/blob/main/scripts/create-trial-coupon.mjs">coupon tool</a> can issue local trials without a Mainbrella payment. Starting the dev server alone doesn’t provision an account.</p>
+        <p>You pay no Mainbrella software or hosting fee for this. Your machine supplies the resources; check the terms of whichever container engine you use. It’s a useful arrangement for tinkering, testing an integration, or changing the platform itself. A laptop also sleeps, travels, and occasionally has to become a laptop again.</p>
+
+        <h2 id="cloudflare">What changed on Cloudflare</h2>
+        <p>Cloudflare first made Containers available in <a href="https://blog.cloudflare.com/containers-are-available-in-public-beta-for-simple-global-and-programmable/">public beta in June 2025</a>. The fresh release is the <a href="https://blog.cloudflare.com/faster-agent-sandboxes/">September 30, 2026 redesign</a>: runtime selection of images and machine sizes, a new scheduling policy, and filesystem snapshots in public beta. Mainbrella uses the native <code>ctx.container</code> API. Cloudflare’s Sandbox SDK is a related layer on this infrastructure; it isn’t a dependency of our backend.</p>
+        <p>The useful architectural detail is that a Linux container has a persistent controller outside it. Cloudflare calls that controller a <em>Durable Object</em>: application code with its own identity and storage. The Linux process can disappear while the controller keeps the information needed to manage its lifetime.</p>
+        <p>We add another coordinator for each customer account. Before a machine boots, that coordinator reserves its share of the account’s allowance. If the CSV agent starts five workers, they consume one shared budget. Stopping a worker doesn’t erase its customer’s usage history. This is the sort of detail that matters when someone else is paying the infrastructure bill.</p>
+
+        <figure class="article-figure">
+          <picture>
+            <source media="(max-width: 600px)" srcset="/images/blog/the-benefits-of-rain/account-boundaries-mobile.svg" width="440" height="700" />
+            <img src="/images/blog/the-benefits-of-rain/account-boundaries.svg" width="920" height="480" alt="A shared API connects to separate customer account coordinators. Each coordinator tracks a budget and connects to individual workspace controllers and Linux containers. A stopped container leaves its controller and account budget in place." loading="lazy" decoding="async" />
+          </picture>
+          <figcaption>The budget belongs to the account; Linux compute belongs to a workspace. A stopped machine doesn’t take the account’s records with it. Simplified from the <a href="https://github.com/mainbrella/backend/blob/main/containers/container-account-core.js">account coordinator</a> and <a href="https://github.com/mainbrella/backend/blob/main/containers/user-container.js">workspace controller</a>.</figcaption>
+        </figure>
+
+        <p>The rest of the stack is similarly compact. Workers handle the API; D1, Cloudflare’s SQL database, holds account and billing data. The web client includes signup, checkout, subscription management, API keys, and the workspace dashboard. You get the code connecting these pieces, along with the containers.</p>
+        <p>For the CSV job, the filesystem is ordinary guest storage. Stopping the machine discards unsaved changes. Mainbrella can explicitly save a filesystem workspace and restore it into a new machine, using Cloudflare’s snapshots. It doesn’t resume the script’s RAM or running process. The script still needs to write useful progress to files.</p>
+        <p>There’s a trade here: the code is open, but this backend is built around Cloudflare APIs. Running it on another cloud would mean porting the infrastructure layer. Having the source gives you that option; it doesn’t make the port automatic.</p>
+
+        <h2 id="business">You can sell the umbrella too</h2>
+        <p>Say you teach a programming course. You want each student to have a disposable Linux workspace, a browser terminal, and a link to the app they’re building. You also want a budget per student, because “the exercise took an hour” and “the machine ran all weekend” should have different consequences.</p>
+        <p>You could build those pieces, buy a hosted service, or fork Mainbrella and adapt it to the course. The fork can have your branding, your subscription prices, your Cloudflare account, and your customers. A classroom is one possible audience; the same invitation applies to an agent product or a service competing directly with ours.</p>
+        <p class="article-emphasis">The right to run it includes the right to run a business with it.</p>
+        <p>The <a href="https://github.com/mainbrella/backend/blob/main/LICENSE">GPL v3 license</a> permits commercial use. Its copyleft requirements matter when you distribute covered software: a fork isn’t permission to redistribute it as a closed-source product. There is no Mainbrella software fee or revenue share for operating your own service.</p>
+        <p>There is, however, setup work. The checked-in configurations and deployment scripts contain our account, domains, and image-release locations. You’ll need to adapt those, configure your own authentication and Stripe billing, and apply the database migrations. The current <a href="https://github.com/mainbrella/backend/blob/main/docs/deployment.md">release scripts</a> assume an existing deployment of our service; a fresh fork needs its own bootstrap. Those assumptions are visible in the source, and an operator needs to understand them.</p>
+        <p>Even the prices have two parts: what you offer and what the server enforces. The web client has checkout prices; <a href="https://github.com/mainbrella/backend/blob/main/containers/plan-policy.js">the backend policy</a> sets concurrency, starts, compute allowance, and deadlines. Changing a number on the pricing page doesn’t change the machine budget. A fork’s operator gets to change both—and has to keep them consistent.</p>
+
+        <h2 id="cost">Free code, three different bills</h2>
+        <p>The choices are easier to compare when you follow the money and the work:</p>
+        <div class="rain-table-scroll" role="region" aria-label="Compare Mainbrella operating options" tabindex="0">
+          <table class="rain-options">
+            <caption>Who runs the service?</caption>
+            <thead><tr><th scope="col">Arrangement</th><th scope="col">What you pay for</th><th scope="col">Who operates it</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Local on your Mac</th><td>Your computer and container engine</td><td>You</td></tr>
+              <tr><th scope="row">Your Cloudflare account</th><td>Cloudflare usage and any other services you configure</td><td>You; your customers can pay you</td></tr>
+              <tr><th scope="row">mainbrella.com</th><td>A Mainbrella subscription within its plan allowances</td><td>We operate the sandbox service</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>As of October 7, 2026, Cloudflare’s $5/month Workers Paid plan includes <a href="https://developers.cloudflare.com/containers/platform/pricing/">375 vCPU-minutes, 25 GiB-hours of memory, and 200 GB-hours of disk</a>. Those allowances are shared across the account. A small deployment might fit inside them; hundreds of busy machines won’t become free because the application is GPL. Additional usage and other services can add charges.</p>
+        <p>If you sell a fork, your customers pay you and you pay your infrastructure providers. Revenue has to cover compute, payment processing, support, and the time spent operating it. A subscription price is not a margin. Bounded sessions and account budgets help control that cost, but they don’t substitute for measuring your workload.</p>
+        <p>This is also why I think mainbrella.com can earn real income while the code remains free. A business that needs sandboxes for its own product may prefer to buy them rather than own our deployment work. With the hosted service, we handle the sandbox infrastructure, image rollout, billing integration, and platform maintenance; the customer still owns their agent’s code and results.</p>
+        <p>Self-hosting shifts those jobs to a person on your team. That can be a good decision when you want control or intend to build a business around the platform. It can be a poor use of time when your business is the CSV analysis app and the sandbox is one dependency among many. Being able to operate a service and wanting to operate it are separate things.</p>
+
+        <h2 id="choice">The subscription has to earn its place</h2>
+        <p>A hosted customer can inspect the same machinery they’re paying us to operate. If their needs change, they have source code and a path to running their own deployment. That path requires work, and it isn’t an automatic transfer of their account or saved workspaces. It is a more useful option than hoping a provider eventually adds the setting they need.</p>
+        <p>For the operator, the bargain is equally clear. We have to make the hosted service worth paying for while the alternative remains available. Someone may build a better service for a particular audience with our code. They’re welcome to try.</p>
+        <p>That’s the benefit of rain for an umbrella business: there’s work people need done. We can share the design and still charge for standing outside. The <a href="https://github.com/mainbrella/backend">backend</a>, <a href="https://github.com/mainbrella/web">web client</a>, and <a href="/opensource/">self-hosting overview</a> are open if you want to take a turn.</p>
+      </article>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.ts"></script>
+  </body>
+</html>

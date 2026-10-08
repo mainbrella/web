@@ -1,0 +1,9 @@
+Tool: built-in image_gen
+Asset: public/images/blog/the-benefits-of-rain/free-umbrella.webp
+Original size: 1774 x 887 pixels. Encoded as WebP at quality 88.
+The article uses CSS to show the two original panels side by side on desktop
+and stacked on mobile, without altering the illustration.
+The scene is editorial illustration, not an account of a real event.
+
+Generation prompt:
+Use case: illustration-story. Asset type: original editorial illustration for a technical article titled 'The benefits of rain' about Mainbrella, an open-source Linux sandbox service that anyone can operate or pay someone to operate. Primary request: A clever two-panel editorial cartoon showing that receiving a free umbrella does not obligate someone to stand outside holding it all day. Left panel: inside an ordinary small workshop an engineer happily takes a blue umbrella and an identical folded umbrella blueprint from an open shelf, beside a laptop and a few small machine crates. Right panel: outdoors in steady rain, another engineer shelters a customer's laptop under that same blue umbrella while the customer comfortably works at a dry desk; the operator attends to the equipment and puddles. The point is free reusable tools versus paid ongoing service, not buying ownership of the tool. Style: confident pen-and-ink editorial drawing with restrained watercolor, warm ivory paper, charcoal outlines, muted blue accent, expressive but understated human faces, specific physical detail, no corporate stock art. Wide landscape two panels equally sized, compact readable composition. Minimal text only small panel labels 'Run it yourself' and 'Have us run it'. No other text, no speech balloons, no chart, no logos, no product screenshot, no claims about real events. Save generated output for repository use.

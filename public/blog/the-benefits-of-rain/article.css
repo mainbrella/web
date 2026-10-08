@@ -1,0 +1,16 @@
+/* Reuse the established reading surface; additions belong to this article. */
+.rain-article .rain-comic { display: grid; grid-template-columns: 1fr 1fr; }
+.rain-article .rain-panel { min-width: 0; overflow: hidden; aspect-ratio: 1; }
+.rain-article .rain-panel img { width: 200%; max-width: none; height: auto; }
+.rain-article .rain-panel-right img { margin-left: -100%; }
+.rain-article .rain-table-scroll { margin: 28px 0; overflow-x: auto; }
+.rain-article .rain-options { width: 100%; border-collapse: collapse; font-size: 17px; line-height: 1.5; }
+.rain-article .rain-options caption { margin-bottom: 12px; text-align: left; font-size: 18px; font-weight: 600; }
+.rain-article .rain-options th, .rain-article .rain-options td { padding: 12px 16px 12px 0; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.rain-article .rain-options thead th { color: var(--muted); font-size: 15px; font-weight: 600; }
+.rain-article .rain-options tbody th { width: 25%; font-weight: 600; }
+.rain-article .rain-options td:last-child { padding-right: 0; }
+@media (max-width: 600px) {
+  .rain-article .rain-comic { grid-template-columns: 1fr; gap: 8px; }
+  .rain-article .rain-options { min-width: 580px; font-size: 16px; }
+}
