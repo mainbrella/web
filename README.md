@@ -286,8 +286,8 @@ port connections. Its linked children are ephemeral and parent deletion cascades
 
 ## Run a GitHub repository
 
-`/run/?repo=OWNER/REPO` has two steps: paste the GitHub URL and **Copy to
-clipboard**. No sign-in, paid access, or API requests are needed to copy. Paste
+`/run/?repo=OWNER/REPO` has two steps: paste the GitHub URL and click **COPY**.
+Pasting a valid URL replaces the input with a read-only setup prompt automatically. No sign-in, paid access, or API requests are needed to copy. Paste
 the prompt into Codex to inspect the repository and produce an encoded launch
 link with setup, start, runtime, working directory and port selected. There are
 no manual configuration controls or alternative CTAs. Agent-configured links

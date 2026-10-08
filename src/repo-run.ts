@@ -72,7 +72,8 @@ function options(): RepoRunOptions {
 }
 function submitLabel() { return 'Run repository'; }
 function updatePrompt() {
-  element('run-copy-step').hidden = launchMode;
+  element('run-copy-step').hidden = true;
+  element<HTMLButtonElement>('run-prompt-copy').disabled = true;
   submit.hidden = !launchMode;
   element('run-allowance').hidden = !launchMode;
   element('run-intro').hidden = !launchMode;
@@ -83,6 +84,16 @@ function updatePrompt() {
   const value = options();
   config.textContent = [value.ref && `Ref: ${value.ref}`, `Runtime: ${value.catalogId || 'Automatic'} · Size: ${value.size}`, `Directory: ${value.cwd}`,
     value.setupCommand && `Setup: ${value.setupCommand}`, value.startCommand && `Start: ${value.startCommand}`, value.port !== undefined && `Preview port: ${value.port}`].filter(Boolean).join('\n');
+}
+function preparePrompt(focus = false) {
+  if (launchMode || !validRepo(repo.value)) return;
+  const text = element<HTMLTextAreaElement>('run-prompt-text');
+  text.value = repoSetupPrompt(options(), location.origin);
+  fields.hidden = true;
+  element('run-prompt-preview').hidden = false;
+  element('run-copy-step').hidden = false;
+  element<HTMLButtonElement>('run-prompt-copy').disabled = false;
+  if (focus) text.focus();
 }
 function validateRepo() {
   repo.setCustomValidity(validRepo(repo.value) ? '' : 'Enter a public GitHub URL or owner/repository.');
@@ -101,7 +112,7 @@ async function copyPrompt(existing = false) {
     note.textContent = 'Copied. Paste into Codex to get your launch link.';
   } catch {
     if (existing) element<HTMLDetailsElement>('run-help-details').open = true;
-    else element('run-prompt-fallback').hidden = false;
+    else element('run-prompt-preview').hidden = false;
     text.focus(); text.select();
     note.textContent = 'Could not copy automatically. The prompt is selected; copy it and paste into Codex.';
   } finally { button.disabled = false; }
@@ -342,12 +353,13 @@ async function init() {
     }
   } catch (cause) { if (stopped || version !== sessionVersion) return; showError(cause); status.textContent = ''; element('run-retry').hidden = false; element('run-progress').hidden = false; }
 }
-form.addEventListener('submit', event => { event.preventDefault(); if (launchMode) void run(); else void copyPrompt(); });
-form.addEventListener('input', () => {
+form.addEventListener('submit', event => { event.preventDefault(); if (launchMode) void run(); else { preparePrompt(); void copyPrompt(); } });
+form.addEventListener('input', event => {
   repo.setCustomValidity(''); element('run-prompt-status').textContent = '';
-  element('run-prompt-fallback').hidden = true;
   if (launchMode) updateSignIn();
+  else if (event.target === repo && (event as InputEvent).inputType === 'insertFromPaste') preparePrompt(true);
 });
+repo.addEventListener('change', () => { preparePrompt(true); });
 element('run-help-copy').onclick = () => { void copyPrompt(true); };
 for (const id of ['run-active-share']) element<HTMLButtonElement>(id).onclick = event => { void share(event.currentTarget as HTMLButtonElement); };
 element('run-retry').onclick = () => { if (launch) void advance(); else void init(); };
@@ -367,4 +379,5 @@ window.addEventListener('cookie-consent-change', event => {
   else { stopped = true; signIn(); element('run-progress').hidden = true; }
 });
 updatePrompt();
+preparePrompt();
 if (launchMode) void init();

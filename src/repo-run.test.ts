@@ -98,7 +98,8 @@ test('opening a shared repo link prepares settings without mutations and preserv
 test('the initial page only offers copying and Enter validates the repository', async t => {
   const f = await fixture(t, { session: false, search: '' });
   assert.equal(f.node('run-submit').hidden, true);
-  assert.equal(f.node('run-copy-step').hidden, false);
+  assert.equal(f.node('run-copy-step').hidden, true);
+  assert.equal(f.node('run-prompt-copy').disabled, true);
   assert.equal(f.node('run-access').hidden, true);
   assert.equal(f.node('run-allowance').hidden, true);
   await f.node('run-form').fire('submit'); await f.flush();
@@ -225,7 +226,7 @@ test('copy validates the repository and offers a selected fallback when clipboar
   await f.node('run-form').fire('input');
   t.mock.method(navigator.clipboard, 'writeText', async () => { throw new Error('denied'); });
   await f.node('run-form').fire('submit'); await f.flush();
-  assert.equal(f.node('run-prompt-fallback').hidden, false);
+  assert.equal(f.node('run-prompt-preview').hidden, false);
   assert.equal(f.node('run-prompt-text').selected, true);
   assert.match(f.node('run-prompt-text').value, /happier-dev\/happier/);
   assert.match(f.node('run-prompt-status').textContent, /copy it and paste/);
@@ -241,4 +242,30 @@ test('configured links show read-only commands and a single launch action', asyn
   assert.match(f.node('run-config').textContent, /Setup: yarn build/);
   assert.match(f.node('run-config').textContent, /Preview port: 3005/);
   assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
+});
+
+test('pasting a valid GitHub URL reveals the prompt without copying or making requests', async t => {
+  const f = await fixture(t, { session: false, search: '' });
+  f.node('run-repo').value = 'https://github.com/happier-dev/happier';
+  await f.node('run-form').fire('input', { target: f.node('run-repo'), inputType: 'insertFromPaste' });
+  assert.equal(f.node('run-fields').hidden, true);
+  assert.equal(f.node('run-prompt-preview').hidden, false);
+  assert.equal(f.node('run-prompt-text').focused, true);
+  assert.match(f.node('run-prompt-text').value, /https:\/\/github.com\/happier-dev\/happier/);
+  assert.equal(f.node('run-copy-step').hidden, false);
+  assert.equal(f.node('run-prompt-copy').disabled, false);
+  assert.equal(f.copied.length, 0); assert.equal(f.calls.length, 0);
+  const prompt = f.node('run-prompt-text').value;
+  await f.node('run-form').fire('submit'); await f.flush();
+  assert.equal(f.copied[0], prompt);
+});
+
+test('invalid pasted text keeps the URL input available and copy hidden', async t => {
+  const f = await fixture(t, { session: false, search: '' });
+  f.node('run-repo').value = 'https://example.com/owner/repo';
+  await f.node('run-form').fire('input', { target: f.node('run-repo'), inputType: 'insertFromPaste' });
+  assert.equal(f.node('run-fields').hidden, false);
+  assert.equal(f.node('run-copy-step').hidden, true);
+  assert.equal(f.node('run-prompt-copy').disabled, true);
+  assert.equal(f.copied.length, 0);
 });
