@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="What Deep Agents brings to an AI coding agent, what a sandbox provider adds, and why Mainbrella's adapter carries a container's birthday around." />
+    <meta name="theme-color" content="#181a1b" />
+    <link rel="canonical" href="https://mainbrella.com/blog/new-batteries-for-the-batteries-included-agent-harness/" />
+    <meta property="og:title" content="New batteries for the batteries-included agent harness · Mainbrella" />
+    <meta property="og:description" content="From a model's plan to a real Linux workspace: adding Mainbrella to Deep Agents, testing it locally, and keeping cleanup away from replacement containers." />
+    <meta property="og:url" content="https://mainbrella.com/blog/new-batteries-for-the-batteries-included-agent-harness/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:image" content="https://mainbrella.com/images/blog/new-batteries-for-the-batteries-included-agent-harness/the-plan-and-the-workspace.webp" />
+    <meta property="og:image:alt" content="An assistant supplies a blueprint, then connects to a working machine that produces an inspectable report." />
+    <meta property="article:published_time" content="2026-10-08T00:00:00-07:00" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <link rel="stylesheet" href="/blog/inside-our-brella/article.css" />
+    <link rel="stylesheet" href="/blog/new-batteries-for-the-batteries-included-agent-harness/article.css" />
+    <title>New batteries for the batteries-included agent harness · Mainbrella</title>
+  </head>
+  <body class="info-body brella-article-page">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap inside-brella batteries-article">
+      <article>
+        <a class="article-back" href="/blog/">← Engineering blog</a>
+        <h1>New batteries for the batteries-included agent harness</h1>
+        <p class="article-meta"><time datetime="2026-10-08">October 8, 2026</time> · Andrew Arrow</p>
+
+        <p>Ask a model to turn a CSV into a report and it can hand you a perfectly plausible Python script. Ask it to run that script and suddenly the interesting questions involve a filesystem, a process, and who gets to pay for the machine. The code block in the chat window has acquired an infrastructure department.</p>
+        <p><a href="https://github.com/langchain-ai/deepagents">Deep Agents</a>, LangChain’s “batteries-included agent harness,” supplies much of the machinery between a request and a finished job. We’ve built a Mainbrella sandbox adapter so that machinery can work in our Linux containers, including a local deployment you can inspect on your own computer.</p>
+        <p>The <a href="https://github.com/mainbrella/deepagents/commit/142d3a90340caa82187f0d0647b120976b239765">implementation is in our fork</a>. <a href="https://github.com/langchain-ai/deepagents/issues/6856">Issue #6856</a> asks the maintainers about adding it upstream; as of October 8, it’s an open feature request. The commands below use that fork. This is a working integration with an upstream conversation ahead of it.</p>
+
+        <figure class="article-figure">
+          <div class="battery-comic">
+            <div class="battery-panel"><img src="/images/blog/new-batteries-for-the-batteries-included-agent-harness/the-plan-and-the-workspace.webp" width="1774" height="887" alt="The plan: a small mechanical assistant offers an engineer a machine blueprint beside an empty outline on the workbench." decoding="async" fetchpriority="high" /></div>
+            <div class="battery-panel battery-panel-right"><img src="/images/blog/new-batteries-for-the-batteries-included-agent-harness/the-plan-and-the-workspace.webp" width="1774" height="887" alt="The workspace: the same assistant connects to a real workshop machine, which produces a report the engineer can inspect." decoding="async" /></div>
+          </div>
+          <figcaption>The blueprint can be excellent. Someone still has to supply the workbench. An editorial illustration, rather than a captured agent run.</figcaption>
+        </figure>
+
+        <h2 id="harness">What comes in the harness?</h2>
+        <p>A tool-calling model can request that a program execute a function, read the result, and decide what to do next. That gets you an agent loop. A useful agent also needs somewhere to put intermediate work, a way to track a plan, and a strategy for surviving a conversation longer than its context window.</p>
+        <p>Deep Agents packages those decisions. It can keep a task list, read and edit files, search a workspace, delegate work to subagents with separate contexts, load reusable skills, and summarize a growing conversation. Large tool outputs can be moved into files rather than repeatedly occupying the model’s attention. Your application can supply tools and arrange human approval of consequential actions.</p>
+        <p>For our CSV job, that means the agent can inspect the input, write a script, execute it, read the error, fix the script, and produce the report. An analyst subagent might investigate a suspicious column while the main agent keeps the overall task moving. The files carry useful work between those steps. You don’t have to write every piece of that scaffolding before finding out whether your agent can analyze the CSV.</p>
+        <p>The <a href="https://github.com/langchain-ai/deepagents/blob/main/libs/ARCHITECTURE.md">architecture has three layers</a>: LangGraph drives execution and state; LangChain’s <code>create_agent</code> assembles the basic agent; Deep Agents adds its opinionated defaults through middleware. You can replace those defaults. Choosing a sandbox doesn’t require replacing the model, the planning logic, or the whole agent loop.</p>
+        <p>There’s also a ready-made terminal coding agent, <code>dcode</code>, in the repository. The SDK is for building your own application; <code>dcode</code> is something you can sit down and use. Our integration covers both.</p>
+
+        <h2 id="provider">The socket was already there</h2>
+        <p>Deep Agents already documents <a href="https://docs.langchain.com/oss/python/deepagents/sandboxes">sandbox integrations including E2B and Daytona</a>. They solve the same basic problem: give the agent a real working environment and return what happened there. Adding Mainbrella follows that existing extension point.</p>
+        <p>The new <code>langchain-mainbrella</code> package wraps the official Mainbrella Python SDK. Its <code>MainbrellaSandbox</code> implements the backend’s command execution, binary upload, binary download, and identity. The shared <a href="https://github.com/mainbrella/deepagents/blob/142d3a90340caa82187f0d0647b120976b239765/libs/deepagents/deepagents/backends/sandbox.py"><code>BaseSandbox</code></a> builds higher-level operations on those primitives: reading, writing, editing, listing, globbing, and searching files.</p>
+        <p>This is a pleasing place to draw the boundary. Deep Agents already knows how to help a model edit a file. Mainbrella knows how to put bytes into a particular Linux machine. The adapter joins those capabilities without teaching the agent a second set of provider-specific file tools.</p>
+        <p>Separate subagent contexts don’t imply separate machines. With one shared sandbox backend, delegated workers can touch the same workspace. That’s useful when the analyst’s script should read the main agent’s CSV; if workers need independent environments, arrange those explicitly. Swapping the provider doesn’t decide your application’s isolation policy for you.</p>
+        <p>The practical benefit is a choice about <em>where the work happens</em>. Mainbrella can be a hosted dependency, a local service backed by Docker or OrbStack, or a service you operate in your own Cloudflare account. The <code>base_url</code> setting chooses the API origin. You can keep your agent code while moving the sandbox service you’re developing against.</p>
+        <p>That’s particularly useful if the infrastructure is part of your product: a classroom with per-student workspaces, an agent application with customer compute budgets, or a team that wants to change the control plane itself. The <a href="/blog/the-benefits-of-rain/">rain article</a> explains what we share in the backend and web client, including accounts and budget enforcement. Operating your own deployment still takes work; pointing at another URL doesn’t move existing files or accounts for you.</p>
+        <p>For someone already happy with E2B or Daytona, the meaningful addition is another operating option inside the same harness. This integration contains no comparative speed or price benchmark. Its case is that you can inspect, run, and adapt the sandbox service along with the agent.</p>
+
+        <h2 id="birthday">A container needs a birthday</h2>
+        <p>Our CSV agent starts a workspace, writes its script, and eventually exits. A cleanup handler stops its machine. Easy enough—until the machine has already stopped and its slot has been reused.</p>
+        <p>Imagine a delayed cleanup message addressed to slot <code>small</code>. Yesterday that name meant the CSV job. Now it means another job. Deleting “small” is an admirably concise way to stop the wrong computer.</p>
+        <p>The adapter therefore exposes an identity containing both the slot and its creation timestamp:</p>
+        <pre class="docs-code"><code>small@2026-10-08T09:25:17.059Z</code></pre>
+        <p>This is the actual form returned by the backend. The timestamp identifies the generation of the machine, so attachment and deletion can insist on the same incarnation. Bare slot IDs are rejected. If the old generation is gone, reconnecting fails; it doesn’t quietly borrow whoever has the name now.</p>
+
+        <figure class="article-figure">
+          <picture>
+            <source media="(max-width: 600px)" srcset="/images/blog/new-batteries-for-the-batteries-included-agent-harness/a-slot-is-not-a-machine-mobile.svg" width="440" height="640" />
+            <img src="/images/blog/new-batteries-for-the-batteries-included-agent-harness/a-slot-is-not-a-machine.svg" width="920" height="480" alt="A cleanup message for generation A is delayed while slot small is reused for generation B. When it arrives, the generation check rejects it and B keeps running." loading="lazy" decoding="async" />
+          </picture>
+          <figcaption>A hypothetical delayed cleanup, drawn as a timeline. The name stays the same while the machine changes. The <a href="https://github.com/mainbrella/deepagents/blob/142d3a90340caa82187f0d0647b120976b239765/libs/partners/mainbrella/langchain_mainbrella/provider.py">provider</a> and generation-qualified API calls keep the old request away from the replacement.</figcaption>
+        </figure>
+
+        <p>Creation has the complementary problem: a reply can disappear while the machine boots successfully. A stable idempotency key lets a retry reconcile the original creation instead of consuming another start. The provider accepts an explicit key, and SDK creation errors preserve it when reconciliation is needed. The <a href="/blog/inside-our-brella/">lost-reply article</a> follows that case further into the backend.</p>
+        <p>The same reasoning does <em>not</em> make shell commands safe to repeat. If an HTTP reply disappears after a command changes a file, submitting the command again may change it twice. The adapter doesn’t automatically retry commands or writes. Reliability here means knowing which operation you can replay, rather than enthusiastically trying everything again.</p>
+        <p>There are two lifecycle choices in the code. <code>MainbrellaSandbox</code> wraps a machine you already own and leaves its lifetime to you. <code>MainbrellaProvider</code> can create, attach to, and delete one. In <code>dcode</code>, a newly created sandbox is cleaned up on exit; an explicitly attached sandbox is left running. Opening a terminal session to inspect a workspace shouldn’t make closing that session destroy it.</p>
+
+        <h2 id="results">Give the agent an honest result</h2>
+        <p>A shell tool needs more than stdout. The CSV script might print half a report and then time out. It might exit with an error after writing reassuring progress messages. It might produce more output than the API can return. “Here is some text” would let the agent mistake all three for success.</p>
+        <p>The adapter returns combined output, an exit code, and a truncation flag. Stderr is preserved in a labeled block. A timeout retains partial output, adds an explanation, and reports exit code <code>124</code>. When the provider truncates output, the adapter preserves that flag and the unknown exit status. The model has evidence to act on; your application can inspect the same structured result.</p>
+        <div class="battery-table-scroll" role="region" aria-label="Mainbrella adapter execution and transfer boundaries" tabindex="0">
+          <table class="battery-table">
+            <caption>The boundaries travel with the backend</caption>
+            <thead><tr><th scope="col">Operation</th><th scope="col">What the adapter does</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Command, up to 60 seconds</th><td>Uses foreground HTTP execution; the default timeout is 60 seconds.</td></tr>
+              <tr><th scope="row">Command, 61–900 seconds</th><td>Starts a managed job and waits for its result; this uses a retained job slot.</td></tr>
+              <tr><th scope="row">Binary upload or download</th><td>Transfers bytes, with a 1 MiB limit per file and an absolute guest path.</td></tr>
+              <tr><th scope="row">Stop the machine</th><td>Discards unsaved guest files; export your report before cleanup.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Those limits are part of choosing the provider. A longer deadline doesn’t make the harness stream a live terminal back to the model: <code>execute</code> waits for a result. Mainbrella’s underlying API also has managed streaming, cancellation, previews, and saved workspaces; the adapter in this commit exposes the narrower Deep Agents backend contract. It doesn’t automatically turn those extra API features into agent tools.</p>
+        <p>Likewise, checkpointing the conversation doesn’t preserve a stopped machine’s disk. A resumed agent can remember that it wrote <code>report.html</code> while the file itself has vanished. Download the output, or explicitly arrange filesystem persistence through Mainbrella’s APIs. Remembering where you left your umbrella isn’t the same as still having an umbrella.</p>
+
+        <h2 id="python">The battery compartment says Python</h2>
+        <p>Our local test initially connected to a healthy API with only the Node image advertised. Commands and binary transfers worked on that image. The inherited file tools still needed <code>python3</code>, because <code>BaseSandbox</code> runs Python helpers inside the guest. A Linux machine can be quite alive and still be the wrong machine for the harness.</p>
+        <p>The provider defaults to Mainbrella’s Python catalog image for that reason. A custom image needs Python, <code>/bin/sh</code>, and GNU coreutils too. We added <code>npm run dev:all</code> to the backend’s local launcher so it can advertise and build all five existing catalog images: Node, Python, Rust, Go, and DevOps. The regular <code>npm run dev</code> keeps the lighter Node-only setup.</p>
+        <p>Once the local plan had access and the Python image was available, we ran the live tests against <code>http://localhost:8787</code>. The results were:</p>
+        <ul class="battery-results">
+          <li><strong>8 backend tests passed:</strong> command errors, timeout output, managed execution, the 1 MiB binary round trip, file limits and errors, inherited file tools, and async operations.</li>
+          <li><strong>8 CLI sandbox integration tests passed:</strong> creation and single, multiple, binary, and partial-success file transfers. Eight existing error-case tests in the shared suite remained skipped.</li>
+          <li><strong>Cleanup completed:</strong> no test containers remained.</li>
+        </ul>
+        <p>The CLI run also caught a pytest deprecation in our new class-scoped fixture. We made it a class method and reran, rather than hiding the warning. Separately, the API verifier returned <code>hello from mainbrella</code> with exit code <code>0</code> and verified binary files, managed streaming and retained results, cancellation, and cleanup.</p>
+        <p>These are live integration checks on the local service, with the Python backend suite and API verifier exercising their respective paths. They establish that the plumbing works. They don’t measure whether a particular model will finish your CSV analysis correctly, or establish comparative production reliability. That part still needs a real workload and an evaluation.</p>
+
+        <h2 id="try">Plug it into a real task</h2>
+        <p>To try the coding agent, check out the implementation linked above, provision <code>MAINBRELLA_API_KEY</code>, and configure credentials for your chosen model. From <code>libs/code</code>:</p>
+        <pre class="docs-code"><code>uv sync --extra mainbrella
+uv run --extra mainbrella dcode --sandbox mainbrella</code></pre>
+        <p>For a local backend, start <code>npm run dev:all</code> there and set <code>MAINBRELLA_API_URL=http://localhost:8787</code> in the coding-agent process. Use that deployment’s API key; local accounts and plans are separate from production. An API key authenticates you, but active plan or trial access supplies the compute allowance. Keep the key in your local environment, outside the guest.</p>
+        <p>For an application using the SDK, the connection is equally small. This excerpt assumes you’ve already configured <code>model</code> as a LangChain chat model and prepared the input in <code>/workspace</code>:</p>
+        <pre class="docs-code"><code>from deepagents import create_deep_agent
+from langchain_mainbrella import MainbrellaSandbox
+
+# handle is an existing Mainbrella SDK sandbox.
+backend = MainbrellaSandbox(sandbox=handle)
+agent = create_deep_agent(model=model, backend=backend)
+result = agent.invoke({"messages": [{
+    "role": "user",
+    "content": "Analyze /workspace/input.csv and write a report.",
+}]})</code></pre>
+        <p>The owner of <code>handle</code> remains responsible for downloading the report and stopping that exact generation. The package’s <a href="https://github.com/mainbrella/deepagents/blob/142d3a90340caa82187f0d0647b120976b239765/libs/partners/mainbrella/README.md">README</a> has the lifecycle examples. Your agent can keep its existing instructions, tools, and model while the backend changes underneath it.</p>
+        <p>I like that division of labor. Deep Agents gives the CSV job a plan, tools, and a way to keep working. Mainbrella supplies the workbench and an address that still means the right machine when cleanup arrives late. Now the useful question is what happens when the script meets the actual CSV.</p>
+      </article>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.ts"></script>
+  </body>
+</html>

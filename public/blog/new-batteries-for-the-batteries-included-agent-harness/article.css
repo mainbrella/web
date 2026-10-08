@@ -1,0 +1,18 @@
+.batteries-article .battery-comic { display: grid; grid-template-columns: 1fr 1fr; }
+.batteries-article .battery-panel { min-width: 0; overflow: hidden; aspect-ratio: 1; }
+.batteries-article .battery-panel img { width: 200%; max-width: none; height: auto; }
+.batteries-article .battery-panel-right img { margin-left: -100%; }
+.batteries-article .battery-table-scroll { margin: 28px 0; overflow-x: auto; }
+.batteries-article .battery-table { width: 100%; border-collapse: collapse; font-size: 17px; line-height: 1.5; }
+.batteries-article .battery-table caption { margin-bottom: 12px; text-align: left; font-size: 18px; font-weight: 600; }
+.batteries-article .battery-table th, .batteries-article .battery-table td { padding: 12px 16px 12px 0; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.batteries-article .battery-table thead th { color: var(--muted); font-size: 15px; }
+.batteries-article .battery-table tbody th { width: 36%; font-weight: 500; }
+.batteries-article .battery-table td:last-child { padding-right: 0; }
+.batteries-article .battery-results { padding-left: 24px; margin: 24px 0; }
+.batteries-article .battery-results li + li { margin-top: 12px; }
+@media (max-width: 600px) {
+  .batteries-article .battery-comic { grid-template-columns: 1fr; gap: 8px; }
+  .batteries-article .battery-table { font-size: 16px; }
+  .batteries-article .battery-table th, .batteries-article .battery-table td { padding-right: 12px; }
+}
