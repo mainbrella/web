@@ -45,18 +45,26 @@
       </form>
       <section id="run-progress" hidden aria-label="Repository launch">
         <div class="repo-run-heading"><a id="run-source" target="_blank" rel="noopener noreferrer"></a><span id="run-commit" class="dashboard-status"></span><button id="run-active-share" class="dashboard-retry" type="button">Copy configuration</button></div>
-        <p id="run-phase" class="dashboard-status" role="status"></p>
+        <div id="run-state" class="repo-run-state" role="status" aria-atomic="true">
+          <h2 id="run-phase"></h2>
+          <p id="run-phase-detail"></p>
+        </div>
+        <p id="run-activity" class="dashboard-status"></p>
+        <div id="run-preview" hidden>
+          <div class="container-actions"><a id="run-preview-open" class="button button-small" target="_blank" rel="noopener noreferrer" hidden>Open preview</a><button id="run-preview-create" class="dashboard-retry" type="button">Create preview link</button></div>
+          <p id="run-preview-status" class="dashboard-status" role="status">Anyone with the preview URL can access this app until the link expires.</p>
+        </div>
+        <div class="container-actions"><button id="run-retry" class="dashboard-retry" type="button" hidden>Resume launch</button><button id="run-terminal-open" class="dashboard-retry" type="button" hidden>Open terminal</button><a href="/run/" class="text-link">New run</a><a href="/dashboard/" class="text-link">Manage container</a></div>
+        <section id="run-logs" class="repo-run-logs" aria-labelledby="run-output-label">
+          <div class="repo-run-output-heading"><label id="run-output-label" for="run-log-output">Launch output · stdout / stderr</label><label class="repo-run-follow"><input id="run-output-follow" type="checkbox" checked>Follow latest output</label></div>
+          <textarea id="run-log-output" rows="12" readonly spellcheck="false" aria-describedby="run-output-note" placeholder="Waiting for command output…"></textarea>
+          <p id="run-output-note" class="dashboard-status">Output updates automatically. Uncheck Follow latest output to read earlier lines.</p>
+        </section>
         <div id="run-help" class="repo-run-help" hidden>
           <button id="run-help-copy" class="dashboard-retry" type="button" aria-describedby="run-help-status"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"></path></svg><span>Copy Codex prompt</span></button>
           <p id="run-help-status" class="dashboard-status" role="status">Paste into Codex to finish setup in this container.</p>
           <details id="run-help-details"><summary>View Codex prompt</summary><label class="repo-prompt-label">Prompt for Codex<textarea id="run-help-text" rows="12" readonly spellcheck="false"></textarea></label></details>
         </div>
-        <div class="container-actions"><button id="run-retry" class="dashboard-retry" type="button" hidden>Resume launch</button><button id="run-terminal-open" class="dashboard-retry" type="button" hidden>Open terminal</button><a href="/run/" class="text-link">New run</a><a href="/dashboard/" class="text-link">Manage container</a></div>
-        <div id="run-preview" hidden>
-          <div class="container-actions"><button id="run-preview-create" class="dashboard-retry" type="button">Create preview link</button><a id="run-preview-open" class="button button-small" target="_blank" rel="noopener noreferrer" hidden>Open preview</a></div>
-          <p id="run-preview-status" class="dashboard-status" role="status">Anyone with the preview URL can access this app until the link expires.</p>
-        </div>
-        <details id="run-logs"><summary>Launch output</summary><pre id="run-log-output" tabindex="0" aria-label="Launch output">Output will appear here.</pre></details>
       </section>
       <section id="run-terminal" class="container-terminal" aria-labelledby="run-terminal-title" hidden>
         <div class="terminal-heading"><h2 id="run-terminal-title">Terminal</h2><button class="dashboard-retry" type="button">Close terminal</button></div>
