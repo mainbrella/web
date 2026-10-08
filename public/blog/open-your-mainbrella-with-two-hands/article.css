@@ -1,0 +1,5 @@
+.openhands-article h1 { max-width: 26ch; }
+.openhands-article .rains-table td:first-child { width: 44%; }
+@media (max-width: 600px) {
+  .openhands-article .rains-table td:first-child { width: 42%; }
+}

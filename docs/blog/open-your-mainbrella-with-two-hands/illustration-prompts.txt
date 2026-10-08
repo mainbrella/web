@@ -1,0 +1,7 @@
+Tool: built-in image_gen.imagegen
+Asset: public/images/blog/open-your-mainbrella-with-two-hands/two-hands.webp
+Original: /Users/aa/.codex/generated_images/01a11b2a-aa65-7a61-bb49-ce621d7ea357/exec-7399e52e-6c51-49ca-86c0-f927e4810f15.png
+Converted to WebP with Pillow, quality 88; original dimensions preserved.
+
+Final prompt:
+Use case: illustration-story. Asset type: original editorial illustration for an engineering blog article titled Open your mainbrella with two hands. A precise, warm ink-and-watercolor drawing on off-white paper, wide landscape composition. In the rain, a small brass mechanical coding assistant uses BOTH hands to open one blue umbrella: one hand grips the wooden shaft firmly, the other slides the runner upward to open the ribs. Beneath the umbrella sits a single small workshop bench with a working computing machine and a half-finished printed report; the report stays dry. The character's two hands and their distinct physical jobs should be instantly legible. This is an analogy for preserving an agent's machine while reconnecting its access. Express effort and practical care, quiet workshop humor rather than a cute mascot advertisement. Crisp ink lines, sparse rain outside the canopy, muted charcoal and brass with blue umbrella as the sole strong color, restrained detail, no text, no logos, no arrows, no dashboard UI, no extra limbs. The umbrella shaft and runner must connect correctly; show two separate hands on the same umbrella mechanism.

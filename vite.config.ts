@@ -10,7 +10,7 @@ const publicPages = ['docs', 'docs/containers', 'docs/execute', 'docs/files', 'd
   'docs/ssh', 'docs/authentication', 'docs/limits', 'docs/errors', 'docs/api-reference',
   'docs/agent-setup', 'security', 'security/disclosure', 'contact', 'status', 'changelog',
   'benchmarks', 'integrations', 'trust', 'subprocessors', 'platform',
-  'blog', 'blog/when-it-rains-agents-bring-a-mainbrella', 'blog/new-batteries-for-the-batteries-included-agent-harness', 'blog/the-benefits-of-rain', 'blog/inside-our-brella', 'blog/virtual-companies-producing-reports', 'blog/account-owned-compute', 'blog/measuring-startup',
+  'blog', 'blog/open-your-mainbrella-with-two-hands', 'blog/when-it-rains-agents-bring-a-mainbrella', 'blog/new-batteries-for-the-batteries-included-agent-harness', 'blog/the-benefits-of-rain', 'blog/inside-our-brella', 'blog/virtual-companies-producing-reports', 'blog/account-owned-compute', 'blog/measuring-startup',
   'blog/safe-container-creation', 'blog/interactive-access', 'blog/custom-images',
   'compare', 'brand', 'press', 'careers', 'opensource',
   'e2b-alternative', 'daytona-alternative', 'cloudflare-sandbox'];
