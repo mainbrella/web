@@ -289,9 +289,6 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
         badge.dataset.state = container.status;
         badge.textContent = running ? 'Running' : container.status === 'starting' ? 'Starting…' : container.status === 'stopping' ? 'Stopping…' : container.status;
         heading.append(name);
-        const identity = document.createElement('code');
-        identity.textContent = container.id.slice(0, 8); identity.title = container.id;
-        state.append(identity);
         if (container.size) {
           const size = document.createElement('span');
           size.textContent = data?.sizes?.find(item => item.id === container.size)?.name ?? container.size;
