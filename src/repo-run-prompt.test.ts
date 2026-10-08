@@ -1,0 +1,44 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { repoSetupPrompt, validRepo } from './repo-run-prompt.ts';
+import type { RepositoryLaunch } from './repo-run-contract.ts';
+
+test('the Happier prompt delegates source inspection and encodes existing settings without a private identity', () => {
+  const settings = { repo: 'https://github.com/happier-dev/happier', size: 'small', cwd: '.', ref: 'feature/ports',
+    setupCommand: 'yarn --version && yarn install --frozen-lockfile && yarn build',
+    startCommand: 'HAPPIER_STACK_SERVER_PORT_BASE=3005 HAPPIER_STACK_SERVER_PORT_RANGE=1 HAPPIER_SERVER_HOST=0.0.0.0 yarn start', port: 3005 };
+  const prompt = repoSetupPrompt(settings, 'https://mainbrella.com');
+  assert.match(prompt, /https:\/\/github.com\/happier-dev\/happier/);
+  assert.match(prompt, /source behind its startup command/);
+  assert.match(prompt, /before installing/);
+  assert.match(prompt, /environment variables in each command/);
+  assert.match(prompt, /proxy strips cookies/);
+  assert.match(prompt, /without requiring an API key/);
+  const link = new URL(prompt.split('Current settings link: ')[1]);
+  assert.equal(link.searchParams.get('repo'), 'happier-dev/happier');
+  assert.equal(link.searchParams.get('startCommand'), settings.startCommand);
+  assert.equal(link.searchParams.get('setupCommand'), settings.setupCommand);
+  assert.equal(link.searchParams.get('ref'), 'feature/ports');
+  assert.equal(link.searchParams.get('port'), '3005');
+  assert.equal(link.hash, '');
+});
+
+test('a repair prompt identifies the exact existing container and includes execution IDs, never a preview token', () => {
+  const launch: RepositoryLaunch = { id: 'private-launch', phase: 'failed', options: { repo: 'happier-dev/happier', size: 'small', cwd: '.' },
+    repository: { repo: 'happier-dev/happier', ref: 'main', commit: 'a'.repeat(40), suggestedCatalogId: 'node', manifests: ['package.json'] },
+    container: { id: 'small', createdAt: '2026-10-08T12:00:00.000Z', expiresAt: '2026-10-08T13:00:00.000Z' },
+    executions: { setup: 'setup-execution' }, shellReadyAt: 1, previewReadyAt: null, createdAt: 1, error: 'setup_failed' };
+  const prompt = repoSetupPrompt(launch.options, 'https://mainbrella.com', launch);
+  assert.match(prompt, /do not allocate another/);
+  assert.match(prompt, /"createdAt": "2026-10-08T12:00:00.000Z"/);
+  assert.match(prompt, /setup-execution/);
+  assert.match(prompt, /does not automatically resume/);
+  assert.match(prompt, /preserving completed work/);
+  assert.equal(prompt.includes(launch.container!.expiresAt), false);
+  assert.equal(new URL(prompt.split('Current settings link: ')[1]).hash, '');
+});
+
+test('only repository roots accepted by the launch API can generate prompts', () => {
+  for (const repo of ['happier-dev/happier', 'https://github.com/happier-dev/happier.git/', ' user/repo ']) assert.equal(validRepo(repo), true);
+  for (const repo of ['', 'https://example.com/user/repo', 'https://github.com/user/repo/tree/main', 'user/repo?token=secret', 'user/..', '/user/repo']) assert.equal(validRepo(repo), false);
+});
