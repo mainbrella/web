@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 420" width="880" height="420" role="img" aria-labelledby="title desc">
+  <title id="title">The thread and the machine have different lifetimes</title>
+  <desc id="desc">Time moves left to right. The thread keeps its patch notes and the address of generation A. Generation A ends, slot c1 is reused for B, and a later reconnection to A is rejected.</desc>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="m0 0 8 4-8 4" fill="#9b3834"/></marker></defs>
+  <rect width="880" height="420" rx="4" fill="#f7f4ec"/>
+  <g font-family="system-ui, sans-serif" fill="#25373b">
+    <text x="36" y="39" font-size="20" font-weight="650">The record of work lasts longer than the workspace</text>
+    <g font-size="17" text-anchor="middle">
+      <text x="152" y="83">First run</text><text x="438" y="83">Machine expires</text><text x="710" y="83">Follow-up</text>
+    </g>
+    <g stroke="#c9c5bb" stroke-dasharray="4 6"><path d="M152 96v260M438 96v260M710 96v260"/></g>
+    <text x="36" y="125" font-size="17" font-weight="650">Thread</text>
+    <rect x="36" y="140" width="808" height="67" rx="4" fill="#dce8ed"/>
+    <path d="M61 153h22l9 10v30H61zM83 153v10h9M67 172h17M67 181h17" fill="none" stroke="#365a69" stroke-width="2"/>
+    <text x="110" y="169" font-size="19">Patch notes + sandbox ID for A</text>
+    <text x="110" y="191" font-size="16">Retained through the pause</text>
+    <text x="710" y="181" font-size="18" font-weight="600" text-anchor="middle">Reconnect to A</text>
+    <text x="36" y="246" font-size="17" font-weight="650">Slot c1</text>
+    <rect x="36" y="261" width="402" height="67" rx="4" fill="#cfe1d7"/>
+    <path d="M61 274h22l9 10v30H61zM83 274v10h9M67 293h17M67 302h12" fill="none" stroke="#35624d" stroke-width="2"/>
+    <text x="110" y="291" font-size="19" font-weight="600">Generation A</text>
+    <text x="110" y="313" font-size="16">Contains the unexported edits</text>
+    <path d="M438 253v84" stroke="#9b3834" stroke-width="3"/>
+    <path d="m429 340 9 9 9-9" fill="none" stroke="#9b3834" stroke-width="2"/>
+    <text x="438" y="374" font-size="17" text-anchor="middle" fill="#9b3834">A’s guest files are gone</text>
+    <rect x="523" y="261" width="321" height="67" rx="4" fill="#e7e3da"/>
+    <path d="M546 274h22l9 10v30h-31zM568 274v10h9" fill="none" stroke="#6a6b65" stroke-width="2"/>
+    <text x="594" y="291" font-size="19" font-weight="600">Generation B</text>
+    <text x="594" y="313" font-size="16">A different workspace</text>
+    <path d="M710 208v29" stroke="#9b3834" stroke-width="2.5" marker-end="url(#arrow)"/>
+    <path d="m704 242 12 12m0-12-12 12" stroke="#9b3834" stroke-width="3"/>
+    <text x="735" y="239" font-size="16" fill="#9b3834">Rejected</text>
+    <text x="36" y="400" font-size="15" fill="#59635f">Illustrative sequence · time → · generation check prevents attaching A’s thread to B</text>
+  </g>
+</svg>

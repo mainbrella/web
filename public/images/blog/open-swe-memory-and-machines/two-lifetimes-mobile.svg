@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 600" width="440" height="600" role="img" aria-labelledby="title desc">
+  <title id="title">Two lifetimes through a pause</title>
+  <desc id="desc">Time moves downward. The thread keeps its patch notes and generation A address. Alongside it, A expires and B starts in slot c1. The follow-up's request to reconnect to A is rejected.</desc>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="m0 0 8 4-8 4" fill="#9b3834"/></marker></defs>
+  <rect width="440" height="600" rx="4" fill="#f7f4ec"/>
+  <g font-family="system-ui, sans-serif" fill="#25373b">
+    <text x="24" y="37" font-size="22" font-weight="650">Two lifetimes through a pause</text>
+    <text x="24" y="62" font-size="17" fill="#59635f">Illustrative sequence · time ↓</text>
+    <text x="90" y="99" font-size="19" font-weight="650" text-anchor="middle">Thread</text>
+    <text x="320" y="99" font-size="19" font-weight="650" text-anchor="middle">Slot c1</text>
+    <rect x="24" y="115" width="166" height="414" rx="4" fill="#dce8ed"/>
+    <path d="M45 136h23l10 10v32H45zM68 136v10h10M51 156h19M51 166h19" fill="none" stroke="#365a69" stroke-width="2"/>
+    <text x="44" y="208" font-size="20" font-weight="600">Patch notes</text>
+    <text x="44" y="237" font-size="18">Address of A</text>
+    <path d="M24 280h166M24 391h166" stroke="#8ca8b3" stroke-dasharray="4 6"/>
+    <text x="44" y="320" font-size="18">Still retained</text>
+    <text x="44" y="347" font-size="18">during pause</text>
+    <text x="44" y="425" font-size="18" font-weight="600">Follow-up:</text>
+    <text x="44" y="452" font-size="18">reconnect to A</text>
+    <rect x="236" y="115" width="180" height="158" rx="4" fill="#cfe1d7"/>
+    <path d="M254 136h23l10 10v32h-33zM277 136v10h10M260 156h19M260 166h12" fill="none" stroke="#35624d" stroke-width="2"/>
+    <text x="254" y="208" font-size="20" font-weight="600">Generation A</text>
+    <text x="254" y="237" font-size="18">Unexported edits</text>
+    <path d="M228 280h196" stroke="#9b3834" stroke-width="3"/>
+    <text x="252" y="314" font-size="18" fill="#9b3834">A expires;</text>
+    <text x="252" y="339" font-size="18" fill="#9b3834">its files are gone</text>
+    <rect x="236" y="366" width="180" height="163" rx="4" fill="#e7e3da"/>
+    <text x="254" y="398" font-size="20" font-weight="600">Generation B</text>
+    <path d="M190 450h34" stroke="#9b3834" stroke-width="2.5" marker-end="url(#arrow)"/>
+    <path d="m227 444 12 12m0-12-12 12" stroke="#9b3834" stroke-width="3"/>
+    <text x="254" y="450" font-size="18" fill="#9b3834">Rejected</text>
+    <text x="254" y="484" font-size="17">Different machine,</text>
+    <text x="254" y="508" font-size="17">same slot name</text>
+    <text x="24" y="564" font-size="17">The history survives. The workspace doesn’t.</text>
+  </g>
+</svg>

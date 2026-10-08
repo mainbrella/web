@@ -1,0 +1,19 @@
+.swe-article .swe-comic { display: grid; grid-template-columns: 1fr 1fr; }
+.swe-article .swe-comic-panel { min-width: 0; overflow: hidden; aspect-ratio: 1; }
+.swe-article .swe-comic-panel img { width: 200%; max-width: none; height: auto; }
+.swe-article .swe-comic-panel-right img { margin-left: -100%; }
+.swe-article .swe-identity { font-size: 17px; }
+.swe-article .swe-table-scroll { margin: 28px 0; overflow-x: auto; }
+.swe-article .swe-table { width: 100%; border-collapse: collapse; font-size: 17px; line-height: 1.5; }
+.swe-article .swe-table caption { margin-bottom: 12px; text-align: left; font-size: 18px; font-weight: 600; }
+.swe-article .swe-table th, .swe-article .swe-table td { padding: 12px 16px 12px 0; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.swe-article .swe-table thead th { color: var(--muted); font-size: 15px; }
+.swe-article .swe-table tbody th { width: 44%; font-weight: 500; }
+.swe-article .swe-table td:last-child { padding-right: 0; }
+.swe-article .swe-table-scroll:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
+@media (max-width: 600px) {
+  .swe-article .swe-comic { grid-template-columns: 1fr; gap: 8px; }
+  .swe-article .swe-identity { font-size: 14px; }
+  .swe-article .swe-table { font-size: 16px; }
+  .swe-article .swe-table th, .swe-article .swe-table td { padding-right: 12px; }
+}

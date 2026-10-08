@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Adding Mainbrella to Open SWE: why resuming an agent requires the right machine, which requests can be retried, and what a 300-second default revealed in review." />
+    <meta name="theme-color" content="#181a1b" />
+    <link rel="canonical" href="https://mainbrella.com/blog/open-swe-memory-and-machines/" />
+    <meta property="og:title" content="A coding agent’s memory outlives its machine · Mainbrella" />
+    <meta property="og:description" content="An Open SWE sandbox integration, two different kinds of persistence, and a timeout default that quietly consumes retained job slots." />
+    <meta property="og:url" content="https://mainbrella.com/blog/open-swe-memory-and-machines/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:image" content="https://mainbrella.com/images/blog/open-swe-memory-and-machines/memory-and-workspace.webp" />
+    <meta property="og:image:alt" content="An assistant returns to an empty workbench holding the same notebook that described its unfinished project." />
+    <meta property="article:published_time" content="2026-10-08T00:00:00-07:00" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <link rel="stylesheet" href="/blog/inside-our-brella/article.css" />
+    <link rel="stylesheet" href="/blog/open-swe-memory-and-machines/article.css" />
+    <title>A coding agent’s memory outlives its machine · Mainbrella</title>
+  </head>
+  <body class="info-body brella-article-page">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap inside-brella swe-article">
+      <article>
+        <a class="article-back" href="/blog/">← Engineering blog</a>
+        <h1>A coding agent’s memory outlives its machine</h1>
+        <p class="article-meta"><time datetime="2026-10-08">October 8, 2026</time> · Andrew Arrow</p>
+
+        <p>Suppose a coding agent has edited three files, found a failing test, and paused for your answer. When you say “continue,” it remembers the patch. If its temporary machine has expired, that memory describes files that no longer exist.</p>
+        <p>Our new Mainbrella provider for <a href="https://github.com/mainbrella/open-swe/blob/f834be9f34090430153e526ea43c794298e92218/README.md">Open SWE</a> has to handle that gap. It can create a Linux workspace and reconnect to it later, but it refuses to substitute a fresh machine when the old one is gone. A successful connection to an empty computer would be a particularly unhelpful kind of success.</p>
+        <p>The <a href="https://github.com/mainbrella/open-swe/commit/f834be9f34090430153e526ea43c794298e92218">October 8 commit</a> adds the provider to our fork. Its interesting parts are the promises around a resumed job—and two places where reviewing the surrounding code revealed that the adapter hasn’t fulfilled the whole contract yet.</p>
+
+        <figure class="article-figure">
+          <div class="swe-comic">
+            <div class="swe-comic-panel"><img src="/images/blog/open-swe-memory-and-machines/memory-and-workspace.webp" width="1774" height="887" alt="An assistant records a half-built mechanical project in a notebook while the actual parts sit on its workbench." decoding="async" fetchpriority="high" /></div>
+            <div class="swe-comic-panel swe-comic-panel-right"><img src="/images/blog/open-swe-memory-and-machines/memory-and-workspace.webp" width="1774" height="887" alt="The same assistant returns holding the unchanged notebook, but the workbench has been cleared of its project." decoding="async" /></div>
+          </div>
+          <figcaption>The notebook survived. The unfinished work didn’t. An editorial illustration of the replacement we want reconnection to refuse.</figcaption>
+        </figure>
+
+        <h2 id="thread">The workspace belongs to a conversation</h2>
+        <p>Open SWE turns an engineering request into a longer-running job: investigate a repository, change code, validate it, deliver a pull request, and respond to feedback. Requests can arrive through GitHub, Slack, or its dashboard. Deep Agents supplies the planning and file tools; LangGraph carries execution and conversation state; Open SWE adds the engineering workflow around them.</p>
+        <p>That means the shell is more than a calculator attached to one model call. A follow-up in the same thread can depend on an uncommitted edit, installed packages, and the checkout that produced yesterday’s test failure. Open SWE records a sandbox ID in the thread’s metadata and uses it to reconnect. Independent conversations can have independent workspaces.</p>
+        <p>Mainbrella joins the existing provider registry. The new adapter implements asynchronous command execution, binary uploads and downloads, and sandbox identity over HTTP, using the project’s existing <code>httpx2</code> dependency. The registry awaits it directly. There’s no additional provider SDK to install, and the existing higher-level file tools can keep using their familiar backend interface.</p>
+        <p>It’s a small seam in the application, but it carries a substantial assumption: every tool call is addressed to the machine containing this thread’s work. The <a href="https://github.com/mainbrella/open-swe/blob/f834be9f34090430153e526ea43c794298e92218/openswe/sandboxes/lifecycle.py">thread lifecycle</a> already treats an unreachable working sandbox as an error. The Mainbrella adapter preserves that caution.</p>
+
+        <h2 id="generation">A slot name can stay while its contents disappear</h2>
+        <p>Consider our paused patch in container slot <code>c1</code>. The machine expires, then another job starts in the same slot. Looking up “c1” will find a running computer. It won’t find the computer that ran our test.</p>
+        <p>The adapter’s identity therefore includes the slot and the exact creation timestamp. An illustrative ID looks like this:</p>
+        <pre class="docs-code swe-identity"><code>mainbrella:c1@2026-10-08T12:00:00.000Z</code></pre>
+        <p>The timestamp identifies a <em>generation</em>: this particular incarnation of the slot. Reconnection checks the account’s container list for the same slot, timestamp, and running status. Commands and file transfers also send both values, so a machine that expires between the initial check and a later write can’t redirect that write into its replacement.</p>
+
+        <figure class="article-figure">
+          <picture>
+            <source media="(max-width: 600px)" srcset="/images/blog/open-swe-memory-and-machines/two-lifetimes-mobile.svg" width="440" height="600" />
+            <img src="/images/blog/open-swe-memory-and-machines/two-lifetimes.svg" width="880" height="420" alt="The thread retains its patch history through a pause. Below it, generation A expires and slot c1 is reused by generation B. A follow-up still addressed to A is rejected at B." loading="lazy" decoding="async" />
+          </picture>
+          <figcaption>Two lifetimes, shown schematically rather than to a measured time scale. Conversation state can cross the machine’s expiration; the filesystem does not cross with it.</figcaption>
+        </figure>
+
+        <p>Here’s the choice that matters to the person waiting for the patch:</p>
+        <div class="retry-examples">
+          <div class="example example-failure">
+            <p class="example-heading">Accept any running c1</p>
+            <p class="example-result">The agent resumes with the old test result and a different filesystem. It can mistake missing work for a new fact about the repository—or start editing another job’s workspace.</p>
+          </div>
+          <div class="example example-recovery">
+            <p class="example-heading">Require the recorded generation</p>
+            <p class="example-result">The adapter raises when that generation is missing, stopped, or replaced. Recovery can address the missing work explicitly, instead of presenting a replacement as continuity.</p>
+          </div>
+        </div>
+        <p>This provider doesn’t automatically save or restore Mainbrella workspaces. Open SWE’s LangSmith snapshot settings don’t apply to it either. Git commits pushed to the remote and files exported before expiration can survive; unexported guest files are discarded when the machine stops. Recording a more precise address prevents the wrong attachment. It doesn’t preserve the disk.</p>
+
+        <h2 id="retry">The retry depends on what disappeared</h2>
+        <p>The machine can also be alive while the HTTP reply is missing. During creation, the adapter generates one idempotency key and keeps using it for retries within a 120-second attempt. It retries transport failures and HTTP 503 responses with the same image and size selection. The backend can return the original creation rather than charge another start for a duplicate launch.</p>
+        <p>It doesn’t simply pick a running container from the account list. The creation receipt names the slot and generation it reserved; the adapter waits for that exact creation to be running and confirmed in the list. If the attempt remains ambiguous at its deadline, the exception includes the creation key for reconciliation. That key belongs to this attempt; starting the factory again generates a new one.</p>
+        <p>Now replace “create a machine” with “append a line to a file.” The same automatic retry could append the line twice. Foreground commands and file writes aren’t automatically replayed after a lost response. A model or application deciding what to do next still needs to distinguish a failed command from a command whose outcome it didn’t receive.</p>
+        <p>For commands with longer timeouts, the adapter starts a managed job and polls its retained result. Once it has the job ID, cancellation of the wait requests cancellation of that job before propagating the interruption. That cleanup starts after admission: cancellation while the initial POST is in flight isn’t covered by the cleanup block. The backend keeps jobs running when a client disconnects, so interrupting the agent at that point can leave work running until its own deadline.</p>
+        <p>These are different recovery problems. Retrying creation can find the reserved machine. Reading a known job can find its result. Repeating arbitrary shell text can perform the work again. A blanket “retry on network error” would erase those distinctions.</p>
+
+        <h2 id="defaults">The 60-second default that became five minutes</h2>
+        <p>The adapter uses foreground execution for timeouts up to 60 seconds. Longer timeouts, up to 900 seconds, use managed jobs. That choice matters because Mainbrella retains at most 32 managed-job records per generation for one hour from admission, including jobs that have finished. The 33rd admission before a record expires returns <code>429 execution_history_limit</code>.</p>
+        <p>Reading the adapter alone suggests that an ordinary <code>git status</code> won’t consume one of those records: its own default is 60 seconds. Reading the wrapper changed that conclusion. Open SWE’s <a href="https://github.com/mainbrella/open-swe/blob/f834be9f34090430153e526ea43c794298e92218/openswe/sandboxes/state.py#L276">per-thread proxy</a> supplies <strong>300 seconds</strong> when the caller omits a timeout. The adapter receives an explicit five-minute allowance and chooses managed execution even if the command finishes immediately.</p>
+        <div class="swe-table-scroll" role="region" aria-label="How the caller changes command execution" tabindex="0">
+          <table class="swe-table">
+            <caption>Same short command, different path</caption>
+            <thead><tr><th scope="col">Caller</th><th scope="col">Timeout received</th><th scope="col">Execution</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Adapter directly; timeout omitted</th><td>60 seconds</td><td>Foreground; no retained job</td></tr>
+              <tr><th scope="row">Open SWE thread proxy; timeout omitted</th><td>300 seconds</td><td>Managed; retains a job record</td></tr>
+              <tr><th scope="row">Thread proxy; explicit 60 seconds</th><td>60 seconds</td><td>Foreground; no retained job</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>A local probe through the actual proxy confirmed that routing. This isn’t a measured production failure rate; it’s a deterministic mismatch between the wrapper’s default and the provider’s admission limit. A busy coding session can exhaust its managed history with short shell calls. The integration needs a deliberate timeout policy before that path is suitable for sustained work. Automatically retrying a timed-out foreground command as a managed job would introduce the replay problem above.</p>
+        <p>There’s a second inheritance trap. Most asynchronous file helpers in the installed Deep Agents <code>BaseSandbox</code> call the adapter’s async primitives, but deletion falls back to running the synchronous <code>delete</code> method in a worker thread. That method calls <code>execute</code>, which this async-only adapter deliberately rejects. Calling <code>adelete</code> reproduced a <code>NotImplementedError</code> before any HTTP request. File deletion through that helper needs its own async implementation; shell deletion remains available.</p>
+        <p>The nine new provider tests pass. They cover creation retries, exact-generation reconnection, foreground results, managed polling and cancellation, and partial-success binary transfers against mocked HTTP responses. They don’t exercise the thread proxy’s default or inherited deletion. Those two findings are a useful reason to test an adapter through its caller as well as through its own methods.</p>
+
+        <h2 id="image">A healthy machine still needs the right tools</h2>
+        <p>The default catalog image is Python because the inherited file tools run <code>python3</code> helpers inside the guest. A Node project still needs Python for those tools. Custom images should include Python, bash, git, and GNU coreutils, plus the project’s runtimes and Open SWE’s expected tools such as <code>gh</code> and <code>rg</code>. A workspace setup script can supply missing tools; the Python catalog image by itself isn’t a complete coding-agent environment.</p>
+        <p>The adapter also starts commands in <code>/workspace</code> and restores <code>HOME</code> from the guest user’s account when it’s absent. That detail serves a concrete caller: Open SWE reapplies global git identity on resumed runs, and Mainbrella’s execution environment inherits only <code>PATH</code>. “Git is installed” is weaker than “the agent can configure git the way its workflow expects.”</p>
+        <p>Other boundaries remain visible in the result: binary transfers and command output are capped at 1 MiB; a timeout preserves partial output and reports exit code <code>124</code>; truncation retains its flag. A command’s timeout never extends the machine’s hard deadline. The adapter waits for command results; it doesn’t expose a live terminal or automatically add the platform’s other APIs as agent tools.</p>
+
+        <h2 id="try">Try the boundary before entrusting it with a patch</h2>
+        <p>Use the fork and commit linked above, with the existing <a href="https://github.com/mainbrella/open-swe/blob/f834be9f34090430153e526ea43c794298e92218/docs/DEVELOPMENT.md">Open SWE development setup</a>. The base <code>uv sync</code> install includes what this provider needs. Add these values to Open SWE’s environment, using a key from the Mainbrella deployment you intend to call:</p>
+        <pre class="docs-code"><code>SANDBOX_TYPE="mainbrella"
+MAINBRELLA_API_KEY="mb_..."
+MAINBRELLA_CATALOG_ID="python"
+MAINBRELLA_SANDBOX_SIZE="small"</code></pre>
+        <p>An optional <code>MAINBRELLA_IMAGE_ID</code> selects a custom image instead of the catalog. <code>MAINBRELLA_API_URL</code> defaults to the hosted HTTPS API and accepts loopback HTTP for a local backend. Authentication and compute allowance are separate: the target deployment must also grant active access. The <a href="https://github.com/mainbrella/open-swe/blob/f834be9f34090430153e526ea43c794298e92218/docs/CUSTOMIZATION.md#1-sandbox">customization guide</a> records the provider’s configuration, and the <a href="/API.md#managed-execution-and-streaming">API contract</a> describes retained-job limits.</p>
+        <p>The checks behind this article were local mock-contract tests and the two focused caller probes, not a live Open SWE agent run or a hosted performance benchmark. The timeout routing and deletion findings remain open in the reviewed commit.</p>
+        <p>Before asking an agent to resume valuable work, decide where that work survives a stopped machine. A pushed branch or an explicitly saved and restored workspace can supply an answer. A conversation that remembers “I changed three files” can’t.</p>
+      </article>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.ts"></script>
+  </body>
+</html>
