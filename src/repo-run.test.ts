@@ -248,9 +248,8 @@ test('pasting a valid GitHub URL reveals the prompt without copying or making re
   const f = await fixture(t, { session: false, search: '' });
   f.node('run-repo').value = 'https://github.com/happier-dev/happier';
   await f.node('run-form').fire('input', { target: f.node('run-repo'), inputType: 'insertFromPaste' });
-  assert.equal(f.node('run-fields').hidden, true);
+  assert.equal(f.node('run-fields').hidden, false);
   assert.equal(f.node('run-prompt-preview').hidden, false);
-  assert.equal(f.node('run-prompt-text').focused, true);
   assert.match(f.node('run-prompt-text').value, /https:\/\/github.com\/happier-dev\/happier/);
   assert.equal(f.node('run-copy-step').hidden, false);
   assert.equal(f.node('run-prompt-copy').disabled, false);
@@ -268,4 +267,18 @@ test('invalid pasted text keeps the URL input available and copy hidden', async 
   assert.equal(f.node('run-copy-step').hidden, true);
   assert.equal(f.node('run-prompt-copy').disabled, true);
   assert.equal(f.copied.length, 0);
+});
+
+test('editing the visible URL updates the prompt and hides it for invalid input', async t => {
+  const f = await fixture(t, { session: false, search: '?repo=acme/demo' });
+  f.node('run-repo').value = 'https://github.com/octocat/Hello-World';
+  await f.node('run-form').fire('input');
+  assert.equal(f.node('run-fields').hidden, false);
+  assert.match(f.node('run-prompt-text').value, /octocat\/Hello-World/);
+  f.node('run-repo').value = '';
+  await f.node('run-form').fire('input');
+  assert.equal(f.node('run-prompt-text').value, '');
+  assert.equal(f.node('run-prompt-preview').hidden, true);
+  assert.equal(f.node('run-copy-step').hidden, true);
+  assert.equal(f.node('run-prompt-copy').disabled, true);
 });

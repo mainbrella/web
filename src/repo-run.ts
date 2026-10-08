@@ -85,15 +85,14 @@ function updatePrompt() {
   config.textContent = [value.ref && `Ref: ${value.ref}`, `Runtime: ${value.catalogId || 'Automatic'} · Size: ${value.size}`, `Directory: ${value.cwd}`,
     value.setupCommand && `Setup: ${value.setupCommand}`, value.startCommand && `Start: ${value.startCommand}`, value.port !== undefined && `Preview port: ${value.port}`].filter(Boolean).join('\n');
 }
-function preparePrompt(focus = false) {
-  if (launchMode || !validRepo(repo.value)) return;
+function preparePrompt() {
+  if (launchMode) return;
+  const ready = validRepo(repo.value);
   const text = element<HTMLTextAreaElement>('run-prompt-text');
-  text.value = repoSetupPrompt(options(), location.origin);
-  fields.hidden = true;
-  element('run-prompt-preview').hidden = false;
-  element('run-copy-step').hidden = false;
-  element<HTMLButtonElement>('run-prompt-copy').disabled = false;
-  if (focus) text.focus();
+  text.value = ready ? repoSetupPrompt(options(), location.origin) : '';
+  element('run-prompt-preview').hidden = !ready;
+  element('run-copy-step').hidden = !ready;
+  element<HTMLButtonElement>('run-prompt-copy').disabled = !ready;
 }
 function validateRepo() {
   repo.setCustomValidity(validRepo(repo.value) ? '' : 'Enter a public GitHub URL or owner/repository.');
@@ -354,12 +353,12 @@ async function init() {
   } catch (cause) { if (stopped || version !== sessionVersion) return; showError(cause); status.textContent = ''; element('run-retry').hidden = false; element('run-progress').hidden = false; }
 }
 form.addEventListener('submit', event => { event.preventDefault(); if (launchMode) void run(); else { preparePrompt(); void copyPrompt(); } });
-form.addEventListener('input', event => {
+form.addEventListener('input', () => {
   repo.setCustomValidity(''); element('run-prompt-status').textContent = '';
   if (launchMode) updateSignIn();
-  else if (event.target === repo && (event as InputEvent).inputType === 'insertFromPaste') preparePrompt(true);
+  else preparePrompt();
 });
-repo.addEventListener('change', () => { preparePrompt(true); });
+repo.addEventListener('change', () => { preparePrompt(); });
 element('run-help-copy').onclick = () => { void copyPrompt(true); };
 for (const id of ['run-active-share']) element<HTMLButtonElement>(id).onclick = event => { void share(event.currentTarget as HTMLButtonElement); };
 element('run-retry').onclick = () => { if (launch) void advance(); else void init(); };
