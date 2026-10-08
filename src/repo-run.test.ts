@@ -204,7 +204,7 @@ test('a repo URL alone lets signed-out users copy setup instructions without all
   assert.equal(f.node('run-submit').textContent, 'Run repository');
   await f.node('run-form').fire('submit'); await f.flush();
   assert.match(f.copied[0], /https:\/\/github.com\/happier-dev\/happier/);
-  assert.match(f.node('run-prompt-status').textContent, /Copied/);
+  assert.equal(f.node('run-prompt-status').textContent, '3. Now paste this in ChatGPT or Claude.');
   assert.equal(f.calls.length, 0); assert.equal(f.location.href, '');
 });
 

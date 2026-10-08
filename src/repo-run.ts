@@ -108,12 +108,14 @@ async function copyPrompt(existing = false) {
   note.textContent = '';
   try {
     await navigator.clipboard.writeText(text.value);
-    note.textContent = 'Copied. Paste into Codex to get your launch link.';
+    note.textContent = existing ? 'Copied. Paste into Codex to get your launch link.' : '3. Now paste this in ChatGPT or Claude.';
   } catch {
     if (existing) element<HTMLDetailsElement>('run-help-details').open = true;
     else element('run-prompt-preview').hidden = false;
     text.focus(); text.select();
-    note.textContent = 'Could not copy automatically. The prompt is selected; copy it and paste into Codex.';
+    note.textContent = existing
+      ? 'Could not copy automatically. The prompt is selected; copy it and paste into Codex.'
+      : 'Could not copy automatically. The prompt is selected; copy it and paste into ChatGPT or Claude.';
   } finally { button.disabled = false; }
 }
 function updateSignIn() {

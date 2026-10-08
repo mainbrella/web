@@ -28,6 +28,7 @@
 .run-body .text-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; }
 .repo-step { margin: 0 0 8px; font-size: 13px; }
 .repo-run-config { max-height: 320px; overflow: auto; margin: 16px 0; font: 13px/1.6 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+#run-prompt-status { margin-top: 16px; }
 #run-prompt-preview { margin-top: 16px; }
 #run-prompt-text { max-height: 40dvh; }
 @media (max-width: 600px) { .run-body .dashboard-main { padding-left: 16px; padding-right: 16px; } }

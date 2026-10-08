@@ -289,7 +289,7 @@ port connections. Its linked children are ephemeral and parent deletion cascades
 `/run/?repo=OWNER/REPO` has two steps: paste the GitHub URL and click **COPY**.
 Pasting a valid URL shows a read-only setup prompt below the URL field. Editing
 the URL updates the prompt. No sign-in, paid access, or API requests are needed to copy. Paste
-the prompt into Codex to inspect the repository and produce an encoded launch
+the prompt into ChatGPT or Claude to inspect the repository and produce an encoded launch
 link with setup, start, runtime, working directory and port selected. There are
 no manual configuration controls or alternative CTAs. Agent-configured links
 show their settings read-only with a single **Run repository** confirmation.
