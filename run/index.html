@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0d1014">
+    <meta name="description" content="Launch a public GitHub repository with a ready terminal and optional web preview in Mainbrella.">
+    <meta name="robots" content="noindex">
+    <link rel="canonical" href="https://mainbrella.com/run/">
+    <link rel="icon" href="/images/favicon.png" type="image/png">
+    <link rel="stylesheet" href="/mainbrella.css">
+    <link rel="stylesheet" href="/app.css">
+    <link rel="stylesheet" href="/repo-run.css">
+    <title>Run a GitHub repository · Mainbrella</title>
+  </head>
+  <body class="info-body sandbox-home app-body run-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- app-header -->
+    <main id="main" class="dashboard-main">
+      <h1>Run a GitHub repository</h1>
+      <p id="run-status" class="dashboard-status" role="status">Checking your session…</p>
+      <p id="run-error" class="dashboard-error" role="alert" hidden></p>
+      <p id="run-access" class="dashboard-status" hidden><a id="run-sign-in" href="/login/">Sign in</a><a id="run-plans" href="/pricing/" hidden>Choose a plan</a><span id="run-access-note"></span></p>
+      <form id="run-form" class="repo-run-form">
+        <fieldset id="run-fields">
+          <div class="repo-run-grid">
+            <label>Public GitHub repository<input id="run-repo" name="repo" required maxlength="240" autocomplete="off" spellcheck="false" placeholder="owner/repository"></label>
+            <label>Ref <span class="dashboard-status">(optional)</span><input id="run-ref" name="ref" maxlength="200" autocomplete="off" spellcheck="false" placeholder="Default branch, tag, or commit"></label>
+            <label>Runtime<select id="run-runtime" name="catalogId"><option value="">Automatic</option><option value="node">Node 24 + TypeScript</option><option value="python">Python 3.14</option><option value="rust">Rust</option><option value="go">Go</option><option value="devops">DevOps</option></select></label>
+            <label>Machine size<select id="run-size" name="size"><option value="lite">Lite · 256 MiB</option><option value="small" selected>Small · 4 GiB</option><option value="medium">Medium · 6 GiB</option><option value="large">Large · 8 GiB</option><option value="xl">XL · 12 GiB</option></select></label>
+          </div>
+          <p id="run-repository" class="dashboard-status"></p>
+          <details id="run-advanced">
+            <summary>Setup and web preview</summary>
+            <label>Working directory<input id="run-cwd" name="cwd" value="." maxlength="200" autocomplete="off" spellcheck="false" aria-describedby="run-cwd-note"></label>
+            <p id="run-cwd-note" class="dashboard-status">Relative to /workspace/repo. The terminal opens at the repository root.</p>
+            <label>Setup command <span class="dashboard-status">(optional)</span><textarea id="run-setup" name="setupCommand" rows="2" maxlength="4096" spellcheck="false" placeholder="npm ci"></textarea></label>
+            <label>Start command <span class="dashboard-status">(optional)</span><textarea id="run-start" name="startCommand" rows="2" maxlength="4096" spellcheck="false" placeholder="npm run dev -- --host 0.0.0.0"></textarea></label>
+            <label class="repo-port">Preview port<input id="run-port" name="port" type="number" min="1024" max="65535" step="1" inputmode="numeric" placeholder="3000"></label>
+            <p class="dashboard-status">Setup and start commands run in your container. Preview links last up to 15 minutes; apps that require cookies are unsupported.</p>
+          </details>
+        </fieldset>
+        <p id="run-allowance" class="dashboard-status">Each run creates a container in your account and uses your plan’s allowance.</p>
+        <div class="container-actions"><button id="run-submit" class="button button-small" type="submit" disabled>Run repository</button><button id="run-share" class="dashboard-retry" type="button">Copy launch link</button></div>
+      </form>
+      <section id="run-progress" hidden aria-label="Repository launch">
+        <div class="repo-run-heading"><a id="run-source" target="_blank" rel="noopener noreferrer"></a><span id="run-commit" class="dashboard-status"></span><button id="run-active-share" class="dashboard-retry" type="button">Copy launch link</button></div>
+        <p id="run-phase" class="dashboard-status" role="status"></p>
+        <div class="container-actions"><button id="run-retry" class="dashboard-retry" type="button" hidden>Resume launch</button><button id="run-terminal-open" class="dashboard-retry" type="button" hidden>Open terminal</button><a href="/run/" class="text-link">New run</a><a href="/dashboard/" class="text-link">Manage container</a></div>
+        <div id="run-preview" hidden>
+          <div class="container-actions"><button id="run-preview-create" class="dashboard-retry" type="button">Create preview link</button><a id="run-preview-open" class="button button-small" target="_blank" rel="noopener noreferrer" hidden>Open preview</a></div>
+          <p id="run-preview-status" class="dashboard-status" role="status">Anyone with the preview URL can access this app until the link expires.</p>
+        </div>
+        <details id="run-logs"><summary>Launch output</summary><pre id="run-log-output" tabindex="0" aria-label="Launch output">Output will appear here.</pre></details>
+      </section>
+      <section id="run-terminal" class="container-terminal" aria-labelledby="run-terminal-title" hidden>
+        <div class="terminal-heading"><h2 id="run-terminal-title">Terminal</h2><button class="dashboard-retry" type="button">Close terminal</button></div>
+        <p class="dashboard-status" role="status">Connecting…</p>
+        <div class="terminal-output" aria-label="Repository terminal"></div>
+      </section>
+      <noscript><p>Enable JavaScript to run a repository.</p></noscript>
+    </main>
+    <script type="module" src="/src/repo-run.ts"></script>
+    <script type="module" src="/src/account-menu.ts"></script>
+  </body>
+</html>

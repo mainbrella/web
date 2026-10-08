@@ -33,6 +33,14 @@ for a failure. `MAINBRELLA_API_URL` can select another HTTPS API origin, or HTTP
 localhost for development. `MAINBRELLA_CATALOG_ID` selects an advertised image for
 verification; it defaults to `node`.
 
+When the user supplies a credential variable and origin explicitly, keep that
+pair throughout doctor, verification, and deployment. For a local key stored as
+`MAINBRELLA_LOCAL_API_KEY`, load the existing `.env` and map that value to
+`MAINBRELLA_API_KEY` only in the tool process, with
+`MAINBRELLA_API_URL=http://localhost:8787`. The tools still read their standard
+variable names. Do not rewrite `.env`, request a second key, or fall back to the
+production origin with the local credential.
+
 Verification runs `echo "hello from mainbrella"`, checks stdout and exit code 0,
 writes and reads a six-byte binary probe under `/tmp`, and compares every byte.
 It also starts a managed job, consumes SSE output (resuming the last cursor if
@@ -51,3 +59,9 @@ on a lost response or a `starting` result. Unresolved startup produces
 `creation_ambiguous` and `cleanup: "reconcile_manually"`, with `creationKey` for
 recovery: repeat the same POST body and key within 24 hours. It never deletes a
 machine by guesswork. Cleanup failures include the created ID and generation.
+
+Budget verification and deployment separately. Setup verification followed by a
+two-container app consumes three starts: the verifier cleans up its own generation
+in `finally`, while a successful deployment leaves its two app generations running
+for use. Save identities and provide an explicit cleanup command; report the app
+leases and preview expiration separately from the verifier's cleanup result.

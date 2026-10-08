@@ -4,6 +4,7 @@ Generated from backend API.md and SDK READMEs. Local implementation does not est
 
 - [Authentication](authentication.md)
 - [Agent setup and verification](agent-setup-and-verification.md)
+- [Compiled application deployment](compiled-application-deployment.md)
 - [Static-site deployment over HTTP](static-site-deployment-over-http.md)
 - [Images](images.md)
 - [Endpoints](endpoints.md)
@@ -23,5 +24,6 @@ Generated from backend API.md and SDK READMEs. Local implementation does not est
 - [Public operational status](public-operational-status.md)
 - [Machine sizes and compute allowance](machine-sizes-and-compute-allowance.md)
 - [Saved workspaces and portable export](saved-workspaces-and-portable-export.md)
+- [Public repository launches](public-repository-launches.md)
 - [Mainbrella JavaScript SDK](javascript-sdk.md)
 - [Mainbrella Python SDK](python-sdk.md)

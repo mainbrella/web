@@ -244,7 +244,7 @@
   .app-body .wrap, .app-body .dashboard-main, .app-body .login-main { padding-right: 20px; padding-left: 20px; }
   .app-body .dashboard-main, .app-body .login-main { padding-top: 24px; }
   .app-body .app-header { min-height: 72px; }
-  .app-navigation { gap: 24px; }
+  .app-navigation { flex-wrap: wrap; gap: 0 20px; }
   .app-body .dashboard-main h1, .app-body .login-main h1 { font-size: 24px; }
   .container-usage { grid-template-columns: 1fr; gap: 12px; padding: 12px 0; }
   .container-usage > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; }

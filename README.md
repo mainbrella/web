@@ -283,3 +283,21 @@ lifecycles, with named HTTP service routing and generation checks. Do not claim
 full transport parity, production qualification, better isolation or faster
 networking. Daytona documents same-runner linked children, DNS aliases and direct
 port connections. Its linked children are ephemeral and parent deletion cascades.
+
+## Run a GitHub repository
+
+`/run/?repo=OWNER/REPO&ref=main` prepares a public GitHub launch. The recipient signs
+in and chooses Run repository; paid or trial access is required. Small is the
+default. The API resolves a commit before allocation, clones to `/workspace/repo`,
+and opens the existing terminal component there. Optional setup/start commands,
+working directory and port enable a web preview. All commands from a shared link
+are shown before Run.
+
+Private launch IDs live in the URL fragment and are preserved through login.
+Copy launch link shares only repository settings. Reloading a private launch
+reconciles retained progress and exact generations. Failed setup keeps the shell
+available. Preview renewal reconciles one-time grants; cookie-based applications
+are unsupported. The driver advances between phases while this page is open.
+
+Deploy with the backend repository-launch API and D1 migration 013. See
+`../backend/docs/repo-launches.md` for qualification and SDK CLI release steps.

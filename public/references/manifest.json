@@ -3,12 +3,13 @@
   "source": "mainbrella/backend",
   "licenseSha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
   "files": {
-    "API.md": "1c42801062bb8fffc03d4bf8992bfafb0adf1673d332008495dedfaf363433ce",
-    "SKILL.md": "d4345a91b5dc86c6993771a2ed0663bc6cc6e377768976fbec766671cc91d8e4",
-    "sdk/javascript.md": "3fb021251a243f5171003d3ab4dd870596487288689672db591ad40a3a773fab",
+    "API.md": "2e78b6bcfcf46486cc3a3213b78994b6addbaaacf402f07df67c1574994e16d8",
+    "SKILL.md": "30cd4bb332817f348821d06046dce5b3d27a2fd470411a590cafd25232a40c06",
+    "sdk/javascript.md": "fe3d0b60864f7fe5c405ea44ac5f6955e7072ee6a168388585e79292b7f37188",
     "sdk/python.md": "658f27e8165e2821e171a176d0ddab4ac48448963a4a6d9f3c0585dc2cb1fcbe",
     "references/authentication.md": "a8f04f7b5abfe904a5b01525f062795dd0e7fd0d2bfcd3a6c3662e392939c8bb",
-    "references/agent-setup-and-verification.md": "8efe90edb8618dbea3bc5bab139c2e54d92ecbfa410757fa072d9e6800f43f7f",
+    "references/agent-setup-and-verification.md": "f6a80c19fda3fb131d37d81e4970415598f320df99d00a80b92d478959c76aa1",
+    "references/compiled-application-deployment.md": "6d4726890efa41bc37c7180722258a076aa589101697c8075605d634c7520ba4",
     "references/static-site-deployment-over-http.md": "c2b1f672a6865b15566b4e0d9cebdab0e43a581d375c844cc84bd3dbddd5dcd4",
     "references/images.md": "c750445141ebd12cff4679f39ee508afb2d4ede05b1e63ae098915980093e2e4",
     "references/endpoints.md": "1b921a1706e3bcc0e80ed26193bfc1975d9072b4d24aea90d60687dccbb9e9b1",
@@ -19,7 +20,7 @@
     "references/errors-and-retry-behavior.md": "b3ab328b07df20a4a0847ff1c9c804e436021149de79d5f8b6f0cb28a2c15b25",
     "references/card-free-trial-coupons.md": "82a6ce927af289530984a300999a4840fa72c954d405874cf870da9072caa939",
     "references/capability-discovery.md": "fa4b2359c8f0ba97192a7d09e839580da38c01b2a52a2c5ff174527402123c01",
-    "references/private-services-between-machines.md": "e2523b2a1263a76c3f9b1cd8734b797fddfdbe3a0ac1711dc50bbf82bd802140",
+    "references/private-services-between-machines.md": "7a7b1160cbc0f335c435a8957fbee0a03d39fd676b5ce8342ac06fb530afab73",
     "references/protected-application-previews.md": "7664c51cd5418a6462332c7fd5bb139c9e5013b093074ec35b23008c550d1b0d",
     "references/managed-execution-and-streaming.md": "60f46dc155aa5113ad3b48e97295650d7a964eb3f62c79f50dd08b92e0a86e9b",
     "references/outbound-internet-selection.md": "dcbf60557da894edab61bb3a78f1adcf00d5dd92319a28184b6d9eb9c0dcef5b",
@@ -28,10 +29,11 @@
     "references/public-operational-status.md": "f8e868f8232ff37fd56da2432535accad59b309a641aa12855aad5983ff4a23a",
     "references/machine-sizes-and-compute-allowance.md": "ed636389603026b455ae85a5f0c19634d406ece64c1b1b03b40ef5efaaf25159",
     "references/saved-workspaces-and-portable-export.md": "b8735620fc99bff8c17bd542aa7359fcf677838ca614e26eacf89ff7ab27040e",
-    "references/javascript-sdk.md": "3fb021251a243f5171003d3ab4dd870596487288689672db591ad40a3a773fab",
+    "references/public-repository-launches.md": "f7011c9d7e586812ae0a84ceea39ee0d66d330f819a7b42cdd0750772d229746",
+    "references/javascript-sdk.md": "fe3d0b60864f7fe5c405ea44ac5f6955e7072ee6a168388585e79292b7f37188",
     "references/python-sdk.md": "658f27e8165e2821e171a176d0ddab4ac48448963a4a6d9f3c0585dc2cb1fcbe",
-    "references/index.md": "886d8353b58f80c152aaa0877a41edc20c0d9e1f0ebbe484cde61aaae531bb73",
+    "references/index.md": "fcaf143f47cd9dd248834f6172598efbb7191d4770346ce2db54d855bec735d7",
     "scripts/mainbrella-deploy-static.mjs": "c16e216de0839f889865172e47f45898890e6941e502bd89795e2fef77c549ec",
-    "llms-full.txt": "87004aca9fffb052d73a20d7f808e4279b4509dd4284c92d9b25473c4f6e4c30"
+    "llms-full.txt": "2a03ca4dada65851690ac3f520ad9c1d0db4709bd9c4f569c2f08b2f93670ba5"
   }
 }

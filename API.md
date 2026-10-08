@@ -90,6 +90,14 @@ for a failure. `MAINBRELLA_API_URL` can select another HTTPS API origin, or HTTP
 localhost for development. `MAINBRELLA_CATALOG_ID` selects an advertised image for
 verification; it defaults to `node`.
 
+When the user supplies a credential variable and origin explicitly, keep that
+pair throughout doctor, verification, and deployment. For a local key stored as
+`MAINBRELLA_LOCAL_API_KEY`, load the existing `.env` and map that value to
+`MAINBRELLA_API_KEY` only in the tool process, with
+`MAINBRELLA_API_URL=http://localhost:8787`. The tools still read their standard
+variable names. Do not rewrite `.env`, request a second key, or fall back to the
+production origin with the local credential.
+
 Verification runs `echo "hello from mainbrella"`, checks stdout and exit code 0,
 writes and reads a six-byte binary probe under `/tmp`, and compares every byte.
 It also starts a managed job, consumes SSE output (resuming the last cursor if
@@ -108,6 +116,35 @@ on a lost response or a `starting` result. Unresolved startup produces
 `creation_ambiguous` and `cleanup: "reconcile_manually"`, with `creationKey` for
 recovery: repeat the same POST body and key within 24 hours. It never deletes a
 machine by guesswork. Cleanup failures include the created ID and generation.
+
+Budget verification and deployment separately. Setup verification followed by a
+two-container app consumes three starts: the verifier cleans up its own generation
+in `finally`, while a successful deployment leaves its two app generations running
+for use. Save identities and provide an explicit cleanup command; report the app
+leases and preview expiration separately from the verifier's cleanup result.
+
+## Compiled application deployment
+
+An advertised image can run a compiled binary even when it lacks the source
+language's compiler. This is an optional fallback when the requested runtime
+image is unavailable. Confirm the guest OS and architecture (for example with
+`uname -s` and `uname -m`) and any shared-library requirements. Do not infer the
+guest architecture from the local computer or assume every binary is portable.
+
+Build locally using the project's existing toolchain and dependency conventions,
+targeting the guest platform. The local Go/SQLite example uses a pure-Go SQLite
+driver and `GOOS=linux GOARCH=amd64 CGO_ENABLED=0`; a CGO-based driver may need a
+different build environment and matching runtime libraries. Local compilation
+also avoids putting a build workload into a 256 MiB Lite guest.
+
+Upload through generation-qualified `PUT /containers/files` in chunks of at most
+1 MiB, concatenate in order, and verify the complete binary's SHA-256 against the
+local artifact before execution. File uploads create mode 0600; set executable
+permissions explicitly. Reconcile uncertain writes before retrying. Start the
+server with an execution mode appropriate to its lifetime: managed jobs are
+limited to 15 minutes; the detached `setsid nohup` pattern in the static-site
+recipe remains bounded by the container lease. Check HTTP readiness before
+issuing a preview, and save generation-qualified cleanup instructions.
 
 ## Static-site deployment over HTTP
 
@@ -587,7 +624,7 @@ API key or public preview URL for this connection.
 | Request | Body / behavior |
 | --- | --- |
 | `POST /private-services/networks` | `{"name":"app"}` creates an empty network (201). |
-| `GET /private-services/networks` | Returns `{networks:[{name,members}]}` for the authenticated account. |
+| `GET /private-services/networks` | Returns `{networks:[{name,members}]}` for the authenticated account. Optional `search` filters network names by case-insensitive substring; `page` (default 1) and `limit` (default 10, maximum 100) paginate results. Any of these parameters adds `total` (matching count), `totalNetworks`, `page`, and `limit` to the response. Out-of-range pages clamp to the last page. No parameters returns the complete registry. |
 | `PUT /private-services/members?network=app` | `{"id":"<backend-id>","createdAt":"<exact-generation>","name":"api","port":8080}` registers a service (200). Omit `port` for a caller-only member. |
 | `DELETE /private-services/members?network=app` | Send the member's exact `id`, `createdAt`, and `name` to detach it without stopping it. |
 | `DELETE /private-services/networks?network=app` | Deletes an empty network; detach all members first. |
@@ -613,6 +650,13 @@ request already accepted. Membership never starts a machine, changes its interne
 policy, or issues public previews. Machines retain independent deadlines and
 stop behavior; deleting a member does not cascade to peers. To share a frontend
 with a browser, issue a separate protected preview for that frontend only.
+
+The repository's [local users demo](https://github.com/mainbrella/backend/tree/main/examples/private-services)
+provides the Node frontend → private Go backend → SQLite recipe and explicit
+cleanup command. It seeds three users and renders the results of
+`SELECT * FROM users ORDER BY id`. Its launcher verifies private HTTP, rendered
+rows, and frontend preview HTML/API while preserving unrelated containers.
+This local evidence does not establish production support.
 
 ## Protected application previews
 
@@ -821,3 +865,58 @@ Each new save reserves the full source disk capacity against both capture budget
 `GET /workspaces` includes `maxCaptureBytesPerMonth` and `maxRetainedCaptureBytes` in `limits`, and `savesThisMonth`, `captureBytesThisMonth`, and `retainedCaptureBytes` in `usage`. New saves return HTTP 429 with `workspace_quota_exceeded`, `workspace_save_limit`, `workspace_capture_budget_exceeded`, or `workspace_retained_budget_exceeded` when the corresponding limit is reached. Reads, restores of otherwise eligible workspaces, archive and deletion remain available when a save budget is exhausted.
 
 Reservation uses the source machine's full disk capacity, even when the snapshot is smaller. Expiry releases quota and removes usable handles; the provider controls physical retention. Backup to your own storage with `GET /containers/export?id=…&createdAt=…`: this returns a gzip tar archive of `/workspace`, limited to 16 MiB compressed and 60 seconds. Export a restored saved workspace to download it. Export excludes other root paths, mounted volumes and process memory, and fails if the archive exceeds the limit or files change during capture. It shares the four-operation limit with other filesystem operations.
+
+## Public repository launches
+
+The browser entry point is `https://mainbrella.com/run/?repo=OWNER/REPO&ref=main`.
+Opening a share link prepares a launch; **Run repository** creates a private launch
+for the signed-in recipient using their paid or coupon-trial allowance. The default
+result is a shell in `/workspace/repo` on a Small machine. Each recipient gets a
+separate container. GitHub login is unnecessary for public repositories.
+
+Optional query/body fields are `ref`, `catalogId` (`node`, `python`, `rust`, `go`,
+`devops`), `size`, `cwd` (relative to the checkout), `setupCommand`, `startCommand`,
+and `port` (1024–65535). Start command and port must be supplied together. Runtime
+suggestions use manifests in the working directory; ambiguous projects default
+to Node and allow an override. Commands from share links are visible before Run.
+
+Authenticated endpoints accept session cookies or existing session/API Bearer
+credentials. Cookie mutations require a trusted Origin:
+
+- `GET /repo-launches/resolve?repo=OWNER/REPO&ref=main&cwd=.` validates the public
+  repository, resolves an immutable commit, and suggests a runtime. No allocation.
+- `POST /repo-launches` with the settings JSON and a stable `Idempotency-Key`
+  validates paid/trial access and resolves the commit before storing the launch.
+  It returns a launch with `id`, `phase`, `options`, `repository`, `container`,
+  `executions`, `createdAt`, `shellReadyAt`, `previewReadyAt`, and `error`.
+  Repeating identical settings/key returns the original launch; mismatches return
+  409. Creating this record does not allocate until advance.
+- `GET /repo-launches/{id}` reads owner-scoped progress. No allocation or replay.
+- `POST /repo-launches/{id}/advance` performs or reconciles one workflow step.
+  Repeat while phases are `allocating`, `cloning`, `setup`, or `starting`. A lease
+  and stable allocation/execution keys prevent duplicate side effects. Retained
+  execution IDs are inspected before moving on. End phases are `ready`, `failed`,
+  and `stopped`. An expired or reused container slot is never resumed.
+
+The browser stores private run/request identities in the URL fragment, preserves
+settings through sign-in with `returnTo`, and copies share links without those
+identities. An uncertain initial submission asks for Resume with the same key.
+GitHub errors occur before allocation; rate-limited lookups return 429.
+
+Clone/setup/startup checks use retained managed executions. The browser terminal
+attaches to the `main` tmux session created at the checkout root. The server runs
+in `mainbrella-preview`, with output at `/workspace/.mainbrella-preview.log`, under
+normal container idle and hard deadlines. Readiness requires a successful HTTP
+response at `/` on the chosen port. The server should listen on `0.0.0.0`. Setup
+and startup failures leave the terminal available for manual repair; failed or
+uncertain commands are never silently rerun after history expires.
+
+Use the existing execution API to read output and the previews API to issue a
+link after readiness. Preview URLs are returned once and never stored in launch
+records. The page renews by reconciling/revoking existing grants on that port and
+issuing a fresh link. Links last up to 15 minutes, do not extend the container
+lease, and give anyone with the URL access. Cookie-based apps are unsupported.
+
+Apply `migrations/013_repo_launches.sql` before deploying this API. Production
+rollout requires the frontend, API and new SDK CLI release together; source
+availability does not imply the currently published npm package contains `repo`.
