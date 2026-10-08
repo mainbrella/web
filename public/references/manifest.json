@@ -3,7 +3,7 @@
   "source": "mainbrella/backend",
   "licenseSha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
   "files": {
-    "API.md": "2e78b6bcfcf46486cc3a3213b78994b6addbaaacf402f07df67c1574994e16d8",
+    "API.md": "acda75dfd9220954f72003124818f97a37ac8429566ca355d05b415432a21457",
     "SKILL.md": "30cd4bb332817f348821d06046dce5b3d27a2fd470411a590cafd25232a40c06",
     "sdk/javascript.md": "fe3d0b60864f7fe5c405ea44ac5f6955e7072ee6a168388585e79292b7f37188",
     "sdk/python.md": "658f27e8165e2821e171a176d0ddab4ac48448963a4a6d9f3c0585dc2cb1fcbe",
@@ -29,11 +29,11 @@
     "references/public-operational-status.md": "f8e868f8232ff37fd56da2432535accad59b309a641aa12855aad5983ff4a23a",
     "references/machine-sizes-and-compute-allowance.md": "ed636389603026b455ae85a5f0c19634d406ece64c1b1b03b40ef5efaaf25159",
     "references/saved-workspaces-and-portable-export.md": "b8735620fc99bff8c17bd542aa7359fcf677838ca614e26eacf89ff7ab27040e",
-    "references/public-repository-launches.md": "f7011c9d7e586812ae0a84ceea39ee0d66d330f819a7b42cdd0750772d229746",
+    "references/public-repository-launches.md": "cf4b7a5a9d936084b53a9db8ec89764899a0b036dac7a2c8f2ca111c78102063",
     "references/javascript-sdk.md": "fe3d0b60864f7fe5c405ea44ac5f6955e7072ee6a168388585e79292b7f37188",
     "references/python-sdk.md": "658f27e8165e2821e171a176d0ddab4ac48448963a4a6d9f3c0585dc2cb1fcbe",
     "references/index.md": "fcaf143f47cd9dd248834f6172598efbb7191d4770346ce2db54d855bec735d7",
     "scripts/mainbrella-deploy-static.mjs": "c16e216de0839f889865172e47f45898890e6941e502bd89795e2fef77c549ec",
-    "llms-full.txt": "2a03ca4dada65851690ac3f520ad9c1d0db4709bd9c4f569c2f08b2f93670ba5"
+    "llms-full.txt": "3ac6d28739ed1ea31fb237c846334e89c6bf7e8d5506b4709a20b8522fd6a22b"
   }
 }
