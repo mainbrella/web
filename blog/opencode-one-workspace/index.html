@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Our first Mainbrella adapter for OpenCode moves the whole coding server into a prepared sandbox. Why one filesystem matters, how expiring preview URLs change reconnection, and what the draft PR leaves unfinished." />
+    <meta name="theme-color" content="#181a1b" />
+    <link rel="canonical" href="https://mainbrella.com/blog/opencode-one-workspace/" />
+    <meta property="og:title" content="Put OpenCode’s whole workbench in the sandbox · Mainbrella" />
+    <meta property="og:description" content="A shell in one machine and an editor in another can disagree about the same path. Our experimental OpenCode integration moves them together, using Mainbrella’s existing APIs." />
+    <meta property="og:url" content="https://mainbrella.com/blog/opencode-one-workspace/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:image" content="https://mainbrella.com/images/blog/opencode-one-workspace/one-filesystem.png" />
+    <meta property="og:image:alt" content="Two placements compared: moving only bash splits the checkout; moving the OpenCode server keeps read, edit and test beside one checkout." />
+    <meta property="article:published_time" content="2026-10-08T00:00:00-07:00" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <link rel="stylesheet" href="/blog/inside-our-brella/article.css" />
+    <link rel="stylesheet" href="/blog/opencode-one-workspace/article.css" />
+    <title>Put OpenCode’s whole workbench in the sandbox · Mainbrella</title>
+  </head>
+  <body class="info-body brella-article-page">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap inside-brella opencode-article">
+      <article>
+        <a class="article-back" href="/blog/">← Engineering blog</a>
+        <h1>Put OpenCode’s whole workbench in the sandbox</h1>
+        <p class="article-meta"><time datetime="2026-10-08">October 8, 2026</time> · Andrew Arrow</p>
+
+        <p>A coding agent reads a file, edits it, and runs the tests. Put only its shell in a remote sandbox and those three steps can disagree about which file they mean. The test runner may be checking a perfectly good copy of the code the agent never edited.</p>
+        <p>Our first Mainbrella integration for <a href="https://opencode.ai/docs/">OpenCode</a> moves its coding server into the sandbox, so reading, editing, searching, and running commands share the guest checkout. The interface stays local. This uses the existing workspace adapter mechanism and Mainbrella’s existing command and protected-preview APIs, with no backend changes or new dependencies.</p>
+        <p>We’ve opened <a href="https://github.com/anomalyco/opencode/pull/53943">draft PR #53943</a>. As of October 8, it’s an experimental proposal, not an upstream release, and live cloud validation is still outstanding. The interesting result so far is how much of the integration fits at an existing boundary—and how an expiring connection makes that boundary move.</p>
+
+        <h2 id="one-checkout">One path should mean one file</h2>
+        <p><a href="https://opencode.ai/docs/">OpenCode</a> is an open source coding agent with a terminal interface, desktop app, and IDE integration. It can inspect a repository, change files, and run commands through tools. Its <a href="https://opencode.ai/docs/permissions/">permission rules</a> determine whether a tool operation is allowed, denied, or needs an answer from you.</p>
+        <p><a href="https://github.com/anomalyco/opencode/issues/48411">Issue #48411</a> asks for more accessible permission controls, sandboxed execution, and an optional model to review approvals. We picked the execution part for a first PR. A remote working environment gives approved operations somewhere else to happen; it doesn’t decide whether to approve them.</p>
+        <p>Consider a hypothetical fix to <code>src/parser.ts</code>. If the editor changes the laptop’s checkout while a replacement bash tool runs <code>npm test</code> in Mainbrella, the agent sees a test result for another tree. Keeping two copies synchronized would make every file operation part of a replication protocol. The same path string doesn’t establish that the bytes are the same.</p>
+
+        <figure class="article-figure">
+          <picture>
+            <source media="(max-width: 600px)" srcset="/images/blog/opencode-one-workspace/one-filesystem-mobile.svg" width="440" height="660" />
+            <img src="/images/blog/opencode-one-workspace/one-filesystem.svg" width="880" height="500" alt="In the hypothetical shell-only design, read and edit point to the laptop checkout while test points to a separate guest checkout. In our design, the local interface connects to a guest OpenCode server, whose three tools point to one guest checkout." decoding="async" fetchpriority="high" />
+          </picture>
+          <figcaption>The top placement is a tempting hypothetical shortcut. The bottom is the PR’s design. Following the arrows shows which checkout each tool actually touches.</figcaption>
+        </figure>
+
+        <p>OpenCode already has a useful separation: <a href="https://opencode.ai/docs/server/"><code>opencode serve</code></a> runs the headless server, and a client can connect to it. In the source we built against, experimental workspace adapters can supply a remote server target. Our adapter joins that mechanism instead of inventing another remote version of each file tool.</p>
+        <p>The agent runtime, project tooling, and provider authentication belong to the guest server. That keeps the coding operations together. It also makes the security boundary easier to describe: those tools operate on the prepared guest, and the adapter never falls back to running them on the host when that guest is unavailable.</p>
+
+        <h2 id="borrowed-machine">Borrow a machine; own a server</h2>
+        <p>For this first version, you prepare an owned, running Node sandbox, install the same OpenCode build, check out your project, and configure its model credentials. Prefer Small or larger for the server and project tooling. The adapter requires <code>opencode</code>, <code>tmux</code>, and <code>curl</code> on the guest’s PATH. It does not copy your laptop’s files, SSH keys, provider credentials, or environment into the machine.</p>
+        <p>You supply both the container slot and its exact creation timestamp. A reused slot such as <code>small</code> is a name, not continuity: another machine can occupy it later. The adapter checks for the particular running generation you selected and includes that generation in its command and preview requests. A missing machine is an error to resolve explicitly.</p>
+        <p>Starting a long-running server through a short-lived command API presents another lifetime problem. The adapter submits a command with a 20-second timeout, but starts OpenCode in a detached tmux session. A dedicated socket and an ownership file associate that server with one OpenCode workspace. The launch checks its version and waits for a healthy endpoint; it refuses another workspace’s ownership marker or an occupied HTTP port.</p>
+        <p>Tmux detaches the process from the launch request. It doesn’t buy the machine more time. The sandbox still has its existing idle and hard lease deadlines, and a quiet event stream doesn’t by itself keep it alive. That distinction matters if you expect to leave a coding session open while you go to lunch.</p>
+
+        <div class="ownership-scroll" role="region" aria-label="What workspace deletion removes" tabindex="0">
+          <table class="ownership-table">
+            <caption>Delete the OpenCode workspace: what happens?</caption>
+            <thead><tr><th scope="col">Resource</th><th scope="col">Adapter’s responsibility</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Its tmux server</th><td>Stop it after checking ownership.</td></tr>
+              <tr><th scope="row">Its known preview grant</th><td>Revoke it for the selected generation.</td></tr>
+              <tr><th scope="row">The prepared sandbox</th><td>Leave it running. You control save and stop.</td></tr>
+              <tr><th scope="row">Unexported guest files</th><td>No automatic snapshot. Save or export before the machine stops.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Leaving preparation explicit gives the PR a smaller promise to fulfill. We can ask upstream whether this workspace integration belongs before coupling it to image installation, repository transfer, or a new machine lifecycle. Those conveniences can follow an accepted boundary.</p>
+
+        <h2 id="moving-address">The server stays put; its address expires</h2>
+        <p>Mainbrella’s <a href="/API.md#protected-application-previews">protected preview</a> supplies access to the guest server’s HTTP port. The returned URL carries a bearer token in its hostname: possession of the address grants access. The account API key is used to request that grant from the configured Mainbrella API origin; it is never sent to the guest server or preview.</p>
+        <p>The adapter requests a one-hour grant, clipped to the machine’s hard deadline. It checks the returned destination and server health, then keeps the connection receipt in private local state rather than public workspace metadata. On Unix, that directory is mode <code>0700</code> and its files are <code>0600</code>. The <a href="https://github.com/mainbrella/opencode/blob/1ab0ef58079a3adadc8fe56a9892725b943eecb7/packages/opencode/src/plugin/mainbrella/mainbrella.ts">adapter source</a> contains those checks and the server launch script.</p>
+        <p>When the recorded grant expires, resolving the workspace target can request a new one. That means the same OpenCode workspace can acquire a different URL without acquiring a different server or filesystem.</p>
+
+        <figure class="article-figure">
+          <picture>
+            <source media="(max-width: 600px)" srcset="/images/blog/opencode-one-workspace/renew-the-address-mobile.svg" width="440" height="400" />
+            <img src="/images/blog/opencode-one-workspace/renew-the-address.svg" width="880" height="330" alt="A single guest server continues across the expiry of preview A. The reconnect resolves the target again and uses preview B. Both preview access and server lifetime end at the machine’s hard deadline." loading="lazy" decoding="async" />
+          </picture>
+          <figcaption>A schematic renewal while the machine remains alive. Changing the access grant doesn’t extend the lease. An idle deadline can stop the machine earlier.</figcaption>
+        </figure>
+
+        <p>The existing event synchronizer resolved its target before entering its reconnect loop. Reconnecting diligently to an expired URL would never use the adapter’s renewed address. We moved target resolution into each connection attempt and added a regression test where the first stream closes and the adapter returns a different route. The next connection reaches the new event stream and synchronizes history there.</p>
+        <p>The URL’s role as a credential also changed what should cross the proxy or appear in logs. Forwarded workspace requests now drop the local server’s Authorization header, cookies, and <code>auth_token</code> query parameter. Adapter-supplied remote headers and a remote terminal’s <code>ticket</code> remain available. Transport error logs report status and error category without recording the credential-bearing destination or response body.</p>
+        <p>The preview gateway itself strips Authorization, so this guest server starts without OpenCode’s Basic authentication. Its preview grant is the ingress credential; exposing that port through some other route would need its own access control. The guest’s model credentials remain accessible to guest processes. This PR adds neither guest network filtering nor a reviewer model.</p>
+
+        <h2 id="missing-reply">When issuing the address has an uncertain result</h2>
+        <p>Renewal has a less pleasant case: the grant was created, but the response never reached us. Preview issuance currently has no idempotency key. Another POST can create another grant, and listing existing grants returns metadata rather than their secret URLs. The adapter can’t reconstruct the missing credential from that list.</p>
+        <div class="retry-examples">
+          <div class="example example-failure">
+            <p class="example-heading">Blindly retry the POST</p>
+            <p class="example-result">A second grant can be issued while the first remains active and unrecorded. Successful retry hasn’t accounted for the earlier access.</p>
+          </div>
+          <div class="example example-recovery">
+            <p class="example-heading">Record uncertainty before issuing</p>
+            <p class="example-result">The adapter writes a pending marker first. An ambiguous response leaves that marker in place and blocks another issuance until the uncertain grant is reconciled.</p>
+          </div>
+        </div>
+        <p>Recovery is manual in this draft: inspect and revoke the uncertain grant for that exact generation, then reset the pending marker as described in the <a href="https://github.com/mainbrella/opencode/blob/1ab0ef58079a3adadc8fe56a9892725b943eecb7/packages/opencode/src/plugin/mainbrella/README.md#failed-setup-and-recovery">adapter README</a>. Failed cleanup retains the private receipt even if OpenCode removes the workspace row. That is an awkward user experience, but it preserves the evidence needed to clean up.</p>
+        <p>This is a concrete candidate for later backend work. A way to reconcile a particular issuance would let the adapter recover with less intervention. For the first PR, we kept the uncertainty visible rather than changing the provider contract to make the integration appear effortless.</p>
+
+        <h2 id="try">What you can try today</h2>
+        <p>The implementation is in <a href="https://github.com/mainbrella/opencode/commit/1ab0ef58079a3adadc8fe56a9892725b943eecb7">our fork at this commit</a>. Use that build on both sides; a stock release doesn’t include this adapter. If both development builds report version <code>local</code>, use the same source commit too. Once the guest project and provider authentication are prepared, supply the account key through your normal secret environment mechanism and set the public binding:</p>
+        <pre class="docs-code" tabindex="0" role="region" aria-label="Example OpenCode workspace environment"><code><span class="code-comment"># MAINBRELLA_API_KEY is already set securely.</span>
+export OPENCODE_EXPERIMENTAL_WORKSPACES=true
+export MAINBRELLA_CONTAINER_ID=small
+export MAINBRELLA_CREATED_AT=<span class="code-string">'2026-10-08T12:00:00.000Z'</span>
+export MAINBRELLA_DIRECTORY=/workspace/my-project
+opencode</code></pre>
+        <p>The slot and timestamp above are examples: replace them with the complete values returned for your running machine. Create a workspace and choose Mainbrella in the experimental picker. The <a href="https://github.com/mainbrella/opencode/blob/1ab0ef58079a3adadc8fe56a9892725b943eecb7/packages/opencode/src/plugin/mainbrella/README.md">setup guide</a> covers optional ports, a local API origin, and recovery.</p>
+        <p>Our verification included <strong>86 passing targeted tests</strong> across the adapter, plugin registration, workspace lifecycle and routing, HTTP proxy, and WebSocket suites. Package typechecking and the repository’s pre-push typechecks passed. The HTTP boundary tests use a local contract server; one runtime test launches the real OpenCode source server through real tmux, reads a file from a directory containing spaces and an apostrophe, and checks shutdown. That runtime test skips where tmux is unavailable; it ran here.</p>
+        <p>Those checks establish local behavior, not a completed hosted agent run. Live cloud transport validation is the next check. An externally revoked preview also isn’t automatically reminted before its recorded expiry, and the adapter neither supervises a crashed server nor replays model work into a replacement machine.</p>
+        <p>For a first experiment, change one harmless guest file and verify that the test runner sees that edit. Then delete the OpenCode workspace and verify that its server is gone while the prepared machine is still yours. Those two observations exercise the promise this PR is trying to make: one place for the work, and cleanup that knows what it owns.</p>
+      </article>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.ts"></script>
+  </body>
+</html>
