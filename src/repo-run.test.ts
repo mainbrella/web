@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { registerHooks } from 'node:module';
 import type { RepositoryLaunch } from './repo-run-contract.ts';
+import { parseRepoRunConfig } from './repo-run-config.ts';
 
 const hooks = registerHooks({ resolve(specifier, context, next) {
   const mocks: Record<string, string> = {
@@ -116,7 +117,7 @@ test('signed-in preparation and unpaid access never allocate', async t => {
   assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
   assert.equal(f.node('run-submit').disabled, true); assert.equal(f.node('run-plans').hidden, false);
 });
-test('explicit Run records private identity, resumes phases and copies only commit-pinned JSON', async t => {
+test('explicit Run records private identity, resumes phases and copies only commit-pinned YAML', async t => {
   const f = await fixture(t); assert.equal(f.node('run-submit').disabled, false);
   assert.equal(f.node('run-submit').formNoValidate, false);
   assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
@@ -124,7 +125,8 @@ test('explicit Run records private identity, resumes phases and copies only comm
   assert.match(f.location.hash, /^#launch=/); assert.equal(f.node('run-form').hidden, true);
   await f.step(); assert.equal(f.node('run-phase').textContent, 'Repository ready.'); assert.equal(f.terminals.length, 1);
   await f.node('run-active-share').fire('click');
-  assert.deepEqual(JSON.parse(f.copied[0]), { repo: 'acme/demo', size: 'small', cwd: '.', catalogId: 'node', ref: 'a'.repeat(40) });
+  assert.match(f.copied[0], /ref: a{40}/);
+  assert.deepEqual(parseRepoRunConfig(f.copied[0]), { repo: 'acme/demo', size: 'small', cwd: '.', catalogId: 'node', ref: 'a'.repeat(40) });
   assert.equal(f.calls.filter(call => call.url.pathname === '/repo-launches' && call.options.method === 'POST').length, 1);
 });
 test('an uncertain submission locks settings and retries the same key and payload', async t => {
@@ -188,7 +190,7 @@ test('reloading a completed private run reattaches the shell and requires explic
   assert.equal(f.terminals.length, 1); assert.equal(f.node('run-preview-open').hidden, true);
   assert.equal(f.calls.some(call => call.url.pathname === '/repo-launches' || call.url.pathname === '/containers/previews'), false);
   await f.node('run-active-share').fire('click');
-  const config = JSON.parse(f.copied[0]);
+  const config = parseRepoRunConfig(f.copied[0]);
   assert.equal(config.startCommand, 'npm start'); assert.equal(config.ref, state.repository.commit);
   assert.equal('id' in config, false); assert.equal('container' in config, false);
 });
@@ -328,20 +330,24 @@ async function pasteConfig(f: Awaited<ReturnType<typeof fixture>>, text = JSON.s
   await f.flush();
 }
 
-test('AI response import shows all commands and sends the full JSON only after explicit Run', async t => {
+test('YAML AI response import reviews commands and sends the same JSON only after explicit Run', async t => {
   const f = await fixture(t, { search: '' });
-  await pasteConfig(f, `Here is the recipe:\n\`\`\`json\n${JSON.stringify(importedConfig)}\n\`\`\`\nSource-only verification.`);
+  const expected = { ...importedConfig,
+    setupCommand: 'set -euo pipefail\nyarn install --frozen-lockfile\nyarn build',
+    startCommand: 'set -euo pipefail\nexport HOST=0.0.0.0\nexport PORT=53005\nexec yarn start' };
+  const yaml = `repo: ${expected.repo}\nref: ${expected.ref}\ncatalogId: ${expected.catalogId}\nsize: ${expected.size}\ncwd: ${expected.cwd}\nsetupCommand: |-\n  ${expected.setupCommand.replaceAll('\n', '\n  ')}\nstartCommand: |-\n  ${expected.startCommand.replaceAll('\n', '\n  ')}\nport: 53005`;
+  await pasteConfig(f, `Here is the recipe:\n\`\`\`yaml\n${yaml}\n\`\`\`\nSource-only verification.`);
   assert.equal(f.node('run-repo').value, importedConfig.repo);
   assert.equal(f.node('run-submit').hidden, false); assert.equal(f.node('run-submit').disabled, false);
   assert.match(f.node('run-config').textContent, /Runtime: node · Size: large/);
-  assert.ok(f.node('run-config').textContent.includes(importedConfig.setupCommand));
-  assert.ok(f.node('run-config').textContent.includes(importedConfig.startCommand));
+  assert.ok(f.node('run-config').textContent.includes(expected.setupCommand));
+  assert.ok(f.node('run-config').textContent.includes(expected.startCommand));
   assert.equal(f.node('run-import-text')['aria-invalid'], 'false');
   assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
   assert.equal(f.location.search, ''); assert.match(f.location.hash, /^#config=/);
   await f.node('run-form').fire('submit'); await f.flush();
   const request = f.calls.find(call => call.url.pathname === '/repo-launches' && call.options.method === 'POST')!;
-  assert.deepEqual(request.body, importedConfig);
+  assert.deepEqual(request.body, expected);
   assert.equal(f.location.search, ''); assert.match(f.location.hash, /^#launch=/);
 });
 
@@ -362,7 +368,9 @@ test('signed-out import survives login in same-tab storage with a short return U
 test('returning from sign-in restores the imported configuration without launching', async t => {
   const f = await fixture(t, { search: '', hash: `#config=${draftId}`, stored: { [`mainbrella:repo-run:${draftId}`]: JSON.stringify(importedConfig) } });
   assert.equal(f.node('run-repo').value, importedConfig.repo);
-  assert.deepEqual(JSON.parse(f.node('run-import-text').value), importedConfig);
+  assert.match(f.node('run-import-text').value, /setupCommand: \|-\n/);
+  assert.match(f.node('run-import-text').value, /startCommand: \|-\n/);
+  assert.deepEqual(parseRepoRunConfig(f.node('run-import-text').value), importedConfig);
   assert.equal(f.node('run-submit').hidden, false);
   assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
 });

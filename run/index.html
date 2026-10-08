@@ -34,8 +34,8 @@
           </div>
           <div id="run-import-step" hidden>
             <label id="run-import-label" for="run-import-text">3. Paste AI configuration</label>
-            <p id="run-import-hint" class="dashboard-status">Paste the JSON or the entire AI response.</p>
-            <textarea id="run-import-text" rows="6" maxlength="100000" autocomplete="off" spellcheck="false" aria-describedby="run-import-hint run-import-status" placeholder='{"repo": "owner/repository", …}'></textarea>
+            <p id="run-import-hint" class="dashboard-status">Paste YAML or the entire AI response.</p>
+            <textarea id="run-import-text" rows="10" maxlength="100000" autocomplete="off" spellcheck="false" aria-describedby="run-import-hint run-import-status" placeholder="repo: owner/repository&#10;setupCommand: |-&#10;  npm install&#10;  npm run build&#10;startCommand: |-&#10;  npm start&#10;port: 8080"></textarea>
             <p id="run-import-status" class="dashboard-status" role="status"></p>
           </div>
         </fieldset>

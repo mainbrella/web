@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseRepoRunConfig, validateRepoRunConfig } from './repo-run-config.ts';
+import { parseRepoRunConfig, stringifyRepoRunConfig, validateRepoRunConfig } from './repo-run-config.ts';
 
 const config = { repo: 'happier-dev/happier', ref: 'a'.repeat(40), catalogId: 'node', size: 'large', cwd: 'apps/web',
   setupCommand: 'yarn install --frozen-lockfile && yarn build',
@@ -14,6 +14,35 @@ test('raw JSON and complete AI responses preserve every setting and shell charac
     `A manifest example: {"name":"demo","scripts":{"start":"yarn start"}}\nConfiguration: ${json}\nReady to review.`]) {
     assert.deepEqual(parseRepoRunConfig(text), value);
   }
+});
+
+test('raw and fenced YAML preserve multiline shell commands, quotes and environment variables', () => {
+  const value = { ...config, setupCommand: 'set -euo pipefail\n\nexport NODE_OPTIONS="--max-old-space-size=8192"\nprintf \'%s\\n\' "${NODE_OPTIONS}"\nyarn install --frozen-lockfile\nyarn build',
+    startCommand: 'set -euo pipefail\nexport NODE_ENV=production\nexec yarn start' };
+  const yaml = stringifyRepoRunConfig(value);
+  assert.match(yaml, /setupCommand: \|-\n/);
+  assert.match(yaml, /startCommand: \|-\n/);
+  assert.deepEqual(parseRepoRunConfig(yaml), value);
+  assert.deepEqual(parseRepoRunConfig(`Here is the config:\n\n\`\`\`yaml\n${yaml}\n\`\`\`\nSource-only checks.`), value);
+  assert.deepEqual(parseRepoRunConfig(`\`\`\`\n${yaml}\n\`\`\``), value);
+});
+
+test('YAML parsing rejects duplicate keys, tags, aliases and multiple documents or configs', () => {
+  for (const text of [
+    'repo: acme/demo\nrepo: other/demo',
+    'repo: !custom acme/demo',
+    'repo: &name acme/demo\nref: *name',
+    'repo: acme/demo\nsetupCommand: |\n  npm install\n invalid-indent',
+    'repo: acme/demo\n---\nrepo: other/demo',
+    `\`\`\`yaml\n${stringifyRepoRunConfig(config)}\n\`\`\`\n\`\`\`yml\n${stringifyRepoRunConfig({ ...config, repo: 'other/demo' })}\n\`\`\``,
+    `\`\`\`yaml\n${stringifyRepoRunConfig(config)}\n\`\`\`\n\`\`\`json\n${JSON.stringify({ ...config, repo: 'other/demo' })}\n\`\`\``,
+  ]) assert.throws(() => parseRepoRunConfig(text));
+});
+
+test('stringifying a config uses YAML literal blocks even for one-line commands', () => {
+  const text = stringifyRepoRunConfig({ repo: 'acme/demo', size: 'small', cwd: '.', startCommand: 'npm start', port: 3000 });
+  assert.match(text, /startCommand: \|-\n  npm start/);
+  assert.deepEqual(parseRepoRunConfig(text), { repo: 'acme/demo', size: 'small', cwd: '.', startCommand: 'npm start', port: 3000 });
 });
 
 test('normalizes repository URLs and uses backend defaults for terminal-only recipes', () => {

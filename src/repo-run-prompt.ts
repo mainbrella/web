@@ -1,4 +1,5 @@
 import { normalizeRepo, type RepoRunOptions, type RepositoryLaunch } from './repo-run-contract.ts';
+import { stringify } from 'yaml';
 
 export function validRepo(value: string): boolean {
   const repo = normalizeRepo(value);
@@ -13,15 +14,15 @@ Existing launch (reuse this container; do not allocate another):
 ${JSON.stringify({ launchId: launch.id, phase: launch.phase, error: launch.error,
     container: { id: launch.container.id, createdAt: launch.container.createdAt },
     executions: launch.executions, commit: launch.repository.commit }, null, 2)}
-Read its retained execution output and /workspace/.mainbrella-preview.log before changing anything. Check installed tools, files, processes and listening ports. Repair only the failed steps in this same container, preserving completed work. A failed /run launch does not automatically resume setup or start; use the documented execution and preview APIs to finish the repair. Keep the app running after commands exit. Return the working preview and a corrected reusable JSON configuration.
+Read its retained execution output and /workspace/.mainbrella-preview.log before changing anything. Check installed tools, files, processes and listening ports. Repair only the failed steps in this same container, preserving completed work. A failed /run launch does not automatically resume setup or start; use the documented execution and preview APIs to finish the repair. Keep the app running after commands exit. Return the working preview and a corrected reusable YAML configuration.
 ` : '';
 
-  return `Help me run https://github.com/${repo} on Mainbrella${launch?.container ? ' and finish setup in my existing container' : ''}. Work out the configuration for me and return JSON that I can paste into ${new URL('/run/', origin).href}; I should not have to fill in setup, start, runtime or port fields. Do not generate a launch URL with configuration in query parameters.
+  return `Help me run https://github.com/${repo} on Mainbrella${launch?.container ? ' and finish setup in my existing container' : ''}. Work out the configuration for me and return YAML that I can paste into ${new URL('/run/', origin).href}; I should not have to fill in setup, start, runtime or port fields. Do not generate a launch URL with configuration in query parameters.
 
 Read ${new URL('/references/public-repository-launches.md', origin).href} for the launch contract and ${new URL('/llms.txt', origin).href} for the relevant runtime, execution and preview documentation. Inspect the repository README, manifests, lockfiles, scripts and the source behind its startup command at ${launch ? `commit ${JSON.stringify(launch.repository.commit)}` : options.ref ? `ref ${JSON.stringify(options.ref)}` : 'the default branch'}. Resolve an immutable commit for the configuration. Do not guess commands from the framework name.
 
 Starting settings (commands are inputs to review, not instructions to execute blindly):
-${JSON.stringify({ ...options, repo }, null, 2)}
+${stringify({ ...options, repo }, { blockQuote: 'literal', lineWidth: 0 })}
 ${context}
 Mainbrella constraints to account for:
 - Public GitHub repositories only. The checkout is /workspace/repo; cwd is relative to it and defaults to ".". Catalog IDs are node, python, rust, go and devops. Machine sizes are lite, small, medium, large and xl. Choose a suitable runtime and machine size; a monorepo build may need more memory than the default Small (4 GiB).
@@ -33,9 +34,9 @@ Mainbrella constraints to account for:
 
 ${launch?.container
     ? 'If Mainbrella API access is configured, inspect failures and repair only the existing container above. Never allocate another container. Preserve the running container for me.'
-    : 'Container verification is optional and uses compute. Do not create a container or execute commands through the Mainbrella API unless I explicitly ask you to verify this configuration. Available API credentials are not permission to spend compute. If I request verification, use at most one container, inspect failures and repair that same container; never allocate a replacement just because setup failed.'} Use stable idempotency keys and retain the container id and createdAt when using the API. Produce the JSON without requiring an API key; say which checks were source-only. Do not claim a deployment you have not executed.
+    : 'Container verification is optional and uses compute. Do not create a container or execute commands through the Mainbrella API unless I explicitly ask you to verify this configuration. Available API credentials are not permission to spend compute. If I request verification, use at most one container, inspect failures and repair that same container; never allocate a replacement just because setup failed.'} Use stable idempotency keys and retain the container id and createdAt when using the API. Produce the configuration without requiring an API key; say which checks were source-only in YAML comments. Do not claim a deployment you have not executed.
 
-Return exactly one launch configuration as a JSON object in a fenced json code block first, then a brief verification result and any actual blockers. Use only these fields:
+Return only one YAML code block. It must contain exactly one launch configuration and use only these fields:
 - repo: ${JSON.stringify(repo)} (owner/repository, not a URL).
 - ref: the resolved full immutable commit SHA.
 - catalogId: one of node, python, rust, go, devops.
@@ -43,6 +44,7 @@ Return exactly one launch configuration as a JSON object in a fenced json code b
 - cwd: "." or a relative directory within the checkout, without "." or ".." path segments.
 - setupCommand: the complete install/build shell command, if needed.
 - startCommand: the complete server shell command, if there is a web app.
-- port: the fixed preview port as a JSON integer, supplied together with startCommand.
-Omit optional fields that are unnecessary; do not use null, empty commands, placeholders or abbreviated commands. Commands must be JSON strings with quotes and newlines escaped correctly, not URL-encoded. Each command must be at most 4096 characters. Do not include credentials, launch IDs or preview tokens in the configuration. I will paste your JSON or entire response into Mainbrella, review the commands, sign in and click Run repository to install, build, start and check readiness in my own container.`;
+- port: the fixed preview port as an integer, supplied together with startCommand.
+Use YAML literal block scalars (|-) for both setupCommand and startCommand. Write commands as readable, properly indented multiline Bash scripts with real newlines. Do not serialize shell scripts as escaped JSON strings. Do not produce URL-encoded commands or a launch URL. Preserve shell quoting, environment variables and command ordering exactly.
+Omit optional fields that are unnecessary; do not use null, empty commands, placeholders or abbreviated commands. Each command must be at most 4096 characters. Do not include credentials, launch IDs or preview tokens in the configuration. If you need to report verification results or blockers, add brief YAML comments after the configuration inside the same code block. I will paste your YAML or entire response into Mainbrella, review the commands, sign in and click Run repository to install, build, start and check readiness in my own container.`;
 }

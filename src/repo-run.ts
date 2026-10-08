@@ -2,7 +2,7 @@ import { API_ORIGIN, createAuthClient } from './auth.ts';
 import { createPreviewClient } from './container-previews.ts';
 import { launchIdentity, normalizeRepo, repoRunUrl, type RepoRunOptions, type RepositoryLaunch } from './repo-run-contract.ts';
 import { repoSetupPrompt, validRepo } from './repo-run-prompt.ts';
-import { parseRepoRunConfig, validateRepoRunConfig } from './repo-run-config.ts';
+import { parseRepoRunConfig, stringifyRepoRunConfig, validateRepoRunConfig } from './repo-run-config.ts';
 import type { ContainerData } from './types.ts';
 
 const element = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -25,7 +25,7 @@ if (configId || identity?.kind === 'request' && !params.get('repo')) {
   try { imported = validateRepoRunConfig(JSON.parse(sessionStorage.getItem(`mainbrella:repo-run:${configId}`) ?? 'null')); } catch { /* Offer reimport when this tab no longer has its draft. */ }
 }
 repo.value = imported?.repo ?? params.get('repo') ?? '';
-if (imported) configInput.value = JSON.stringify(imported, null, 2);
+if (imported) configInput.value = stringifyRepoRunConfig(imported);
 let launchMode = Boolean(identity || legacyMode || imported);
 let launch: RepositoryLaunch | null = null;
 let userId: string | null = null;
@@ -176,7 +176,7 @@ async function copyPrompt(existing = false) {
       element('run-import-step').hidden = false;
       element('run-prompt-preview').hidden = true;
     }
-    note.textContent = existing ? 'Copied. Paste into Codex to repair this container and get reusable JSON.' : 'Paste into ChatGPT or Claude, then paste its response below.';
+    note.textContent = existing ? 'Copied. Paste into Codex to repair this container and get reusable YAML.' : 'Paste into ChatGPT or Claude, then paste its response below.';
   } catch {
     if (existing) element<HTMLDetailsElement>('run-help-details').open = true;
     else element('run-prompt-preview').hidden = false;
@@ -233,7 +233,7 @@ async function copyConfiguration(button: HTMLButtonElement) {
   if (!launch && !validateRepo()) return;
   try {
     const value = launch ? { ...launch.options, ref: launch.repository.commit } : options();
-    await navigator.clipboard.writeText(JSON.stringify(value, null, 2));
+    await navigator.clipboard.writeText(stringifyRepoRunConfig(value));
     const label = button.textContent;
     button.textContent = 'Copied';
     setTimeout(() => { button.textContent = label; }, 2000);

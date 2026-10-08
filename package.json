@@ -26,6 +26,7 @@
   "dependencies": {
     "@stripe/stripe-js": "^9.17.0",
     "@xterm/addon-fit": "^0.11.0",
-    "@xterm/xterm": "^6.0.0"
+    "@xterm/xterm": "^6.0.0",
+    "yaml": "^2.9.1"
   }
 }

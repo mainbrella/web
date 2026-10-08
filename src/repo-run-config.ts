@@ -1,10 +1,11 @@
 import { normalizeRepo, type RepoRunOptions } from './repo-run-contract.ts';
 import { validRepo } from './repo-run-prompt.ts';
+import { Document, isAlias, isMap, isScalar, parseDocument, Scalar } from 'yaml';
 
 const keys = ['repo', 'ref', 'catalogId', 'size', 'cwd', 'setupCommand', 'startCommand', 'port'];
 
 export function validateRepoRunConfig(value: unknown): RepoRunOptions {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Use a JSON object containing the repository configuration.');
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Use a YAML mapping containing the repository configuration.');
   const config = value as Record<string, unknown>;
   if (Object.keys(config).some(key => !keys.includes(key))) throw new Error('Use only repo, ref, catalogId, size, cwd, setupCommand, startCommand and port.');
   if (typeof config.repo !== 'string' || !validRepo(config.repo)) throw new Error('repo must be a public GitHub URL or owner/repository.');
@@ -33,7 +34,7 @@ export function validateRepoRunConfig(value: unknown): RepoRunOptions {
     result[key] = command.trim();
   }
   if (config.port !== undefined) {
-    if (typeof config.port !== 'number' || !Number.isInteger(config.port) || config.port < 1024 || config.port > 65535) throw new Error('port must be a JSON integer between 1024 and 65535.');
+    if (typeof config.port !== 'number' || !Number.isInteger(config.port) || config.port < 1024 || config.port > 65535) throw new Error('port must be an integer between 1024 and 65535.');
     result.port = config.port;
   }
   if (Boolean(result.startCommand) !== (result.port !== undefined)) throw new Error('Supply startCommand and port together, or omit both for a terminal-only run.');
@@ -41,7 +42,40 @@ export function validateRepoRunConfig(value: unknown): RepoRunOptions {
 }
 
 export function parseRepoRunConfig(text: string): RepoRunOptions {
-  if (text.length > 100_000) throw new Error('This response is too long. Paste only the JSON configuration.');
+  if (text.length > 100_000) throw new Error('This response is too long. Paste only the YAML configuration.');
+  const trimmed = text.trim();
+  // Keep raw JSON support strict: malformed JSON that starts like JSON should not
+  // be mistaken for a YAML document or silently recovered from surrounding text.
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    let parsed: unknown;
+    try { parsed = JSON.parse(trimmed); }
+    catch { throw new Error('Could not parse the JSON configuration.'); }
+    return validateRepoRunConfig(parsed);
+  }
+
+  const fences = [...text.matchAll(/```([^\r\n`]*)\r?\n([\s\S]*?)```/g)];
+  const yamlCandidates = fences.filter(fence => ['yaml', 'yml', ''].includes(fence[1].trim().toLowerCase()));
+  const jsonCandidates = fences.filter(fence => fence[1].trim().toLowerCase() === 'json');
+  const rawYaml = !fences.length && /^(?:---\s*\n)?(?:repo|ref|catalogId|size|cwd|setupCommand|startCommand|port)\s*:/m.test(trimmed);
+  if (rawYaml) return validateRepoRunConfig(parseYamlConfig(trimmed));
+  if (yamlCandidates.length || jsonCandidates.length) {
+    const candidates: unknown[] = [];
+    for (const fence of yamlCandidates) {
+      const body = fence[2];
+      if (!/^(?:---\s*\n)?(?:repo|ref|catalogId|size|cwd|setupCommand|startCommand|port)\s*:/m.test(body.trim())) continue;
+      candidates.push(parseYamlConfig(body));
+    }
+    for (const fence of jsonCandidates) {
+      try {
+        const parsedBlock: unknown = JSON.parse(fence[2]);
+        if (parsedBlock && typeof parsedBlock === 'object' && !Array.isArray(parsedBlock) && Object.hasOwn(parsedBlock, 'repo')) candidates.push(parsedBlock);
+      } catch { /* Invalid fenced JSON is ignored alongside prose and examples. */ }
+    }
+    if (candidates.length > 1) throw new Error('Found multiple repository configurations. Paste only the one you want to run.');
+    if (candidates.length === 1) return validateRepoRunConfig(candidates[0]);
+    throw new Error('Could not find a repository configuration. Paste valid YAML or an AI response containing it.');
+  }
+
   let parsed: unknown;
   try { parsed = JSON.parse(text); } catch { /* A full AI response may surround JSON with prose or Markdown. */ }
   if (parsed !== undefined) return validateRepoRunConfig(parsed);
@@ -69,6 +103,35 @@ export function parseRepoRunConfig(text: string): RepoRunOptions {
     }
   }
   if (candidates.length > 1) throw new Error('Found multiple repository configurations. Paste only the one you want to run.');
-  if (!candidates.length) throw new Error('Could not find a repository configuration. Paste valid JSON or the AI response containing it.');
+  if (!candidates.length) throw new Error('Could not find a repository configuration. Paste valid YAML or the AI response containing it.');
   return validateRepoRunConfig(candidates[0]);
+}
+
+function containsAlias(node: unknown): boolean {
+  if (!node || typeof node !== 'object') return false;
+  if (isAlias(node)) return true;
+  if (isMap(node)) return node.items.some(pair => containsAlias(pair.key) || containsAlias(pair.value));
+  if ('items' in node && Array.isArray(node.items)) return node.items.some(containsAlias);
+  if (isScalar(node)) return false;
+  return false;
+}
+
+function parseYamlConfig(text: string): unknown {
+  const document = parseDocument(text, { uniqueKeys: true, strict: true });
+  if (document.errors.length || document.warnings.length) throw new Error('Could not parse the YAML configuration. Check its indentation, keys and scalar values.');
+  if (document.contents && containsAlias(document.contents)) throw new Error('YAML aliases are not supported in repository configurations.');
+  try { return document.toJS({ maxAliasCount: 0 }); }
+  catch { throw new Error('Could not parse the YAML configuration.'); }
+}
+
+export function stringifyRepoRunConfig(value: RepoRunOptions): string {
+  const document = new Document(value);
+  if (isMap(document.contents)) {
+    for (const pair of document.contents.items) {
+      if (isScalar(pair.key) && (pair.key.value === 'setupCommand' || pair.key.value === 'startCommand') && isScalar(pair.value) && typeof pair.value.value === 'string') {
+        pair.value.type = Scalar.BLOCK_LITERAL;
+      }
+    }
+  }
+  return document.toString({ lineWidth: 0 });
 }
