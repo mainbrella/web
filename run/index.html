@@ -18,7 +18,7 @@
     <!-- app-header -->
     <main id="main" class="dashboard-main">
       <h1>Run a GitHub repository</h1>
-      <p id="run-intro" class="dashboard-status" hidden>Review the setup from Codex, then run it in your account.</p>
+      <p id="run-intro" class="dashboard-status" hidden>Review the commands, then run them in your account.</p>
       <p id="run-status" class="dashboard-status" role="status"></p>
       <p id="run-error" class="dashboard-error" role="alert" hidden></p>
       <p id="run-access" class="dashboard-status" hidden><a id="run-sign-in" href="/login/">Sign in</a><a id="run-plans" href="/pricing/" hidden>Choose a plan</a><span id="run-access-note"></span></p>
@@ -26,19 +26,25 @@
         <fieldset id="run-fields">
           <label id="run-repo-label" for="run-repo">1. Paste the GitHub URL</label>
           <input id="run-repo" name="repo" required maxlength="240" autocomplete="off" spellcheck="false" placeholder="https://github.com/owner/repository">
+          <div id="run-copy-step" class="repo-run-actions" hidden>
+            <p class="repo-step">2. Copy the prompt into ChatGPT or Claude</p>
+            <button id="run-prompt-copy" class="button button-small" type="submit" disabled aria-describedby="run-prompt-status"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V4a2 2 0 0 0-2-2H4a2 2 0 0 0 2 2v10a2 2 0 0 0 2 2h4"></path></svg><span>Copy prompt</span></button>
+            <p id="run-prompt-status" class="repo-step" role="status"></p>
+          </div>
+          <details id="run-prompt-preview" hidden><summary>View setup prompt</summary><label class="repo-prompt-label">Setup prompt<textarea id="run-prompt-text" rows="8" readonly spellcheck="false"></textarea></label></details>
+          <div id="run-import-step">
+            <label id="run-import-label" for="run-import-text">3. Paste AI configuration</label>
+            <p id="run-import-hint" class="dashboard-status">Paste the JSON or the entire AI response.</p>
+            <textarea id="run-import-text" rows="6" maxlength="100000" autocomplete="off" spellcheck="false" aria-describedby="run-import-hint run-import-status" placeholder='{"repo": "owner/repository", …}'></textarea>
+            <p id="run-import-status" class="dashboard-status" role="status"></p>
+          </div>
         </fieldset>
-        <label id="run-prompt-preview" class="repo-prompt-label" hidden>Setup prompt<textarea id="run-prompt-text" rows="10" readonly spellcheck="false"></textarea></label>
-        <div id="run-copy-step" class="repo-run-actions" hidden>
-          <p class="repo-step">2. Copy the prompt</p>
-          <button id="run-prompt-copy" class="button button-small" type="submit" disabled aria-describedby="run-prompt-status"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"></path></svg><span>COPY</span></button>
-          <p id="run-prompt-status" class="repo-step" role="status"></p>
-        </div>
         <pre id="run-config" class="repo-run-config" hidden></pre>
         <button id="run-submit" class="button button-small" type="submit" disabled hidden>Run repository</button>
         <p id="run-allowance" class="dashboard-status" hidden>Each run creates a container in your account and uses your plan’s allowance.</p>
       </form>
       <section id="run-progress" hidden aria-label="Repository launch">
-        <div class="repo-run-heading"><a id="run-source" target="_blank" rel="noopener noreferrer"></a><span id="run-commit" class="dashboard-status"></span><button id="run-active-share" class="dashboard-retry" type="button">Copy launch link</button></div>
+        <div class="repo-run-heading"><a id="run-source" target="_blank" rel="noopener noreferrer"></a><span id="run-commit" class="dashboard-status"></span><button id="run-active-share" class="dashboard-retry" type="button">Copy configuration</button></div>
         <p id="run-phase" class="dashboard-status" role="status"></p>
         <div id="run-help" class="repo-run-help" hidden>
           <button id="run-help-copy" class="dashboard-retry" type="button" aria-describedby="run-help-status"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"></path></svg><span>Copy Codex prompt</span></button>

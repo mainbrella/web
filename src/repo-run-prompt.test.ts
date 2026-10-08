@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { repoSetupPrompt, validRepo } from './repo-run-prompt.ts';
 import type { RepositoryLaunch } from './repo-run-contract.ts';
 
-test('the Happier prompt delegates source inspection and encodes existing settings without a private identity', () => {
+test('the Happier prompt delegates source inspection and requests complete JSON without a configured URL', () => {
   const settings = { repo: 'https://github.com/happier-dev/happier', size: 'small', cwd: '.', ref: 'feature/ports',
     setupCommand: 'yarn --version && yarn install --frozen-lockfile && yarn build',
     startCommand: 'HAPPIER_STACK_SERVER_PORT_BASE=3005 HAPPIER_STACK_SERVER_PORT_RANGE=1 HAPPIER_SERVER_HOST=0.0.0.0 yarn start', port: 3005 };
@@ -14,13 +14,15 @@ test('the Happier prompt delegates source inspection and encodes existing settin
   assert.match(prompt, /environment variables in each command/);
   assert.match(prompt, /proxy strips cookies/);
   assert.match(prompt, /without requiring an API key/);
-  const link = new URL(prompt.split('Current settings link: ')[1]);
-  assert.equal(link.searchParams.get('repo'), 'happier-dev/happier');
-  assert.equal(link.searchParams.get('startCommand'), settings.startCommand);
-  assert.equal(link.searchParams.get('setupCommand'), settings.setupCommand);
-  assert.equal(link.searchParams.get('ref'), 'feature/ports');
-  assert.equal(link.searchParams.get('port'), '3005');
-  assert.equal(link.hash, '');
+  assert.match(prompt, /JSON object in a fenced json code block/);
+  assert.match(prompt, /startCommand: the complete server shell command/);
+  assert.match(prompt, /port.*JSON integer/);
+  assert.match(prompt, /do not use null, empty commands, placeholders or abbreviated commands/);
+  assert.ok(prompt.includes(JSON.stringify({ ...settings, repo: 'happier-dev/happier' }, null, 2)));
+  assert.equal(prompt.includes('/run/?'), false);
+  assert.equal(prompt.includes('URLSearchParams'), false);
+  assert.match(prompt, /Do not create a container or execute commands.*unless I explicitly ask/);
+  assert.match(prompt, /Available API credentials are not permission/);
 });
 
 test('a repair prompt identifies the exact existing container and includes execution IDs, never a preview token', () => {
@@ -35,7 +37,8 @@ test('a repair prompt identifies the exact existing container and includes execu
   assert.match(prompt, /does not automatically resume/);
   assert.match(prompt, /preserving completed work/);
   assert.equal(prompt.includes(launch.container!.expiresAt), false);
-  assert.equal(new URL(prompt.split('Current settings link: ')[1]).hash, '');
+  assert.match(prompt, /corrected reusable JSON configuration/);
+  assert.equal(prompt.includes('/run/?'), false);
 });
 
 test('only repository roots accepted by the launch API can generate prompts', () => {

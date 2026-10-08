@@ -8,7 +8,7 @@
 .run-body details { margin-top: 16px; }
 .run-body summary { min-height: 44px; align-content: center; cursor: pointer; font-size: 13px; }
 #run-allowance { margin: 16px 0 12px; }
-#run-status:empty, #run-prompt-status:empty { display: none; }
+#run-status:empty, #run-prompt-status:empty, #run-import-status:empty { display: none; }
 #run-repo-label { margin-bottom: 8px; }
 .repo-run-actions { margin-top: 16px; }
 .run-body :is(#run-prompt-copy, #run-help-copy) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; }
@@ -31,4 +31,8 @@
 #run-prompt-status { margin-top: 16px; }
 #run-prompt-preview { margin-top: 16px; }
 #run-prompt-text { max-height: 40dvh; }
+#run-import-step { margin-top: 24px; }
+#run-import-hint { margin: 4px 0 8px; }
+#run-import-status { margin: 8px 0 0; }
+#run-import-text { font-size: 14px; line-height: 1.5; }
 @media (max-width: 600px) { .run-body .dashboard-main { padding-left: 16px; padding-right: 16px; } }

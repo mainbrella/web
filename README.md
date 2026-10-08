@@ -286,22 +286,32 @@ port connections. Its linked children are ephemeral and parent deletion cascades
 
 ## Run a GitHub repository
 
-`/run/?repo=OWNER/REPO` has two steps: paste the GitHub URL and click **COPY**.
-Pasting a valid URL shows a read-only setup prompt below the URL field. Editing
-the URL updates the prompt. No sign-in, paid access, or API requests are needed to copy. Paste
-the prompt into ChatGPT or Claude to inspect the repository and produce an encoded launch
-link with setup, start, runtime, working directory and port selected. There are
-no manual configuration controls or alternative CTAs. Agent-configured links
-show their settings read-only with a single **Run repository** confirmation.
+`/run/` accepts a GitHub URL and generates a setup prompt. **Copy prompt** sends
+the instructions to the clipboard for ChatGPT or Claude to inspect the repository
+and return JSON containing `repo`, `ref`, `catalogId`, `size`, `cwd` and optional
+`setupCommand`, `startCommand` and `port`. No sign-in, paid access, or API requests
+are needed to copy. Container verification requires an explicit request; available
+API credentials alone do not authorize compute usage.
+
+**Paste AI configuration** accepts JSON or a complete AI response containing one
+configuration. It validates fields against the launch contract, shows all commands
+for review and enables **Run repository**. Multiple configurations are rejected.
+Editing the pasted response invalidates the previous configuration until the new
+response passes validation. Importing never allocates or executes commands.
+Existing links with configuration query parameters continue to work.
 
 The recipient signs in before launch; paid or trial access is required. Small is the
 default. The API resolves a commit before allocation, clones to `/workspace/repo`,
 and opens the existing terminal component there. Optional setup/start commands,
-working directory and port enable a web preview. All commands from a shared link
+working directory and port enable a web preview. All imported or linked commands
 are shown before Run.
 
+New imported settings remain in same-tab session storage, referenced by a short
+`#config` fragment through sign-in; commands are not put in URLs. An uncertain
+submission retains its configuration with the request ID for same-tab resumption.
+Drafts cannot be transferred to another tab by copying the URL; paste the JSON there.
 Private launch IDs live in the URL fragment and are preserved through login.
-Copy launch link shares only repository settings. Reloading a private launch
+**Copy configuration** shares JSON pinned to the launched commit. Reloading a private launch
 reconciles retained progress and exact generations. Failed setup keeps the shell
 available. **Copy Codex prompt** on an active run includes its exact container
 generation and execution IDs so an agent can finish or repair setup in that

@@ -2,6 +2,7 @@ import { API_ORIGIN, createAuthClient } from './auth.ts';
 import { createPreviewClient } from './container-previews.ts';
 import { launchIdentity, normalizeRepo, repoRunUrl, type RepoRunOptions, type RepositoryLaunch } from './repo-run-contract.ts';
 import { repoSetupPrompt, validRepo } from './repo-run-prompt.ts';
+import { parseRepoRunConfig, validateRepoRunConfig } from './repo-run-config.ts';
 import type { ContainerData } from './types.ts';
 
 const element = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -12,11 +13,20 @@ const error = element('run-error');
 const submit = element<HTMLButtonElement>('run-submit');
 const terminalHost = element('run-terminal');
 const repo = element<HTMLInputElement>('run-repo');
+const configInput = element<HTMLTextAreaElement>('run-import-text');
 const params = new URLSearchParams(location.search);
-repo.value = params.get('repo') ?? '';
 let identity = launchIdentity(location.hash);
-// Agent-generated links retain their launch settings without manual editors.
-const launchMode = Boolean(identity || params.get('catalogId') || params.get('setupCommand') || params.get('startCommand'));
+// Existing configured links remain supported; new configurations stay in this tab.
+const legacyMode = Boolean(params.get('catalogId') || params.get('setupCommand') || params.get('startCommand'));
+let configId = /^#config=([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/.exec(location.hash)?.[1];
+let imported: RepoRunOptions | null = null;
+if (configId || identity?.kind === 'request' && !params.get('repo')) {
+  configId ??= identity!.id;
+  try { imported = validateRepoRunConfig(JSON.parse(sessionStorage.getItem(`mainbrella:repo-run:${configId}`) ?? 'null')); } catch { /* Offer reimport when this tab no longer has its draft. */ }
+}
+repo.value = imported?.repo ?? params.get('repo') ?? '';
+if (imported) configInput.value = JSON.stringify(imported, null, 2);
+let launchMode = Boolean(identity || legacyMode || imported);
 let launch: RepositoryLaunch | null = null;
 let userId: string | null = null;
 let active = false;
@@ -56,6 +66,7 @@ const messages: Record<string, string> = {
   allocation_reconciliation_required: 'The previous allocation could not be reconciled safely. Check your dashboard.',
   container_not_running: 'This container has stopped. Start a new run to create another container.',
   creation_no_longer_running: 'This container has stopped. Start a new run to create another container.',
+  configuration_storage_unavailable: 'Could not save this configuration in your tab. Allow browser storage, then paste the configuration again.',
 };
 function showError(cause: unknown) {
   const code = cause instanceof Error ? cause.message : 'launch_unavailable';
@@ -63,6 +74,7 @@ function showError(cause: unknown) {
   error.hidden = false;
 }
 function options(): RepoRunOptions {
+  if (imported) return { ...imported };
   return { repo: normalizeRepo(repo.value), size: params.get('size') || 'small', cwd: params.get('cwd') || '.',
     ...(params.get('ref') ? { ref: params.get('ref')! } : {}),
     ...(params.get('catalogId') ? { catalogId: params.get('catalogId')! } : {}),
@@ -74,16 +86,57 @@ function submitLabel() { return 'Run repository'; }
 function updatePrompt() {
   element('run-copy-step').hidden = true;
   element<HTMLButtonElement>('run-prompt-copy').disabled = true;
+  element('run-prompt-preview').hidden = true;
+  element('run-import-step').hidden = Boolean(identity) || legacyMode;
+  element('run-access').hidden = !launchMode || Boolean(userId && active);
+  status.hidden = !launchMode;
   submit.hidden = !launchMode;
   element('run-allowance').hidden = !launchMode;
-  element('run-intro').hidden = !launchMode;
+  element('run-intro').hidden = !launchMode || Boolean(imported);
   element('run-repo-label').textContent = launchMode ? 'GitHub repository' : '1. Paste the GitHub URL';
+  element('run-import-label').textContent = imported ? 'AI configuration' : '3. Paste AI configuration';
   repo.readOnly = launchMode;
   const config = element('run-config');
   config.hidden = !launchMode;
   const value = options();
   config.textContent = [value.ref && `Ref: ${value.ref}`, `Runtime: ${value.catalogId || 'Automatic'} · Size: ${value.size}`, `Directory: ${value.cwd}`,
     value.setupCommand && `Setup: ${value.setupCommand}`, value.startCommand && `Start: ${value.startCommand}`, value.port !== undefined && `Preview port: ${value.port}`].filter(Boolean).join('\n');
+}
+function configurationUrl(): URL {
+  const url = imported ? new URL('/run/', location.origin) : repoRunUrl(options(), location.origin);
+  if (imported && configId) url.hash = `config=${configId}`;
+  return url;
+}
+function storeConfiguration(id: string, value: RepoRunOptions) {
+  try { sessionStorage.setItem(`mainbrella:repo-run:${id}`, JSON.stringify(value)); }
+  catch { throw new Error('configuration_storage_unavailable'); }
+}
+function importConfiguration() {
+  if (identity || legacyMode || busy) return;
+  const wasLaunchMode = launchMode;
+  const note = element('run-import-status');
+  try {
+    const value = parseRepoRunConfig(configInput.value);
+    const id = configId ?? crypto.randomUUID();
+    storeConfiguration(id, value);
+    imported = value; configId = id; launchMode = true;
+    repo.value = value.repo;
+    repo.setCustomValidity('');
+    configInput.setAttribute('aria-invalid', 'false');
+    note.textContent = 'Configuration imported. Review the commands below.';
+    note.className = 'dashboard-status';
+    history.replaceState(null, '', configurationUrl());
+    updatePrompt(); updateSignIn();
+    if (!wasLaunchMode) void init();
+  } catch (cause) {
+    imported = null; launchMode = false;
+    configInput.setAttribute('aria-invalid', String(Boolean(configInput.value.trim())));
+    note.textContent = configInput.value.trim() ? (cause instanceof Error && cause.message === 'configuration_storage_unavailable'
+      ? messages.configuration_storage_unavailable : (cause as Error).message) : '';
+    note.className = 'dashboard-error';
+    if (configId) history.replaceState(null, '', new URL('/run/', location.origin));
+    updatePrompt(); preparePrompt();
+  }
 }
 function preparePrompt() {
   if (launchMode) return;
@@ -108,10 +161,10 @@ async function copyPrompt(existing = false) {
   note.textContent = '';
   try {
     await navigator.clipboard.writeText(text.value);
-    note.textContent = existing ? 'Copied. Paste into Codex to get your launch link.' : '3. Now paste this in ChatGPT or Claude.';
+    note.textContent = existing ? 'Copied. Paste into Codex to repair this container and get reusable JSON.' : 'Paste into ChatGPT or Claude, then paste its response below.';
   } catch {
     if (existing) element<HTMLDetailsElement>('run-help-details').open = true;
-    else element('run-prompt-preview').hidden = false;
+    else { element('run-prompt-preview').hidden = false; element<HTMLDetailsElement>('run-prompt-preview').open = true; }
     text.focus(); text.select();
     note.textContent = existing
       ? 'Could not copy automatically. The prompt is selected; copy it and paste into Codex.'
@@ -119,12 +172,13 @@ async function copyPrompt(existing = false) {
   } finally { button.disabled = false; }
 }
 function updateSignIn() {
-  const url = repoRunUrl(options(), location.origin);
+  const url = configurationUrl();
   url.hash = location.hash;
   element<HTMLAnchorElement>('run-sign-in').href = `/login/?returnTo=${encodeURIComponent(url.pathname + url.search + url.hash)}`;
 }
 function saveIdentity(kind: 'launch' | 'request', id: string) {
-  const url = repoRunUrl(launch?.options ?? options(), location.origin);
+  if (imported && kind === 'request') storeConfiguration(id, imported);
+  const url = imported ? new URL('/run/', location.origin) : repoRunUrl(launch?.options ?? options(), location.origin);
   url.hash = `${kind}=${id}`;
   history.replaceState(null, '', url);
   identity = { kind, id };
@@ -147,11 +201,11 @@ function signIn() {
   element('run-phase').textContent = ''; element('run-log-output').textContent = '';
   element<HTMLTextAreaElement>('run-help-text').value = '';
   element('run-progress').hidden = true;
-  form.hidden = false; element('run-intro').hidden = false;
+  form.hidden = false; element('run-intro').hidden = !launchMode || Boolean(imported);
   element('run-preview-open').hidden = true;
   clearTimeout(timer);
   terminal?.dispose(); terminal = undefined; terminalHost.hidden = true;
-  element('run-access').hidden = false;
+  element('run-access').hidden = !launchMode;
   element('run-sign-in').hidden = false;
   element('run-plans').hidden = true;
   element('run-access-note').textContent = 'to run this repository in your account.';
@@ -160,14 +214,15 @@ function signIn() {
   submit.formNoValidate = true;
   updateSignIn();
 }
-async function share(button: HTMLButtonElement) {
+async function copyConfiguration(button: HTMLButtonElement) {
   if (!launch && !validateRepo()) return;
   try {
-    await navigator.clipboard.writeText(repoRunUrl(launch?.options ?? options(), location.origin).href);
+    const value = launch ? { ...launch.options, ref: launch.repository.commit } : options();
+    await navigator.clipboard.writeText(JSON.stringify(value, null, 2));
     const label = button.textContent;
     button.textContent = 'Copied';
     setTimeout(() => { button.textContent = label; }, 2000);
-  } catch { error.textContent = 'Could not copy the link. Allow clipboard access and try again.'; error.hidden = false; }
+  } catch { error.textContent = 'Could not copy the configuration. Allow clipboard access and try again.'; error.hidden = false; }
 }
 function openTerminal() {
   if (!active || !launch?.container || launch.phase === 'stopped' || terminal) return;
@@ -247,6 +302,10 @@ async function advance() {
   } finally { busy = false; }
 }
 async function run() {
+  if (identity?.kind === 'request' && !validRepo(options().repo)) {
+    error.textContent = 'This pending configuration is unavailable in this tab. Return to the original tab to resume this launch.';
+    error.hidden = false; return;
+  }
   if (!userId) {
     updateSignIn();
     location.href = element<HTMLAnchorElement>('run-sign-in').href;
@@ -256,16 +315,19 @@ async function run() {
   const version = sessionVersion;
   const value = options();
   if (Boolean(value.startCommand) !== (value.port !== undefined)) {
-    error.textContent = 'This launch link needs both a start command and preview port. Ask Codex for a corrected link.';
+    error.textContent = 'Supply both a start command and preview port. Ask your AI for a corrected configuration.';
     error.hidden = false; return;
   }
   if (!form.reportValidity()) return;
+  if (!identity || identity.kind !== 'request') {
+    try { saveIdentity('request', crypto.randomUUID()); }
+    catch (cause) { showError(cause); return; }
+  }
   busy = true;
   launchedHere = true;
   submit.disabled = true; fields.disabled = true;
   error.hidden = true;
   status.textContent = 'Validating repository…';
-  if (!identity || identity.kind !== 'request') saveIdentity('request', crypto.randomUUID());
   try {
     const state = await request<RepositoryLaunch>('/repo-launches', 'POST', value, identity!.id);
     if (stopped || version !== sessionVersion) return;
@@ -276,7 +338,8 @@ async function run() {
     if (!stopped && version === sessionVersion) {
       status.textContent = ''; showError(cause); submit.textContent = 'Resume launch';
       if ([400, 402, 413, 429].includes((cause as { status?: number }).status ?? 0)) {
-        identity = null; history.replaceState(null, '', repoRunUrl(options(), location.origin));
+        identity = null; history.replaceState(null, '', configurationUrl());
+        updateSignIn();
         fields.disabled = false; submit.textContent = submitLabel();
       }
     }
@@ -339,7 +402,7 @@ async function init() {
     if (stopped || version !== sessionVersion) return;
     active = data.active;
     submit.disabled = !active;
-    element('run-access').hidden = active;
+    element('run-access').hidden = !launchMode || active;
     element('run-sign-in').hidden = true;
     element('run-plans').hidden = active;
     element('run-access-note').textContent = 'or activate a trial to run this repository.';
@@ -355,14 +418,15 @@ async function init() {
   } catch (cause) { if (stopped || version !== sessionVersion) return; showError(cause); status.textContent = ''; element('run-retry').hidden = false; element('run-progress').hidden = false; }
 }
 form.addEventListener('submit', event => { event.preventDefault(); if (launchMode) void run(); else { preparePrompt(); void copyPrompt(); } });
-form.addEventListener('input', () => {
+form.addEventListener('input', event => {
+  if (event.target === configInput) { importConfiguration(); return; }
   repo.setCustomValidity(''); element('run-prompt-status').textContent = '';
   if (launchMode) updateSignIn();
   else preparePrompt();
 });
 repo.addEventListener('change', () => { preparePrompt(); });
 element('run-help-copy').onclick = () => { void copyPrompt(true); };
-for (const id of ['run-active-share']) element<HTMLButtonElement>(id).onclick = event => { void share(event.currentTarget as HTMLButtonElement); };
+element<HTMLButtonElement>('run-active-share').onclick = event => { void copyConfiguration(event.currentTarget as HTMLButtonElement); };
 element('run-retry').onclick = () => { if (launch) void advance(); else void init(); };
 element('run-terminal-open').onclick = openTerminal;
 element('run-preview-create').onclick = () => { void createPreview(); };
@@ -381,4 +445,8 @@ window.addEventListener('cookie-consent-change', event => {
 });
 updatePrompt();
 preparePrompt();
+if (configId && !imported) {
+  element('run-import-status').textContent = 'This configuration is unavailable in this tab. Paste the AI response again.';
+  element('run-import-status').className = 'dashboard-error';
+}
 if (launchMode) void init();

@@ -23,12 +23,13 @@ class Element {
   reportValidity() { return !this.validity; }
   focus() { this.focused = true; }
   select() { this.selected = true; }
+  setAttribute(name: string, value: string) { this[name] = value; }
   async fire(name: string, event: any = { preventDefault() {} }) {
     if (!this.disabled) { await this.listeners.get(name)?.(event); if (name === 'click') await this.onclick?.({ currentTarget: this }); }
   }
 }
 const flush = async () => { for (let i = 0; i < 4; i++) await new Promise(resolve => setImmediate(resolve)); };
-async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=node', hash = '', session = true, paid = true, state: initialState = null as RepositoryLaunch | null } = {}) {
+async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=node', hash = '', session = true, paid = true, state: initialState = null as RepositoryLaunch | null, stored = {} as Record<string, string> } = {}) {
   const nodes = new Map<string, Element>();
   const node = (id: string) => { if (!nodes.has(id)) nodes.set(id, new Element()); return nodes.get(id)!; };
   node('run-submit').textContent = 'Run repository';
@@ -46,6 +47,8 @@ async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=nod
   property('document', { getElementById: node }); property('location', location);
   property('history', { replaceState(_data: unknown, _unused: string, value: URL) { location.search = value.search; location.hash = value.hash; } });
   property('navigator', { clipboard: { async writeText(value: string) { copied.push(value); } } });
+  const storage = new Map(Object.entries(stored));
+  property('sessionStorage', { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => { storage.set(key, value); } });
   property('window', { addEventListener: (name: string, callback: unknown) => events.set(name, callback) });
   t.mock.method(globalThis, 'setTimeout', ((callback: () => unknown) => { timeouts.set(++timer, callback); return timer; }) as any);
   t.mock.method(globalThis, 'clearTimeout', ((id: number) => timeouts.delete(id)) as any);
@@ -80,7 +83,7 @@ async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=nod
   await import(`./repo-run.ts?test=${++sequence}`); await flush();
   t.after(() => events.get('pagehide')?.());
   const step = async () => { const first = timeouts.entries().next().value; if (first) { timeouts.delete(first[0]); await first[1](); await flush(); } };
-  return { node, calls, copied, location, terminals, events, intervals, step, flush, state: () => state,
+  return { node, calls, copied, location, terminals, events, intervals, storage, step, flush, state: () => state,
     failCreate(status: number) { failCreate = status; }, failPreview() { previewFailure = true; }, failSetup() { setupFailure = true; }, setGate(value: Promise<void>) { gate = value; } };
 }
 
@@ -111,7 +114,7 @@ test('signed-in preparation and unpaid access never allocate', async t => {
   assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
   assert.equal(f.node('run-submit').disabled, true); assert.equal(f.node('run-plans').hidden, false);
 });
-test('explicit Run records private identity, resumes phases and shares only settings', async t => {
+test('explicit Run records private identity, resumes phases and copies only commit-pinned JSON', async t => {
   const f = await fixture(t); assert.equal(f.node('run-submit').disabled, false);
   assert.equal(f.node('run-submit').formNoValidate, false);
   assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
@@ -119,7 +122,7 @@ test('explicit Run records private identity, resumes phases and shares only sett
   assert.match(f.location.hash, /^#launch=/); assert.equal(f.node('run-form').hidden, true);
   await f.step(); assert.equal(f.node('run-phase').textContent, 'Repository ready.'); assert.equal(f.terminals.length, 1);
   await f.node('run-active-share').fire('click');
-  const url = new URL(f.copied[0]); assert.equal(url.hash, ''); assert.equal(url.searchParams.get('repo'), 'acme/demo');
+  assert.deepEqual(JSON.parse(f.copied[0]), { repo: 'acme/demo', size: 'small', cwd: '.', catalogId: 'node', ref: 'a'.repeat(40) });
   assert.equal(f.calls.filter(call => call.url.pathname === '/repo-launches' && call.options.method === 'POST').length, 1);
 });
 test('an uncertain submission locks settings and retries the same key and payload', async t => {
@@ -182,8 +185,10 @@ test('reloading a completed private run reattaches the shell and requires explic
   const f = await fixture(t, { hash: `#launch=${state.id}`, state });
   assert.equal(f.terminals.length, 1); assert.equal(f.node('run-preview-open').hidden, true);
   assert.equal(f.calls.some(call => call.url.pathname === '/repo-launches' || call.url.pathname === '/containers/previews'), false);
-  await f.node('run-active-share').fire('click'); assert.equal(new URL(f.copied[0]).hash, '');
-  assert.equal(new URL(f.copied[0]).searchParams.get('startCommand'), 'npm start');
+  await f.node('run-active-share').fire('click');
+  const config = JSON.parse(f.copied[0]);
+  assert.equal(config.startCommand, 'npm start'); assert.equal(config.ref, state.repository.commit);
+  assert.equal('id' in config, false); assert.equal('container' in config, false);
 });
 
 test('partial preview issuance reconciles the returned grant ID before reissuing', async t => {
@@ -204,7 +209,7 @@ test('a repo URL alone lets signed-out users copy setup instructions without all
   assert.equal(f.node('run-submit').textContent, 'Run repository');
   await f.node('run-form').fire('submit'); await f.flush();
   assert.match(f.copied[0], /https:\/\/github.com\/happier-dev\/happier/);
-  assert.equal(f.node('run-prompt-status').textContent, '3. Now paste this in ChatGPT or Claude.');
+  assert.equal(f.node('run-prompt-status').textContent, 'Paste into ChatGPT or Claude, then paste its response below.');
   assert.equal(f.calls.length, 0); assert.equal(f.location.href, '');
 });
 
@@ -281,4 +286,117 @@ test('editing the visible URL updates the prompt and hides it for invalid input'
   assert.equal(f.node('run-prompt-preview').hidden, true);
   assert.equal(f.node('run-copy-step').hidden, true);
   assert.equal(f.node('run-prompt-copy').disabled, true);
+});
+
+const importedConfig = { repo: 'happier-dev/happier', ref: 'e'.repeat(40), catalogId: 'node', size: 'large', cwd: 'apps/web',
+  setupCommand: 'yarn install --frozen-lockfile && yarn build', startCommand: 'HOST=0.0.0.0 PORT=53005 yarn start', port: 53005 };
+const draftId = '87654321-1234-1234-1234-123456789abc';
+async function pasteConfig(f: Awaited<ReturnType<typeof fixture>>, text = JSON.stringify(importedConfig)) {
+  f.node('run-import-text').value = text;
+  await f.node('run-form').fire('input', { target: f.node('run-import-text') });
+  await f.flush();
+}
+
+test('AI response import shows all commands and sends the full JSON only after explicit Run', async t => {
+  const f = await fixture(t, { search: '' });
+  await pasteConfig(f, `Here is the recipe:\n\`\`\`json\n${JSON.stringify(importedConfig)}\n\`\`\`\nSource-only verification.`);
+  assert.equal(f.node('run-repo').value, importedConfig.repo);
+  assert.equal(f.node('run-submit').hidden, false); assert.equal(f.node('run-submit').disabled, false);
+  assert.match(f.node('run-config').textContent, /Runtime: node · Size: large/);
+  assert.ok(f.node('run-config').textContent.includes(importedConfig.setupCommand));
+  assert.ok(f.node('run-config').textContent.includes(importedConfig.startCommand));
+  assert.equal(f.node('run-import-text')['aria-invalid'], 'false');
+  assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
+  assert.equal(f.location.search, ''); assert.match(f.location.hash, /^#config=/);
+  await f.node('run-form').fire('submit'); await f.flush();
+  const request = f.calls.find(call => call.url.pathname === '/repo-launches' && call.options.method === 'POST')!;
+  assert.deepEqual(request.body, importedConfig);
+  assert.equal(f.location.search, ''); assert.match(f.location.hash, /^#launch=/);
+});
+
+test('signed-out import survives login in same-tab storage with a short return URL', async t => {
+  const f = await fixture(t, { search: '', session: false });
+  await pasteConfig(f);
+  assert.equal(f.calls.length, 0);
+  assert.equal(f.node('run-submit').disabled, false);
+  const id = f.location.hash.slice('#config='.length);
+  assert.deepEqual(JSON.parse(f.storage.get(`mainbrella:repo-run:${id}`)!), importedConfig);
+  const login = new URL(f.node('run-sign-in').href, f.location.origin);
+  assert.equal(login.searchParams.get('returnTo'), `/run/#config=${id}`);
+  await f.node('run-form').fire('submit'); await f.flush();
+  assert.equal(f.location.href, f.node('run-sign-in').href);
+  assert.equal(f.calls.length, 0);
+});
+
+test('returning from sign-in restores the imported configuration without launching', async t => {
+  const f = await fixture(t, { search: '', hash: `#config=${draftId}`, stored: { [`mainbrella:repo-run:${draftId}`]: JSON.stringify(importedConfig) } });
+  assert.equal(f.node('run-repo').value, importedConfig.repo);
+  assert.deepEqual(JSON.parse(f.node('run-import-text').value), importedConfig);
+  assert.equal(f.node('run-submit').hidden, false);
+  assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
+});
+
+test('invalid or ambiguous edits clear the previous review and launch action', async t => {
+  const f = await fixture(t, { search: '' }); await pasteConfig(f);
+  for (const text of ['{"repo":"acme/demo","port":"3000"}', `${JSON.stringify(importedConfig)}\n${JSON.stringify(importedConfig)}`, '']) {
+    await pasteConfig(f, text);
+    assert.equal(f.node('run-submit').hidden, true); assert.equal(f.node('run-config').hidden, true);
+    assert.equal(f.node('run-repo').readOnly, false);
+    assert.equal(f.node('run-import-text')['aria-invalid'], String(Boolean(text)));
+  }
+  assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
+});
+
+test('an uncertain JSON submission retains the same payload and key on retry', async t => {
+  const f = await fixture(t, { search: '' }); await pasteConfig(f); f.failCreate(503);
+  await f.node('run-form').fire('submit'); await f.flush();
+  const id = f.location.hash.slice('#request='.length);
+  assert.deepEqual(JSON.parse(f.storage.get(`mainbrella:repo-run:${id}`)!), importedConfig);
+  assert.equal(f.node('run-fields').disabled, true);
+  await f.node('run-form').fire('submit'); await f.flush();
+  const calls = f.calls.filter(call => call.url.pathname === '/repo-launches' && call.options.method === 'POST');
+  assert.equal((calls[0].options.headers as Record<string, string>)['Idempotency-Key'], (calls[1].options.headers as Record<string, string>)['Idempotency-Key']);
+  assert.deepEqual(calls[0].body, importedConfig); assert.deepEqual(calls[1].body, importedConfig);
+});
+
+test('reloading a JSON request restores its payload and requires explicit Resume', async t => {
+  const f = await fixture(t, { search: '', hash: `#request=${draftId}`, stored: { [`mainbrella:repo-run:${draftId}`]: JSON.stringify(importedConfig) } });
+  assert.equal(f.node('run-fields').disabled, true); assert.equal(f.node('run-submit').textContent, 'Resume launch');
+  assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
+  await f.node('run-form').fire('submit'); await f.flush();
+  const call = f.calls.find(call => call.url.pathname === '/repo-launches' && call.options.method === 'POST')!;
+  assert.deepEqual(call.body, importedConfig);
+  assert.equal((call.options.headers as Record<string, string>)['Idempotency-Key'], draftId);
+});
+
+test('a draft URL without same-tab storage asks for reimport', async t => {
+  const f = await fixture(t, { search: '', hash: `#config=${draftId}` });
+  assert.equal(f.node('run-submit').hidden, true); assert.equal(f.node('run-import-step').hidden, false);
+  assert.match(f.node('run-import-status').textContent, /unavailable in this tab/);
+  assert.equal(f.calls.length, 0);
+  await pasteConfig(f); assert.equal(f.node('run-submit').hidden, false);
+});
+
+test('missing request storage cannot send a replacement payload with the pending key', async t => {
+  const f = await fixture(t, { search: '', hash: `#request=${draftId}` });
+  await f.node('run-form').fire('submit'); await f.flush();
+  assert.match(f.node('run-error').textContent, /original tab/);
+  assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
+});
+
+test('blocked browser storage prevents accepting an import and preserves the pasted text', async t => {
+  const f = await fixture(t, { search: '' });
+  t.mock.method(sessionStorage, 'setItem', () => { throw new Error('blocked'); });
+  await pasteConfig(f);
+  assert.match(f.node('run-import-status').textContent, /Allow browser storage/);
+  assert.equal(f.node('run-submit').hidden, true);
+  assert.equal(f.node('run-import-text').value, JSON.stringify(importedConfig));
+  assert.equal(f.calls.length, 0);
+});
+
+test('unpaid users can import and review JSON but cannot run it', async t => {
+  const f = await fixture(t, { search: '', paid: false }); await pasteConfig(f);
+  assert.equal(f.node('run-submit').disabled, true); assert.equal(f.node('run-config').hidden, false);
+  assert.equal(f.node('run-plans').hidden, false);
+  assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
 });
