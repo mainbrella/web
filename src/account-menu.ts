@@ -16,6 +16,7 @@ if (nav) {
     <div class="account-panel" id="account-panel" hidden>
       <p class="account-identity"></p>
       <a href="/dashboard/">Dashboard</a>
+      <a href="/run/">Run repository</a>
       <a href="/profile/">Profile</a>
       <a href="/api-keys/">API Keys</a>
       <a href="/pricing/">Billing</a>
