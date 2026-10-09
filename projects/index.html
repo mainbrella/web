@@ -14,7 +14,29 @@
   <body class="info-body sandbox-home app-body dashboard-body">
     <a class="skip-link" href="#main">Skip to content</a>
     <!-- app-header -->
-    <main id="main" class="dashboard-main" aria-label="Projects"></main>
+    <main id="main" class="dashboard-main" aria-busy="true">
+      <div class="dashboard-section-heading">
+        <h1>Projects</h1>
+        <button id="project-new" class="button button-small" type="button" disabled>New project</button>
+      </div>
+      <p id="projects-status" class="dashboard-status" role="status">Checking your session…</p>
+      <p id="projects-error" class="dashboard-error" role="alert" hidden></p>
+      <button id="projects-retry" class="dashboard-retry" type="button" hidden>Retry</button>
+      <ul id="project-list" class="container-list" aria-label="Projects"></ul>
+    </main>
+    <dialog id="project-dialog" class="private-services-dialog" aria-labelledby="project-dialog-title">
+      <h2 id="project-dialog-title">New project</h2>
+      <form id="project-form">
+        <label for="project-name">Name</label>
+        <input id="project-name" type="text" maxlength="80" required autocomplete="off" />
+        <p id="project-error" class="dashboard-error" role="alert" hidden></p>
+        <p id="project-status" class="dashboard-status" role="status"></p>
+        <div class="container-actions">
+          <button id="project-create" class="button button-small" type="submit">Create project</button>
+          <button id="project-cancel" class="dashboard-retry" type="button">Cancel</button>
+        </div>
+      </form>
+    </dialog>
     <script type="module" src="/src/account-menu.ts"></script>
     <script type="module" src="/src/projects.ts"></script>
   </body>
