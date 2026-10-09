@@ -87,6 +87,28 @@
 .app-body .container-list { margin-top: 8px; }
 .app-body .container-row { gap: 12px 24px; padding: 16px 0; }
 .app-body .container-row strong { font-size: 14px; font-weight: 500; }
+.project-table { width: 100%; margin-top: 8px; border-spacing: 0; table-layout: fixed; text-align: left; font-size: 13px; }
+.project-table th { padding: 10px 12px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 11px; font-weight: 500; }
+.project-table th:first-child { border-radius: 4px 0 0 0; }
+.project-table th:last-child { border-radius: 0 4px 0 0; }
+.project-table th:nth-child(1) { width: 40%; }
+.project-table th:nth-child(2) { width: 45%; }
+.project-table th:nth-child(3) { width: 15%; }
+.project-table td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: middle; overflow-wrap: anywhere; }
+.project-table .project-name { font-weight: 500; }
+.project-table .project-domain { color: var(--muted); }
+.project-table .container-actions { justify-content: flex-end; }
+@media (max-width: 700px) {
+  .project-table, .project-table tbody, .project-table tr, .project-table td { display: block; width: auto; }
+  .project-table thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+  .project-table .project-table-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .project-table td { min-width: 0; padding: 0; border: 0; }
+  .project-table .project-name { grid-column: 1; grid-row: 1; }
+  .project-table .project-domain { grid-column: 1 / -1; grid-row: 2; font-size: 12px; }
+  .project-table .project-domain::before { color: var(--muted); content: "Domain: "; }
+  .project-table .project-actions { grid-column: 2; grid-row: 1; }
+  .project-table .container-actions { justify-content: flex-end; }
+}
 .container-details { flex: 1 1 260px; }
 .container-row-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
 .container-state { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; font-weight: 500; white-space: nowrap; }

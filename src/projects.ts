@@ -1,17 +1,18 @@
 import { API_ORIGIN, createAuthClient } from './auth.ts';
 
-interface Project { id: string; name: string; created_at: string }
+interface Project { id: string; name: string; domain?: string | null; created_at: string }
 
 const auth = createAuthClient();
 const main = document.querySelector<HTMLElement>('#main')!;
 const status = document.querySelector<HTMLElement>('#projects-status')!;
 const error = document.querySelector<HTMLElement>('#projects-error')!;
 const retry = document.querySelector<HTMLButtonElement>('#projects-retry')!;
-const list = document.querySelector<HTMLUListElement>('#project-list')!;
+const list = document.querySelector<HTMLTableSectionElement>('#project-list')!;
 const newProject = document.querySelector<HTMLButtonElement>('#project-new')!;
 const dialog = document.querySelector<HTMLDialogElement>('#project-dialog')!;
 const form = document.querySelector<HTMLFormElement>('#project-form')!;
 const name = document.querySelector<HTMLInputElement>('#project-name')!;
+const domain = document.querySelector<HTMLInputElement>('#project-domain')!;
 const create = document.querySelector<HTMLButtonElement>('#project-create')!;
 const cancel = document.querySelector<HTMLButtonElement>('#project-cancel')!;
 const formError = document.querySelector<HTMLElement>('#project-error')!;
@@ -39,7 +40,7 @@ function controls() {
   main.setAttribute('aria-busy', String(busy));
   newProject.disabled = busy || disposed || !authenticated;
   retry.disabled = busy || disposed;
-  name.disabled = create.disabled = cancel.disabled = busy || disposed;
+  name.disabled = domain.disabled = create.disabled = cancel.disabled = busy || disposed;
   for (const button of editButtons.values()) button.disabled = busy || disposed;
   form.setAttribute('aria-busy', String(busy));
 }
@@ -48,12 +49,14 @@ function render() {
   list.replaceChildren();
   editButtons = new Map();
   for (const project of projects) {
-    const row = document.createElement('li');
-    row.className = 'container-row';
-    const details = document.createElement('div');
-    const title = document.createElement('strong');
+    const row = document.createElement('tr');
+    row.className = 'project-table-row';
+    const title = document.createElement('td');
+    title.className = 'project-name';
     title.textContent = project.name;
-    details.append(title);
+    const projectDomain = document.createElement('td');
+    projectDomain.className = 'project-domain';
+    projectDomain.textContent = project.domain || '—';
     const actions = document.createElement('div');
     actions.className = 'container-actions';
     const edit = document.createElement('button');
@@ -65,13 +68,16 @@ function render() {
     edit.addEventListener('click', () => openProjectDialog(project));
     editButtons.set(project.id, edit);
     actions.append(edit);
-    row.append(details, actions);
+    const actionCell = document.createElement('td');
+    actionCell.className = 'project-actions';
+    actionCell.append(actions);
+    row.append(title, projectDomain, actionCell);
     list.append(row);
   }
   status.textContent = projects.length ? '' : "You haven't created any projects.";
 }
 
-async function request(fields?: { name: string }, id?: string) {
+async function request(fields?: { name: string; domain: string | null }, id?: string) {
   const method = fields === undefined ? 'GET' : id === undefined ? 'POST' : 'PATCH';
   const endpoint = id === undefined ? `${API_ORIGIN}/projects` : `${API_ORIGIN}/projects?id=${encodeURIComponent(id)}`;
   const response = await fetch(endpoint, {
@@ -120,7 +126,10 @@ function openProjectDialog(project?: Project) {
   formStatus.textContent = '';
   dialogTitle.textContent = editingProject ? 'Edit project' : 'New project';
   create.textContent = editingProject ? 'Save changes' : 'Create project';
-  if (editingProject) name.value = editingProject.name;
+  if (editingProject) {
+    name.value = editingProject.name;
+    domain.value = editingProject.domain ?? '';
+  }
   dialog.showModal();
   name.focus();
 }
@@ -141,7 +150,7 @@ dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); }
 form.addEventListener('submit', async event => {
   event.preventDefault();
   if (busy || disposed || !form.reportValidity()) return;
-  const fields = { name: name.value.trim() };
+  const fields = { name: name.value.trim(), domain: domain.value.trim() || null };
   if (!fields.name) {
     formError.textContent = 'Enter a project name.';
     formError.hidden = false;

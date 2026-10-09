@@ -22,13 +22,18 @@
       <p id="projects-status" class="dashboard-status" role="status">Checking your session…</p>
       <p id="projects-error" class="dashboard-error" role="alert" hidden></p>
       <button id="projects-retry" class="dashboard-retry" type="button" hidden>Retry</button>
-      <ul id="project-list" class="container-list" aria-label="Projects"></ul>
+      <table class="project-table" aria-label="Projects">
+        <thead><tr><th scope="col">Name</th><th scope="col">Domain</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody id="project-list"></tbody>
+      </table>
     </main>
     <dialog id="project-dialog" class="private-services-dialog" aria-labelledby="project-dialog-title">
       <h2 id="project-dialog-title">New project</h2>
       <form id="project-form">
         <label for="project-name">Name</label>
         <input id="project-name" type="text" maxlength="80" required autocomplete="off" />
+        <label for="project-domain">Domain (optional)</label>
+        <input id="project-domain" type="text" maxlength="253" placeholder="example.com" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" />
         <p id="project-error" class="dashboard-error" role="alert" hidden></p>
         <p id="project-status" class="dashboard-status" role="status"></p>
         <div class="container-actions">
