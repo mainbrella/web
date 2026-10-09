@@ -48,7 +48,7 @@ Lifecycle response example (UTC timestamps and usage month):
 }
 ```
 
-The response also includes a `sizes` catalog (omitted above for brevity). `containers` is empty when stopped. During a concurrent launch, a reserved slot
+The response also includes a `sizes` catalog (omitted above for brevity). `containers` is empty when Ad Hoc containers stop; Production desired services remain visible with `status: "stopped"`. During a concurrent launch, a reserved slot
 may appear with `status: "starting"`; terminal and SSH access require `running`.
 Unpaid status has `plan: null`, `active: false` and zero limits. An unpaid first
 start returns 402 without provisioning or consuming quota. If an existing billing
@@ -57,7 +57,7 @@ that account's existing containers.
 
 | Plan | USD/month | Concurrent containers | Starts/UTC month | Hard limit | Idle timeout |
 | --- | ---: | ---: | ---: | --- | --- |
-| Usage | $5 minimum | 100 | 10,000 | 24 hours | 30 minutes |
+| Usage (Ad Hoc) | $5 minimum | 100 | 10,000 | 24 hours | 30 minutes |
 | Builder (legacy) | $5 | 5 | 1,000 | 1 hour | 10 minutes |
 | Pro | $180 | 100 | 10,000 | 24 hours | 30 minutes |
 | Scale | $999 | 500 | 100,000 | 72 hours | 60 minutes |

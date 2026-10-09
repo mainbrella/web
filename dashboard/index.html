@@ -16,7 +16,7 @@
     <a class="skip-link" href="#main">Skip to content</a>
     <!-- app-header -->
     <main id="main" class="dashboard-main" aria-busy="true">
-      <h1>Dashboard</h1>
+      <h1 id="dashboard-title">Overview</h1>
       <p id="dashboard-status" class="dashboard-status" role="status">Checking your session…</p>
       <p id="dashboard-error" class="dashboard-error" role="alert" hidden></p>
       <button id="dashboard-retry" class="dashboard-retry" type="button" hidden>Retry</button>
@@ -32,10 +32,17 @@
         <dl id="container-usage" class="container-usage" aria-label="Plan usage" hidden>
           <div><dt>Containers</dt><dd id="usage-containers">—</dd><dd id="usage-network-containers" class="usage-detail" hidden></dd><dd id="usage-concurrency" class="usage-detail"></dd></div>
           <div id="usage-networks-group" hidden><dt>Networks</dt><dd id="usage-networks">—</dd><dd id="usage-networks-detail" class="usage-detail"></dd></div>
-          <div><dt>Compute-unit hours available</dt><dd id="usage-compute">—</dd><dd id="usage-compute-detail" class="usage-detail"></dd></div>
+          <div><dt id="usage-compute-label">Compute-unit hours available</dt><dd id="usage-compute">—</dd><dd id="usage-compute-detail" class="usage-detail"></dd></div>
           <div><dt>Starts remaining this month</dt><dd id="usage-starts">—</dd><dd id="usage-starts-detail" class="usage-detail"></dd></div>
         </dl>
-        <section class="dashboard-containers" aria-label="Resources">
+        <section id="dashboard-overview" class="overview-workloads" aria-label="Workloads" hidden>
+          <a href="/dashboard/?view=ad-hoc"><strong>Ad Hoc</strong><span id="overview-ad-hoc">Loading…</span></a>
+          <a href="/dashboard/?view=production"><strong>Production</strong><span id="overview-production">Loading…</span></a>
+          <p id="overview-error" class="dashboard-error" role="alert" hidden></p>
+          <button id="overview-retry" class="dashboard-retry" type="button" hidden>Retry</button>
+          <p id="overview-production-cap" class="dashboard-status" hidden></p>
+        </section>
+        <section id="dashboard-resources" class="dashboard-containers" aria-label="Resources">
           <div class="dashboard-section-heading">
             <div class="resource-tabs" role="tablist" aria-label="Resources">
               <button id="containers-tab" type="button" role="tab" aria-selected="true" aria-controls="resources-panel" data-resource-tab="containers">Containers</button>
@@ -122,6 +129,7 @@
             <label for="private-network-name">Network name</label>
             <input id="private-network-name" type="text" required pattern="[a-z][a-z0-9-]{0,62}" maxlength="63" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="app-stack" aria-describedby="private-network-name-note">
             <p id="private-network-name-note" class="dashboard-status">Start with a lowercase letter. Use lowercase letters, numbers, and hyphens.</p>
+            <p id="network-lifecycle-note" class="dashboard-status"></p>
             <p class="dashboard-error" role="alert" hidden></p>
             <div class="container-actions"><button type="submit" class="button button-small">Create network</button><button type="button" class="dashboard-retry" data-private-close>Cancel</button></div>
           </form>
@@ -162,6 +170,11 @@
                 <label for="container-image">Image</label>
                 <select id="container-image" disabled><option value="">Node 24 + TypeScript</option></select>
               </div>
+              <div id="production-launch-settings" class="production-launch-settings" hidden>
+                <label for="container-startup-command">Startup command</label>
+                <input id="container-startup-command" type="text" maxlength="4096" autocomplete="off" spellcheck="false" placeholder="cd /workspace/app &amp;&amp; npm start">
+                <p class="dashboard-status">Runs when the machine starts. Include everything needed to start your app from the image. Use an external database for durable data.</p>
+              </div>
               <fieldset id="container-size" class="machine-picker" disabled aria-describedby="container-size-rate">
                 <legend>Machine size</legend>
                 <div id="machine-options" class="machine-options"><p class="dashboard-status">Loading machine sizes…</p></div>
@@ -170,6 +183,7 @@
                 <div class="launch-notes">
                   <p id="container-size-rate" class="dashboard-status"></p>
                   <p id="container-limits" class="dashboard-status">Checking your plan’s container limits…</p>
+                  <a id="production-billing-link" class="text-link" href="/pricing/usage/" hidden>Manage billing and spending cap</a>
                 </div>
                 <button id="container-create" class="button button-small" type="submit" disabled aria-describedby="container-limits container-size-rate">Create container</button>
               </div>

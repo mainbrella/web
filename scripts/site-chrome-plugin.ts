@@ -54,7 +54,8 @@ const cookieDialog = `    <dialog class="cookie-consent" id="cookie-consent" ari
 
 function appChrome(path: string) {
   const pages: [string, string][] = [
-    ['Dashboard', '/dashboard/'], ['Projects', '/projects/'],
+    ['Overview', '/dashboard/'], ['Ad Hoc', '/dashboard/?view=ad-hoc'],
+    ['Production', '/dashboard/?view=production'], ['Projects', '/projects/'],
   ];
   return `<header class="site-header app-header wrap">
     <a class="brand" href="/" aria-label="Mainbrella home"><img src="/images/logo.png" alt="" width="44" height="44" /><span>mainbrella</span></a>

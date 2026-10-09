@@ -1,4 +1,5 @@
 import { API_ORIGIN, createAuthClient } from './auth.ts';
+import { dashboardView, containerLifecycle, productionCost } from './dashboard-view.ts';
 import { plans } from './plans.ts';
 import { createImagesDashboard } from './images-dashboard.ts';
 import { createContainersDashboard } from './containers-dashboard.ts';
@@ -15,7 +16,35 @@ const note = document.querySelector<HTMLElement>('#subscription-note')!;
 const billing = document.querySelector<HTMLAnchorElement>('#subscription-manage')!;
 let version = 0;
 let dashboardTracked = false;
-const containers = createContainersDashboard({ onUnauthenticated: goToLogin });
+const view = dashboardView(location.search);
+document.querySelector<HTMLElement>('#dashboard-title')!.textContent = view === 'overview' ? 'Overview' : view === 'production' ? 'Production' : 'Ad Hoc';
+document.querySelector<HTMLElement>('#dashboard-overview')!.hidden = view !== 'overview';
+for (const link of document.querySelectorAll<HTMLAnchorElement>('.app-navigation a')) {
+  if (new URL(link.href).pathname !== '/dashboard/') continue;
+  if (dashboardView(new URL(link.href).search) === view) link.setAttribute('aria-current', 'page');
+  else link.removeAttribute('aria-current');
+}
+const containers = createContainersDashboard({ onUnauthenticated: goToLogin,
+  lifecycle: view === 'production' ? 'production' : 'ad_hoc', overview: view === 'overview',
+  onLoadError() {
+    document.querySelector<HTMLElement>('#overview-error')!.textContent = 'Could not load usage and workloads. Try again.';
+    document.querySelector<HTMLElement>('#overview-error')!.hidden = false;
+    document.querySelector<HTMLButtonElement>('#overview-retry')!.hidden = false;
+  },
+  onData(data) {
+    document.querySelector<HTMLElement>('#overview-error')!.hidden = true;
+    document.querySelector<HTMLButtonElement>('#overview-retry')!.hidden = true;
+    const production = data.containers.filter(container => containerLifecycle(container) === 'production').length;
+    const adHoc = data.containers.length - production;
+    document.querySelector<HTMLElement>('#overview-ad-hoc')!.textContent = `${adHoc} ${adHoc === 1 ? 'container' : 'containers'}`;
+    document.querySelector<HTMLElement>('#overview-production')!.textContent = `${production} ${production === 1 ? 'container' : 'containers'} · $${productionCost(data).toFixed(2)}/hour`;
+    const cap = document.querySelector<HTMLElement>('#overview-production-cap')!;
+    cap.hidden = !production || !data.billing;
+    cap.textContent = `Production stops if your $${((data.billing?.spendLimitCents ?? 500) / 100).toFixed(2)} monthly spending cap is reached. Review your cap in billing.`;
+  },
+});
+
+document.querySelector<HTMLButtonElement>('#overview-retry')!.addEventListener('click', () => containers.load());
 
 const images = createImagesDashboard({ onUnauthenticated: goToLogin,
   onImagesChanged: containers.setImages, onSelectImage: containers.selectImage });

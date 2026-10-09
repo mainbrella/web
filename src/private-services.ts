@@ -1,9 +1,10 @@
+import { containerLifecycle, type Lifecycle } from './dashboard-view.ts';
 import { API_ORIGIN } from './auth.ts';
 import { createSearchPicker } from './search-picker.ts';
 import type { ClientOptions, Container, ContainerIdentity } from './types.ts';
 
 export interface PrivateMember extends ContainerIdentity { name: string; port?: number }
-export interface PrivateNetwork { name: string; members: PrivateMember[] }
+export interface PrivateNetwork { lifecycle?: Lifecycle; name: string; members: PrivateMember[] }
 export const validPrivateName = (value: unknown): value is string => typeof value === 'string' && /^[a-z][a-z0-9-]{0,62}$/.test(value);
 export const validPrivatePort = (value: unknown): value is number => typeof value === 'number' && Number.isInteger(value) && value >= 1024 && value <= 65535;
 export const generationKey = (machine: ContainerIdentity) => JSON.stringify([machine.id, machine.createdAt]);
@@ -30,11 +31,14 @@ export function privateNetworks(input: unknown): PrivateNetwork[] {
       services.add(member.name); machines.add(key);
       return member;
     });
-    return { name: network.name, members };
+    if (network.lifecycle !== undefined && !['ad_hoc', 'production'].includes(network.lifecycle)) throw new Error('invalid_response');
+    return { name: network.name, ...(network.lifecycle ? { lifecycle: network.lifecycle } : {}), members };
   });
 }
 
 const messages: Record<string, string> = {
+  network_lifecycle_conflict: 'Choose a container with the same lifecycle as this network.',
+  production_requires_usage: 'Production networks require usage billing. Manage your subscription to switch at renewal.',
   network_name_conflict: 'This network name is already in use. Choose another name.',
   service_name_conflict: 'This service name is already in use in this network.',
   machine_already_attached: 'This machine already belongs to another network. Detach it first.',
@@ -49,7 +53,7 @@ const messages: Record<string, string> = {
 };
 
 export function createPrivateServicesClient({ fetcher = fetch, onUnauthenticated, signal }: ClientOptions = {}) {
-  async function request(path: 'networks' | 'members', method = 'GET', network?: string, body?: object, query?: { search: string; page: number; limit: number }) {
+  async function request(path: 'networks' | 'members', method = 'GET', network?: string, body?: object, query?: { search: string; page: number; limit: number; lifecycle?: Lifecycle }) {
     const url = new URL(`${API_ORIGIN}/private-services/${path}`);
     if (network !== undefined) url.searchParams.set('network', network);
     if (query) for (const [key, value] of Object.entries(query)) url.searchParams.set(key, String(value));
@@ -64,7 +68,7 @@ export function createPrivateServicesClient({ fetcher = fetch, onUnauthenticated
   }
   return {
     async list() { return privateNetworks(await request('networks')); },
-    async listPage(query: { search: string; page: number; limit: number }) {
+    async listPage(query: { search: string; page: number; limit: number; lifecycle?: Lifecycle }) {
       const result = await request('networks', 'GET', undefined, undefined, query);
       const networks = privateNetworks(result);
       if (![result.total, result.totalNetworks, result.page, result.limit].every(Number.isSafeInteger)
@@ -72,9 +76,9 @@ export function createPrivateServicesClient({ fetcher = fetch, onUnauthenticated
         || result.limit !== query.limit || networks.length > result.limit) throw new Error('invalid_response');
       return { networks, total: result.total as number, page: result.page as number };
     },
-    async create(name: string) {
+    async create(name: string, lifecycle?: Lifecycle) {
       if (!validPrivateName(name)) throw new Error('invalid_request');
-      const result = await request('networks', 'POST', undefined, { name });
+      const result = await request('networks', 'POST', undefined, { name, ...(lifecycle ? { lifecycle } : {}) });
       const [network] = privateNetworks({ networks: [result] });
       if (network.name !== name || network.members.length) throw new Error('invalid_response');
       return network;
@@ -102,7 +106,8 @@ function button(text: string, click: () => void, action: string) {
   return node;
 }
 
-export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnauthenticated: () => void; onChanged: () => void }) {
+export function createPrivateServices({ onUnauthenticated, onChanged, lifecycle = 'ad_hoc' }: { onUnauthenticated: () => void; onChanged: () => void; lifecycle?: Lifecycle }) {
+  document.querySelector<HTMLElement>('#network-lifecycle-note')!.textContent = lifecycle === 'production' ? 'Attach production containers to keep the services always on. An empty network has no compute cost.' : 'Attach Ad Hoc containers. Each container keeps its session and idle limits.';
   const host = document.querySelector<HTMLElement>('#private-services-feedback')!;
   const status = host.querySelector<HTMLElement>('[role="status"]')!;
   const error = host.querySelector<HTMLElement>('[role="alert"]')!;
@@ -183,7 +188,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
     const current = ++pageVersion;
     pageBusy = true; controls();
     try {
-      const result = await client.listPage({ search: search.value.trim(), page, limit: pageSize });
+      const result = await client.listPage({ search: search.value.trim(), page, limit: pageSize, lifecycle });
       if (disposed || current !== pageVersion) return;
       visibleNetworks = result.networks; page = result.page; total = result.total; pageKnown = true;
       feedback('');
@@ -267,7 +272,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
   }
 
   function populateMachines() {
-    const choices = containers.filter(machine => machine.status === 'running' && (!membership(machine) || generationKey(machine) === generationKey(editing?.member ?? { id: '', createdAt: '' })));
+    const choices = containers.filter(machine => containerLifecycle(machine) === lifecycle && machine.status === 'running' && (!membership(machine) || generationKey(machine) === generationKey(editing?.member ?? { id: '', createdAt: '' })));
     machinePicker.setOptions(choices.map(machine => ({
       value: generationKey(machine), label: `${machine.name || machine.id} · ${machine.imageName || machine.size || machine.id}`, search: machine.id,
     })));
@@ -278,7 +283,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
     editing = member && network ? { network, member } : null;
     memberDialog.querySelector<HTMLElement>('h2')!.textContent = member ? 'Edit private service' : 'Attach machine';
     submit.textContent = member ? 'Save service' : 'Attach machine';
-    networkPicker.setOptions(networks.map(item => ({ value: item.name, label: item.name })));
+    networkPicker.setOptions(networks.filter(item => (item.lifecycle ?? 'ad_hoc') === lifecycle).map(item => ({ value: item.name, label: item.name })));
     networkPicker.value = network ?? '';
     populateMachines(); machinePicker.value = machine ? generationKey(machine) : '';
     serviceName.value = member?.name ?? ''; port.value = member?.port === undefined ? '' : String(member.port);
@@ -304,7 +309,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
 
   networkForm.onsubmit = event => {
     event.preventDefault();
-    if (networkForm.reportValidity()) operate(() => client.create(networkName.value), 'Network created.', networkDialog);
+    if (networkForm.reportValidity()) operate(() => client.create(networkName.value, lifecycle), 'Network created.', networkDialog);
   };
   memberForm.onsubmit = event => {
     event.preventDefault();
@@ -377,7 +382,7 @@ export function createPrivateServices({ onUnauthenticated, onChanged }: { onUnau
           populated = true;
           if (network) {
             const tools = document.createElement('div'); tools.className = 'container-actions group-tools';
-            if (supported) tools.append(privateButton('Attach machine', () => openMember(network.name), !containers.some(machine => machine.status === 'running' && !membership(machine))));
+            if (supported) tools.append(privateButton('Attach machine', () => openMember(network.name), !containers.some(machine => containerLifecycle(machine) === lifecycle && machine.status === 'running' && !membership(machine))));
             tools.append(privateButton('Delete network', () => { if (window.confirm(`Delete empty network ${network.name}?`)) operate(() => client.delete(network.name), 'Network deleted.'); }, network.members.length > 0));
             tools.lastElementChild!.setAttribute('title', network.members.length ? 'Detach all machines before deleting this network.' : 'Delete this empty network');
             group.append(tools);

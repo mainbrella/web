@@ -345,3 +345,12 @@
 .search-picker-option { min-height: 44px; box-sizing: border-box; padding: 12px 8px; overflow-wrap: anywhere; cursor: pointer; border-radius: 2px; }
 .search-picker-option:hover, .search-picker-option[aria-selected="true"] { background: var(--paper); outline: 1px solid var(--control-border); outline-offset: -1px; }
 .search-picker-status { padding: 8px; font-size: 12px; color: var(--muted); }
+
+.overview-workloads { max-width: 720px; margin-top: 24px; }
+.overview-workloads > a { display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 56px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.overview-workloads > a span { color: var(--muted); font-size: 13px; text-align: right; }
+.overview-workloads > p { margin-top: 12px; }
+.production-launch-settings { margin-bottom: 20px; }
+.production-launch-settings label { display: block; margin-bottom: 8px; font-size: 13px; }
+.production-launch-settings input { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--control-border); border-radius: 6px; background: var(--paper); color: var(--ink); font: inherit; font-size: 13px; }
+.production-launch-settings p { margin-top: 6px; max-width: 76ch; }

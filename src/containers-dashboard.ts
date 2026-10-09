@@ -1,3 +1,4 @@
+import { containerLifecycle, hourlyCost, monthlyCost, type Lifecycle } from './dashboard-view.ts';
 import { trackMachineStart } from './acquisition-analytics.ts';
 import type { Container, ContainerData, ContainerIdentity, ContainerLimits, MachineSize, Image, ObservabilityCapabilities, PersistenceCapabilities } from './types.ts';
 import { API_ORIGIN } from './auth.ts';
@@ -27,7 +28,13 @@ export function imageSelection(value: string) {
     : value ? { imageId: value } : null;
 }
 
-export function createContainersDashboard({ onUnauthenticated }: { onUnauthenticated: () => void }) {
+export function createContainersDashboard({ onUnauthenticated, lifecycle = 'ad_hoc', overview = false, onData, onLoadError }: { onUnauthenticated: () => void; lifecycle?: Lifecycle; overview?: boolean; onData?: (data: ContainerData) => void; onLoadError?: () => void }) {
+  const production = lifecycle === 'production';
+  const startupCommand = document.querySelector<HTMLInputElement>('#container-startup-command')!;
+  document.querySelector<HTMLElement>('#production-launch-settings')!.hidden = !production;
+  document.querySelector<HTMLElement>('#launch-title')!.textContent = production ? 'New production container' : 'New container';
+  document.querySelector<HTMLElement>('#dashboard-resources')!.hidden = overview;
+  document.querySelector<HTMLElement>('#workspaces-tab')!.hidden = production;
   const sizePicker = document.querySelector<HTMLFieldSetElement>('#container-size')!;
   const sizeOptions = document.querySelector<HTMLElement>('#machine-options')!;
   const selectedSize = () => sizePicker.querySelector<HTMLInputElement>('input:checked')?.value ?? 'lite';
@@ -50,13 +57,13 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   const list = document.querySelector<HTMLElement>('#container-list')!;
   const status = document.querySelector<HTMLElement>('#containers-status')!;
   const empty = document.querySelector<HTMLElement>('#containers-empty')!;
-  const tabs = [...document.querySelectorAll<HTMLButtonElement>('[data-resource-tab]')];
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>('[data-resource-tab]')].filter(button => !button.hidden);
   const panel = document.querySelector<HTMLElement>('#resources-panel')!;
   const filters = document.querySelector<HTMLElement>('#container-filters')!;
   const search = document.querySelector<HTMLInputElement>('#container-search')!;
   let activeTab: 'containers' | 'networks' | 'workspaces' = 'containers';
   const filteredContainers = () => (data?.containers ?? []).filter(container =>
-    !privateServices.membership(container) && `${container.name ?? ''} ${container.id}`.toLowerCase().includes(search.value.trim().toLowerCase()));
+    containerLifecycle(container) === lifecycle && !privateServices.membership(container) && `${container.name ?? ''} ${container.id}`.toLowerCase().includes(search.value.trim().toLowerCase()));
   const usage = document.querySelector<HTMLElement>('#container-usage')!;
   const usageContainers = document.querySelector<HTMLElement>('#usage-containers')!;
   const usageConcurrency = document.querySelector<HTMLElement>('#usage-concurrency')!;
@@ -92,7 +99,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   const previews = createContainerPreviews({ onUnauthenticated: () => { dispose(); onUnauthenticated(); } });
 
   const privateServices = createPrivateServices({ onUnauthenticated: () => { dispose(); onUnauthenticated(); },
-    onChanged: () => { if (!disposed && data) render(); } });
+    onChanged: () => { if (!disposed && data) render(); }, lifecycle });
 
   function closeTerminal(stopped = false) {
     terminal?.session.dispose();
@@ -137,15 +144,21 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   }
 
   function controls() {
-    create.disabled = busy || disposed || !canCreateContainer(data, selectedSize()) || !(imageTab === 'stock' ? catalog.length : customImages.length);
+    create.disabled = busy || disposed || (production && data?.plan !== 'usage') || !canCreateContainer(data, selectedSize()) || !(imageTab === 'stock' ? catalog.length : customImages.length);
     openLaunch.disabled = busy || disposed || !data;
+    startupCommand.disabled = busy || disposed;
+    startupCommand.required = production;
+    const billingLink = document.querySelector<HTMLAnchorElement>('#production-billing-link')!;
+    billingLink.href = document.querySelector<HTMLAnchorElement>('#subscription-manage')!.href;
+    billingLink.hidden = !production;
     refresh.disabled = busy || disposed;
     imageSelect.disabled = busy || disposed;
     containerName.disabled = busy || disposed;
     sizePicker.disabled = busy || disposed || !data?.sizes?.length;
     if (sizeRate) {
       const size = data?.sizes?.find(item => item.id === selectedSize());
-      sizeRate.textContent = size ? `${size.name} costs $${(size.computeUnits * 0.02).toFixed(2)}/hour and uses ${size.computeUnits} compute ${size.computeUnits === 1 ? 'unit' : 'units'} per hour.` : '';
+      sizeRate.textContent = size ? production ? `$${hourlyCost(size).toFixed(2)}/hour · about $${monthlyCost(size).toFixed(2)}/30-day month. Billed for actual runtime.${data?.billing && monthlyCost(size) > data.billing.spendLimitCents / 100 ? ' Your current spending cap does not cover a full month of this size.' : ''}` : `${size.name} costs $${hourlyCost(size).toFixed(2)}/hour.` : '';
+      if (production && data?.active && data.plan !== 'usage') sizeRate.textContent = 'Production requires usage billing. Manage your subscription to switch at renewal.';
       if (data?.active && !canCreateContainer(data, selectedSize())) {
         sizeRate.textContent = data.containers.length >= data.limits.maxContainers
           ? 'All container slots are in use. Stop a container to free a slot.'
@@ -165,7 +178,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
   }
 
   async function request(method: string, id?: string, createdAt?: string) {
-    const image = { name: containerName.value.trim(), ...imageSelection(imageSelect.value), ...(data?.sizes?.length ? { size: selectedSize() } : {}) };
+    const image = { ...(production ? { lifecycle, startupCommand: startupCommand.value.trim() } : {}), name: containerName.value.trim(), ...imageSelection(imageSelect.value), ...(data?.sizes?.length ? { size: selectedSize() } : {}) };
     const url = new URL(`${API_ORIGIN}/containers`);
     if (id) url.searchParams.set('id', id);
     if (createdAt) url.searchParams.set('createdAt', createdAt);
@@ -195,6 +208,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
 
   function render() {
     if (!data) return;
+    onData?.(data);
     previews.sync(data.containers, previewsSupported);
     privateServices.sync(data.containers);
 
@@ -236,10 +250,11 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     pagination.hidden = activeTab !== 'containers' || filtered.length <= pageSize;
     range.textContent = `${filtered.length ? page * pageSize + 1 : 0}–${Math.min((page + 1) * pageSize, filtered.length)} of ${filtered.length}`;
     const remaining = Math.max(0, data.limits.maxStartsPerMonth - data.usage.starts);
-    usage.hidden = !data.active;
+    usage.hidden = !data.active || !overview;
     usageContainers.textContent = `${data.containers.length} / ${data.limits.maxContainers.toLocaleString()}`;
     usageConcurrency.textContent = data.limits.maxConcurrentComputeUnits !== undefined
       ? `${data.usage.concurrentComputeUnits ?? 0} / ${data.limits.maxConcurrentComputeUnits.toLocaleString()} concurrent compute units` : 'Active container slots';
+    document.querySelector<HTMLElement>('#usage-compute-label')!.textContent = data.billing ? 'Monthly spend / cap' : 'Compute-unit hours available';
     usageCompute.textContent = data.billing ? `$${(data.billing.estimatedCents / 100).toFixed(2)} / $${(data.billing.spendLimitCents / 100).toFixed(2)}` : data.usage.availableComputeUnitHours !== undefined
       ? `${data.usage.availableComputeUnitHours.toLocaleString(undefined, { maximumFractionDigits: 1 })}${data.limits.maxComputeUnitHours != null ? ` / ${data.limits.maxComputeUnitHours.toLocaleString()}` : ''}` : '—';
     usageComputeDetail.textContent = data.billing ? `${data.billing.computeUnitHours.toFixed(1)} unit-hours · Monthly spend / cap, before taxes` : data.usage.availableComputeUnitHours !== undefined
@@ -248,14 +263,14 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     usageStartsDetail.textContent = `${data.usage.starts.toLocaleString()} starts used · Resets monthly (UTC)`;
     status.textContent = '';
     empty.hidden = activeTab !== 'containers' || filtered.length !== 0;
-    empty.textContent = search.value.trim() ? 'No containers match your search.' : 'You have no standalone containers.';
+    empty.textContent = search.value.trim() ? 'No containers match your search.' : production ? 'You haven’t created any production containers.' : 'You have no standalone containers.';
     const hours = Math.round(data.limits.maxSessionMs / 3600000);
     const idleMinutes = Math.round(data.limits.idleTimeoutMs / 60000);
     document.querySelector<HTMLElement>('#container-limits')!.textContent = data.active
-      ? `Sessions last up to ${hours} ${hours === 1 ? 'hour' : 'hours'} · Auto-stop after ${idleMinutes} idle minutes.`
+      ? production ? `Always on · No session or idle shutdown. Stops at your spending cap or if paid access ends. Current cap: $${((data.billing?.spendLimitCents ?? 500) / 100).toFixed(2)}. Manage your cap in billing.` : `Sessions last up to ${hours} ${hours === 1 ? 'hour' : 'hours'} · Auto-stop after ${idleMinutes} idle minutes.`
       : 'An active subscription is required to create containers.';
     if (access && (!data.containers.some(c => c.id === access?.id && c.createdAt === access?.createdAt) || access.expiresAt <= Date.now())) access = null;
-    const rows = activeTab === 'networks' ? data.containers : filtered.slice(page * pageSize, (page + 1) * pageSize);
+    const rows = activeTab === 'networks' ? data.containers.filter(container => containerLifecycle(container) === lifecycle) : filtered.slice(page * pageSize, (page + 1) * pageSize);
     const rowVersion = JSON.stringify({ activeTab, page, rows, access, previewsSupported, observability, persistence, privateServices: privateServices.stateKey, today: new Date().toDateString() });
     if (rowVersion === renderedRows) { controls(); return; }
     const focused = list.contains(document.activeElement) ? document.activeElement as HTMLElement : null;
@@ -295,16 +310,16 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
           state.append(size);
         }
         const expires = document.createElement('span');
-        expires.textContent = `Stops by ${expiry.toLocaleString([], expiryOptions)}`;
+        expires.textContent = container.lifecycle === 'production' ? container.status === 'stopped' ? container.stopReason === 'spend_limit_reached' ? 'Spending cap reached' : container.stopReason === 'subscription_required' ? 'Paid access required' : 'Recovery pending' : 'Always on' : `Stops by ${expiry.toLocaleString([], expiryOptions)}`;
         state.append(expires);
         const stop = document.createElement('button');
         stop.type = 'button';
         stop.className = 'dashboard-retry button-danger';
-        stop.textContent = 'Stop';
+        stop.textContent = production && container.status === 'stopped' ? 'Delete' : 'Stop';
         stop.dataset.action = 'stop';
         stop.setAttribute('aria-label', `Stop ${container.name || container.id}`);
         stop.addEventListener('click', () => {
-          if (window.confirm(`Stop ${container.name || container.id}? Its files will be lost.`)) mutate('DELETE', container.id, container.createdAt);
+          if (window.confirm(`${production && container.status === 'stopped' ? 'Delete' : 'Stop'} ${container.name || container.id}?${production ? ' Automatic recovery will be disabled.' : ''} Its files will be lost.`)) mutate('DELETE', container.id, container.createdAt);
         });
         details.append(heading, state);
         const actions = document.createElement('div');
@@ -476,6 +491,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       usage.hidden = true;
       pagination.hidden = true;
       status.textContent = 'Container status is unavailable.';
+      onLoadError?.();
       error.textContent = 'Could not load containers. Refresh to try again.';
       error.hidden = false;
     } finally {
@@ -517,6 +533,9 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
       if (!launch.open) mutationError = error;
       const message = cause.message === 'invalid_container_name'
         ? 'Enter a container name of up to 80 characters without control characters.'
+        : cause.message === 'production_requires_usage' ? 'Production requires usage billing. Manage your subscription to switch at renewal.'
+        : cause.message === 'production_unavailable' ? 'The production runtime is unavailable. Refresh and try again.'
+        : cause.message === 'invalid_startup_command' ? 'Enter a startup command of up to 4,096 characters.'
         : cause.message === 'compute_allowance_exhausted'
         ? 'Your available compute allowance is reserved or used. Stop a session to release unused runtime, or wait for the next UTC month.'
         : cause.message === 'compute_capacity_exceeded'

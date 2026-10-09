@@ -10,6 +10,8 @@ export interface Container extends ContainerIdentity {
   name?: string;
   status: string;
   expiresAt: number;
+  lifecycle?: 'ad_hoc' | 'production';
+  stopReason?: string;
   size?: string;
 }
 export interface MachineSize {
@@ -32,6 +34,7 @@ export interface UsageBilling {
 export interface ContainerData {
   billing?: UsageBilling | null;
   active: boolean;
+  plan?: string | null;
   containers: Container[];
   usage: { starts: number; computeUnitHours: number; reservedComputeUnitHours: number; availableComputeUnitHours?: number; concurrentComputeUnits?: number };
   limits: ContainerLimits;
