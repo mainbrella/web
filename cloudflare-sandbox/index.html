@@ -28,7 +28,7 @@
             <h1 id="site-title">Cloudflare Containers.<br />Ready for your agent.</h1>
             <p class="hero-description">The hosted SaaS layer on top of Cloudflare Containers. Start Linux machines by API, run commands, upload files, SSH in, and open web previews. From $5/month.</p>
             <div class="hero-actions">
-              <a class="button" href="/pricing/builder/" data-acquisition-cta="hero">Start for $5/month</a>
+              <a class="button" href="/pricing/usage/" data-acquisition-cta="hero">Start with a $5 minimum</a>
               <a class="text-link" href="/docs/">Quickstart <span aria-hidden="true">→</span></a>
               <!-- agent-copy-cta -->
             </div>
@@ -71,13 +71,13 @@ try {
         <h2 id="faq-title">Before you start</h2>
         <details><summary>Do I need a Cloudflare account?</summary><p>Not for Mainbrella Hosted. Sign in, choose a plan, create an API key, and use the managed service. Self-hosting requires your own Cloudflare infrastructure.</p></details>
         <details><summary>How are environments isolated?</summary><p>Cloudflare runs each container in a separate microVM. Mainbrella checks account ownership and container generations at the API boundary. Read the <a href="/security/">security details</a> for the service’s controls and limitations.</p></details>
-        <details><summary>Is the $5 plan unlimited?</summary><p>No. Builder includes 250 compute-unit hours, 1,000 starts, and up to five concurrent containers within 28 concurrent compute units. Sessions last up to one hour with a 10-minute idle timeout. <a href="/pricing/">Compare plans</a> for larger workloads.</p></details>
+        <details><summary>How does the $5 minimum work?</summary><p>The $5 monthly minimum includes $5 of compute. Additional usage is $0.02 per unit-hour, after you explicitly authorize a spending cap above $5. Usage accounts support 10,000 starts per UTC month and 100 containers within 128 concurrent units. Sessions last up to 24 hours with a 30-minute idle timeout. <a href="/pricing/">Compare plans</a> for larger workloads.</p></details>
         <details><summary>Can I run a permanent server here?</summary><p>Mainbrella’s current machines are temporary, with idle and hard session deadlines. Save a filesystem snapshot or export your files before stopping. For permanent services, check those lifecycle requirements first.</p></details>
       </section>
       <section class="availability wrap" aria-labelledby="start-title">
         <h2 id="start-title">Try your actual workload.</h2>
-        <p>Start with Builder, create an API key, and run your first machine. Need help checking fit? <a href="mailto:support@mainbrella.com?subject=Trying%20my%20agent%20workload">Talk to Andrew</a>.</p>
-        <a class="button" href="/pricing/builder/" data-acquisition-cta="footer">Start building — $5/month</a>
+        <p>Start with usage billing, create an API key, and run your first machine. Need help checking fit? <a href="mailto:support@mainbrella.com?subject=Trying%20my%20agent%20workload">Talk to Andrew</a>.</p>
+        <a class="button" href="/pricing/usage/" data-acquisition-cta="footer">Start building — $5 minimum</a>
         <p class="hero-plan-note"><a href="/pricing/">Plan limits</a> · <a href="/security/">Security</a> · <a href="/status/">Service status</a> · <a href="/opensource/">Open source</a></p>
       </section>
       <!-- agent-setup -->

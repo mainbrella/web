@@ -25,5 +25,6 @@ Generated from backend API.md and SDK READMEs. Local implementation does not est
 - [Machine sizes and compute allowance](machine-sizes-and-compute-allowance.md)
 - [Saved workspaces and portable export](saved-workspaces-and-portable-export.md)
 - [Public repository launches](public-repository-launches.md)
+- [Usage subscription billing](usage-subscription-billing.md)
 - [Mainbrella JavaScript SDK](javascript-sdk.md)
 - [Mainbrella Python SDK](python-sdk.md)

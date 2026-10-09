@@ -57,7 +57,8 @@ that account's existing containers.
 
 | Plan | USD/month | Concurrent containers | Starts/UTC month | Hard limit | Idle timeout |
 | --- | ---: | ---: | ---: | --- | --- |
-| Builder | $5 | 5 | 1,000 | 1 hour | 10 minutes |
+| Usage | $5 minimum | 100 | 10,000 | 24 hours | 30 minutes |
+| Builder (legacy) | $5 | 5 | 1,000 | 1 hour | 10 minutes |
 | Pro | $180 | 100 | 10,000 | 24 hours | 30 minutes |
 | Scale | $999 | 500 | 100,000 | 72 hours | 60 minutes |
 
@@ -65,7 +66,7 @@ All plans offer five sizes with bash, tmux and outbound internet. `POST /contain
 terminal connections (browser/SSH combined). An account permits ten live SSH
 access tokens, each lasting at most 15 minutes or the machine deadline. Process
 resume after stop, custom resources, teams, advanced logs/audits and
-priority capacity are unavailable. Monthly fees are fixed; compute usage is not billed.
+priority capacity are unavailable. New usage subscriptions have a $5 monthly minimum credited toward resource usage. Existing fixed-price subscriptions retain their terms.
 Ordinary stop discards unsaved filesystem changes; save a workspace explicitly
 to restore its filesystem into a fresh container.
 

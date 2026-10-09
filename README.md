@@ -24,14 +24,13 @@ TypeScript tests. The public `/homepage.js` asset is compiled from
 `src/homepage.ts`. Downloadable `.mjs` tools and their Node scripts remain
 JavaScript so users can run them directly without a TypeScript toolchain.
 
-Builder ($5/month), Pro ($180/month), and Scale ($999/month) use Stripe's
+New purchases use one usage subscription with a $5 monthly minimum credited toward resource usage. Existing Builder, Pro, and Scale subscriptions retain their terms. Stripe's
 inline Payment Element, adapted from Cubacadabra's checkout helper. Customers
 sign in with Google before entering email and payment details on Mainbrella.
-The pricing buttons open `/pricing/builder`, `/pricing/pro`, or
-`/pricing/scale`. Signed-out customers are redirected to `/login` with the selected
+The public pricing button opens `/pricing/usage`; legacy subscription routes remain available for management. Signed-out customers are redirected to `/login` with the selected
 plan route as `returnTo`; after sign-in that route opens checkout automatically.
 Existing subscribers see their subscription status and billing management instead.
-Plan details, billing FAQs, and subscription management are available at `/pricing/`. The homepage links to pricing without loading payment code; Stripe.js loads only when checkout opens. Plan-specific routes use `pricing/checkout.html`, copied to the three plan directories at build time. Stripe collects card details directly; Mainbrella never
+Plan details, billing FAQs, and subscription management are available at `/pricing/`. The homepage links to pricing without loading payment code; Stripe.js loads only when checkout opens. Plan-specific routes use `pricing/checkout.html`, copied to the usage and legacy plan directories at build time. Stripe collects card details directly; Mainbrella never
 receives them. Subscribers change plans or cancel from the pricing section;
 payment updates use the Stripe billing portal. Upgrades open a hosted Stripe
 confirmation, while downgrades and cancellations take effect at the next renewal.
@@ -50,15 +49,15 @@ must match. Plan-specific billing login returns to the selected plan after sign-
 Other logins default to `/dashboard/`; safe same-site `returnTo` destinations
 take precedence. Profile remains available at `/profile/`, and the account menu
 links to the dashboard. The authenticated dashboard reads `/subscription` and
-shows None, Builder, Pro, or Scale based on active access. Failed status requests
+shows None, Usage, Builder, Pro, or Scale based on active access. Failed status requests
 show an error with retry rather than implying the user has no subscription.
 Container listing, creation, and stopping use the session-authenticated
-`GET`, `POST`, and `DELETE /containers` backend API. Active paid subscriptions
+`GET`, `POST`, and `DELETE /containers` backend API. Usage subscriptions allow 100 containers within 128 concurrent units, 10,000 starts per UTC month, 24-hour sessions and a 30-minute idle timeout. The $5 default cap keeps overages disabled until explicitly authorized. Legacy subscriptions
 grant tier-specific limits: Builder allows 5 concurrent containers, 1,000 starts
 per UTC month, one-hour sessions and a 10-minute idle timeout; Pro allows
 100 concurrent containers, 10,000 monthly starts, 24-hour sessions and a
 30-minute idle timeout; Scale allows 500 concurrent containers, 100,000 monthly
-starts, 72-hour sessions and a 60-minute idle timeout. All plans offer five sizes (Lite through XL), with 250 / 9,000 / 50,000 monthly compute-unit hours and 28 / 128 / 640 concurrent units. Each creation reserves a
+starts, 72-hour sessions and a 60-minute idle timeout. All plans offer five sizes (Lite through XL); legacy plans have 250 / 9,000 / 50,000 monthly compute-unit hours and 28 / 128 / 640 concurrent units. Each creation reserves a
 start even if stopped early; a pending start counts toward concurrency.
 Creation without an active paid subscription returns 402.
 Containers have outbound internet access for package installation. Save workspaces explicitly to preserve filesystem snapshots for restore; ordinary stop discards unsaved changes. The dashboard
@@ -71,12 +70,12 @@ The benchmark API remains separate. SSH access requires migrations `005_ssh_acce
 Cloudflare's included allowances are shared across the entire account, rather
 than renewed for each user; plan limits are enforced by Mainbrella.
 
-The backend allowlists the plan prices:
+The backend configures the usage minimum through `STRIPE_USAGE_BASE_PRICE_ID` and retains the legacy price allowlist:
 - Builder: `price_1UNAovGSUs8K8zgHwUCsCX16`
 - Pro: `price_1UNAWSGSUs8K8zgHXfnoTiJE` (unchanged)
 - Scale: `price_1UNAq1GSUs8K8zgHnt8PplRQ`
 
-Only the monthly plan is charged by checkout; compute usage billing is not implemented here.
+Checkout collects the monthly minimum. The backend records elapsed resource usage and adds overage invoice items at renewal after applying the included $5 once. Configure and qualify this integration using [the usage billing runbook](../backend/docs/usage-billing.md) before rollout.
 
 Before deploying, apply all backend migrations (including `006_billing_webhooks.sql` and `007_ssh_container_id.sql`) with
 `npm run db:migrate:remote` from the backend, and configure its Stripe account key
@@ -497,3 +496,6 @@ Deploy with the backend repository-launch API and D1 migration 013. See
 | `under-my-umbrella`    | Rihanna reference                       |
 | `raining-men`          | Famous song                             |
 | `singing`              | Singin' in the Rain                     |
+
+
+Usage billing is implemented in the sibling backend. Apply `018_usage_billing.sql` and configure its `STRIPE_USAGE_BASE_PRICE_ID` before deploying the web change. The setup script `backend/scripts/create-usage-prices.mjs` creates a recurring $5 price; it does not migrate customers. The public config exposes `usage_configured`, so usage checkout remains disabled until backend billing is ready. See `../backend/docs/usage-billing.md` for Stripe webhook and rollout qualification. The web UI shows current usage, a spending cap, explicit overage authorization and threshold alerts. Always-on server lifecycle support is still a separate change.

@@ -54,12 +54,12 @@
             <h1 id="site-title">A Linux computer<br />for your AI agent.</h1>
             <p class="hero-description">Start it by API. Run commands, upload files, SSH in, and open web previews. From $5/month.</p>
             <div class="hero-actions">
-              <a class="button" href="/pricing/builder/">Start for $5/month</a>
+              <a class="button" href="/pricing/usage/">Start with a $5 minimum</a>
               <a class="text-link" href="/docs/">Quickstart <span aria-hidden="true">→</span></a>
               <!-- agent-copy-cta -->
             </div>
             <p class="agent-copy-status" id="hero-agent-copy-status" role="status" aria-live="polite"></p>
-            <p class="hero-plan-note">Fixed monthly plans. Built on <a href="/cloudflare-sandbox/">Cloudflare</a>. <a href="/pricing/">See limits</a>.</p>
+            <p class="hero-plan-note">Usage billing with a $5 minimum. Built on <a href="/cloudflare-sandbox/">Cloudflare</a>. <a href="/pricing/">See limits</a>.</p>
           </div>
           <figure class="sandbox-terminal acquisition-example">
             <figcaption><span>Agent workspace</span><span>JavaScript SDK</span></figcaption>
@@ -87,7 +87,7 @@ try {
           <li><h3>Read and write files</h3><p>Move inputs and outputs as raw bytes through the file API. Keep the workspace's exact generation attached to every operation.</p><a class="text-link" href="/docs/files/">File transfer →</a></li>
           <li><h3>Choose your environment</h3><p>Select an available runtime image or launch a ready custom image. Connect through SSH or the browser terminal for interactive work.</p><a class="text-link" href="/docs/images/">Images and runtimes →</a></li>
         </ul>
-        <div class="provider-details"><h3>One account. One workflow.</h3><p>Named API keys, idempotent creation, and generation checks connect your agent to the same containers you manage in the dashboard. Fixed monthly allowances keep concurrency and session limits explicit.</p><p><a href="/docs/containers/#private-services">Private Services</a>, currently a local HTTP prototype, connects machines through named endpoints such as <code>http://api.internal</code>. Attach running machines to an account-owned network; keep the backend private and share the frontend separately.</p></div>
+        <div class="provider-details"><h3>One account. One workflow.</h3><p>Named API keys, idempotent creation, and generation checks connect your agent to the same containers you manage in the dashboard. Usage billing and a spending cap keep costs explicit.</p><p><a href="/docs/containers/#private-services">Private Services</a>, currently a local HTTP prototype, connects machines through named endpoints such as <code>http://api.internal</code>. Attach running machines to an account-owned network; keep the backend private and share the frontend separately.</p></div>
       </section>
       <section class="homepage-security wrap" aria-labelledby="isolation-title">
         <div class="provider-details"><h2 id="isolation-title">Isolated from the start.</h2><div><p>Cloudflare runs each container in its own microVM with a separate kernel and network. Mainbrella checks ownership, credentials, and container generations at the API boundary.</p><a class="text-link" href="/security/">Security and data handling <span aria-hidden="true">→</span></a>
@@ -97,10 +97,10 @@ try {
       </section>
 
       <section class="workflow wrap" aria-labelledby="fit-title">
-        <div class="section-heading"><div><h2 id="fit-title">Does Mainbrella fit your workload?</h2><p>Temporary agent workspaces with a fixed monthly budget.</p></div><a class="text-link" href="/compare/">Compare sandbox and compute platforms <span aria-hidden="true">→</span></a></div>
+        <div class="section-heading"><div><h2 id="fit-title">Does Mainbrella fit your workload?</h2><p>Temporary agent workspaces with a monthly spending cap.</p></div><a class="text-link" href="/compare/">Compare sandbox and compute platforms <span aria-hidden="true">→</span></a></div>
         <div class="purchase-questions">
           <details><summary>What if I need persistent files?</summary><p>Save a workspace before stopping to preserve its filesystem and restore it into a fresh container. Ordinary stop discards unsaved changes. Saved workspaces have plan-specific quotas and retention; keep independent exports. See <a href="/docs/containers/#workspaces">saved workspaces</a>.</p></details>
-          <details><summary>Will usage create an unexpected bill?</summary><p>Builder is $5/month, Pro $180/month, and Scale $999/month, plus applicable taxes. Each includes a fixed compute allowance. Account limits and runtime deadlines cap usage; no automatic overage charges or paid top-ups are enabled. <a href="/pricing/">See allowances and a worked example</a>.</p></details>
+          <details><summary>Will usage create an unexpected bill?</summary><p>The $5 monthly minimum includes $5 of compute. Additional usage costs $0.02 per compute-unit hour, plus applicable taxes. Your cap defaults to $5; raising it requires explicit authorization for overages. <a href="/pricing/">See rates and a worked example</a>.</p></details>
           <details><summary>Can I use my existing agent?</summary><p>Use the HTTP API from your application, or follow the Codex, Claude Code, and OpenAI Agents SDK <a href="/integrations/">integration recipes</a>. Read the <a href="/docs/limits/">execution and file limits</a> before moving a workload.</p></details>
         </div>
       </section>
@@ -108,15 +108,15 @@ try {
       <section class="pricing wrap" id="pricing" aria-labelledby="pricing-title">
         <div class="section-heading"><h2 id="pricing-title">Start with a real workload.</h2><a class="text-link" href="/pricing/">Compare all plans →</a></div>
         <div class="starter-pricing">
-          <div><h3>Builder</h3><p class="plan-price">$5<span> / month</span></p><a class="button" href="/pricing/builder/">Start building</a></div>
+          <div><h3>Usage billing</h3><p class="plan-price">$5<span> / month minimum</span></p><a class="button" href="/pricing/usage/">Start building</a></div>
           <div><ul class="plan-features">
-            <li><strong>250 compute-unit hours and 1,000 starts/month</strong></li>
+            <li><strong>$5 of compute included · $0.02 per unit-hour thereafter</strong></li>
             <li>Five machine sizes, from 256 MiB to 12 GiB RAM</li>
-            <li>Up to five containers within 28 concurrent compute units</li>
-            <li>Up to one-hour sessions · 10-minute idle timeout</li>
+            <li>Up to 100 containers within 128 concurrent compute units</li>
+            <li>Up to 24-hour sessions · 30-minute idle timeout</li>
             <li>SSH, browser terminal, files, and web previews</li>
           </ul>
-          <p class="pricing-note">Larger sizes consume more compute units. Hard caps keep usage within your allowance; there is no automatic compute overage billing. <a href="/pricing/">Pro and Scale</a> offer larger allowances and longer sessions.</p></div>
+          <p class="pricing-note">All machines share one bill. The default $5 cap keeps overages disabled until you choose a higher limit. <a href="/pricing/">See hourly rates</a>.</p></div>
         </div>
         <p class="pricing-note">Billed monthly, plus applicable taxes shown at checkout. <a href="/terms/">Terms</a> · <a href="/docs/limits/">Full limits</a>.</p>
       </section>
@@ -136,7 +136,7 @@ try {
       <section class="availability wrap" aria-labelledby="availability-title">
         <h2 id="availability-title">Start with your first workspace.</h2>
         <p>Sign in and choose a plan to create containers, then connect with SSH or the browser terminal.</p>
-        <a class="button" href="/pricing/builder/">Start building — $5/month</a>
+        <a class="button" href="/pricing/usage/">Start building — $5 minimum</a>
       </section>
     </main>
 

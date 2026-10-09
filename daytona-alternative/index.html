@@ -28,12 +28,12 @@
             <h1 id="site-title">A simpler Daytona<br />alternative.</h1>
             <p class="hero-description">Linux compute for your agent, built on Cloudflare. One account for API commands, files, SSH, browser terminals, and web previews. From $5/month.</p>
             <div class="hero-actions">
-              <a class="button" href="/pricing/builder/" data-acquisition-cta="hero">Start for $5/month</a>
+              <a class="button" href="/pricing/usage/" data-acquisition-cta="hero">Start with a $5 minimum</a>
               <a class="text-link" href="/docs/">Quickstart <span aria-hidden="true">→</span></a>
               <!-- agent-copy-cta -->
             </div>
             <p class="agent-copy-status" id="hero-agent-copy-status" role="status" aria-live="polite"></p>
-            <p class="hero-plan-note">Fixed monthly plans. Custom images. Open source.</p>
+            <p class="hero-plan-note">Usage billing with a $5 minimum. Custom images. Open source.</p>
           </div>
           <figure class="sandbox-terminal acquisition-example">
             <figcaption><span>Agent workspace</span><span>JavaScript SDK</span></figcaption>
@@ -56,7 +56,7 @@ try {
       <section class="workflow wrap" aria-labelledby="support-title">
         <div class="section-heading"><h2 id="support-title">From API call to working Linux environment.</h2></div>
         <ul class="workflow-steps">
-          <li><h3>Start small</h3><p>Try a real workload on Builder for $5/month. Choose from five machine sizes, with explicit compute and concurrency allowances.</p><a class="text-link" href="/pricing/">Compare plans →</a></li>
+          <li><h3>Start small</h3><p>Try a real workload with a $5 monthly minimum credited toward compute. Choose from five machine sizes, with explicit hourly rates and a spending cap.</p><a class="text-link" href="/pricing/">Compare plans →</a></li>
           <li><h3>Use the tools you know</h3><p>Install packages, run tests, upload inputs, and retrieve outputs. Connect over HTTP or use the published JavaScript and Python SDKs.</p><a class="text-link" href="/docs/">Read the Quickstart →</a></li>
           <li><h3>Inspect and share your work</h3><p>SSH into a running machine, open its browser terminal, or issue a temporary preview for your dev server. Build custom images for repeatable setup.</p><a class="text-link" href="/docs/images/">Choose an environment →</a></li>
         </ul>
@@ -76,13 +76,13 @@ try {
         <details><summary>Can I connect a frontend and backend privately?</summary><p>The local Private Services prototype supports HTTP between explicitly attached machines in the same account-owned network. Register the backend as <code>api</code>, then call <code>http://api.internal</code> from the frontend. Production support is not qualified; check <code>networking.privateServices</code> before use. <a href="/docs/containers/#private-services">Read the setup guide</a>.</p></details>
         <details><summary>Is Mainbrella compatible with the Daytona SDK?</summary><p>No. Use Mainbrella’s SDK or HTTP API and adapt the calls your agent makes. Validate creation, execution, files, and cleanup on one workload before migrating.</p></details>
         <details><summary>Can I run a coding agent inside the container?</summary><p>You can install tools and run commands in a Linux environment sized for your workload. You supply the agent’s credentials. Plan-specific idle and session deadlines still apply; Mainbrella does not yet provide a managed, always-on agent service.</p></details>
-        <details><summary>How long can a machine run?</summary><p>Builder supports up to one-hour sessions, Pro up to 24 hours, and Scale up to 72 hours, within available compute. Each plan also has an idle timeout. <a href="/docs/limits/">Read the complete limits</a>.</p></details>
+        <details><summary>How long can a machine run?</summary><p>Usage billing supports sessions up to 24 hours with a 30-minute idle timeout, within your selected spending cap. Existing legacy subscriptions retain their session limits. <a href="/docs/limits/">Read the complete limits</a>.</p></details>
         <details><summary>Can I inspect or self-host the platform?</summary><p>Yes. Start with the <a href="/opensource/">open-source repositories</a> and their licenses. Self-hosting requires your own infrastructure and operations; a hosted subscription uses Mainbrella’s service.</p></details>
       </section>
       <section class="availability wrap" aria-labelledby="start-title">
         <h2 id="start-title">Try your actual workload.</h2>
-        <p>Start with Builder, create an API key, and run your first machine. Need help checking fit? <a href="mailto:support@mainbrella.com?subject=Trying%20my%20agent%20workload">Talk to Andrew</a>.</p>
-        <a class="button" href="/pricing/builder/" data-acquisition-cta="footer">Start building — $5/month</a>
+        <p>Start with usage billing, create an API key, and run your first machine. Need help checking fit? <a href="mailto:support@mainbrella.com?subject=Trying%20my%20agent%20workload">Talk to Andrew</a>.</p>
+        <a class="button" href="/pricing/usage/" data-acquisition-cta="footer">Start building — $5 minimum</a>
         <p class="hero-plan-note"><a href="/pricing/">Plan limits</a> · <a href="/security/">Security</a> · <a href="/status/">Service status</a> · <a href="/opensource/">Open source</a></p>
       </section>
       <!-- agent-setup -->

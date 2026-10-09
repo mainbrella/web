@@ -22,12 +22,12 @@ let sequence = 0;
 // Partial DOM double; dynamic fields are set by the billing client.
 class Element {
   [key: string]: any;
-  hidden = true; disabled = false; dataset: Record<string, string> = {}; textContent = ''; listeners = new Map();
+  value = ''; checked = false; hidden = true; disabled = false; dataset: Record<string, string> = {}; textContent = ''; listeners = new Map();
   addEventListener(type: string, handler: (event?: any) => unknown) { this.listeners.set(type, handler); }
   async click() { if (!this.disabled) await this.listeners.get('click')?.(); }
   focus() {}
   reportValidity() { return true; }
-  async submit() { await this.listeners.get("submit")?.({ preventDefault() {} }); }
+  async submit() { await this.listeners.get("submit")?.({ preventDefault() {}, currentTarget: this }); }
 }
 async function fixture(t: TestContext, current: string | null = 'builder', target = 'pro', extra: Record<string, any> = {}) {
   const nodes = new Map<string, Element>();
@@ -53,7 +53,7 @@ async function fixture(t: TestContext, current: string | null = 'builder', targe
   property('fetch', async (url: string, options: RequestInit) => {
     const path = new URL(url).pathname; const body = options.body ? JSON.parse(options!.body as string) : null;
     calls.push({ path, body });
-    if (path === '/subscription/config') return Response.json({ configured: true });
+    if (path === '/subscription/config') return Response.json({ configured: true, usage_configured: extra.usageConfigured ?? true });
     if (path === '/auth/me') { if (extra.sessionGate) await extra.sessionGate;
       return extra.authFailure ? Response.json({ error: 'auth_unavailable' }, { status: 503 })
         : Response.json({ user: { id: 'owner', email: 'owner@example.com' } }); }
@@ -61,6 +61,11 @@ async function fixture(t: TestContext, current: string | null = 'builder', targe
       return failRead ? Response.json({ error: 'billing_unavailable' }, { status: 503 }) : Response.json(state); }
     if (gate) await gate;
     if (fail && (!extra.failPath || extra.failPath === path)) return Response.json({ error: fail }, { status: 409 });
+    if (path === '/subscription/usage') return Response.json({ billing: {
+      periodStart: Date.UTC(2026, 9, 5), periodEnd: Date.UTC(2026, 10, 5), computeUnitHours: 100,
+      estimatedCents: 500, minimumCents: 500, spendLimitCents: body?.spendLimitCents ?? 500,
+      committedCents: 500, overagesEnabled: Boolean(body?.authorizeOverages), invoicingPending: false, alert: null,
+    } });
     if (path === '/subscription/checkout') return Response.json({ client_secret: 'cs_owned_secret', publishable_key: 'pk_mock' });
     if (path === '/subscription/complete') {
       state = { plan: target, active: true, valid_until: Date.UTC(2026, 10, 5), subscription: { id: 'sub_owned', cancel_at_period_end: false }, ...extra.completionState };
@@ -171,7 +176,7 @@ test('an expired billing session clears the cached current plan and exposes sign
   const f = await fixture(t, 'builder', 'builder'); f.setFail('not_authenticated');
   assert.equal(f.button.disabled, true);
   await f.node('#billing-manage').click();
-  assert.equal(f.button.disabled, false);
+  assert.equal(f.button.disabled, true, 'Legacy purchases stay disabled after sign-out');
   assert.match(f.button.textContent, /Subscribe to Builder/);
   assert.equal(f.node('#billing-manage').hidden, true);
   assert.equal(f.node('#billing-cancel').hidden, true);
@@ -209,30 +214,30 @@ test('session lookup failures show an unavailable state instead of pretending th
 });
 
 test('successful payment applies the verified completion state without a second billing lookup', async t => {
-  const f = await fixture(t, null, 'pro', { active: false, subscription: null });
+  const f = await fixture(t, null, 'usage', { active: false, subscription: null });
   const reads = f.calls.filter(call => call.path === '/subscription').length;
   assert.ok(checkoutGlobal.checkoutOptions);
   f.setReadFailure(true);
   await checkoutGlobal.checkoutOptions.onComplete({ id: 'cs_owned' });
   assert.equal(f.calls.filter(call => call.path === '/subscription').length, reads);
-  assert.match(f.node('#pro-status').textContent, /Pro subscription is active/);
+  assert.match(f.node('#pro-status').textContent, /Usage subscription is active/);
   assert.match(f.button.textContent, /Current plan/);
   assert.equal(f.button.disabled, true);
   assert.equal(f.node('#billing-manage').hidden, false);
   assert.equal(f.node('#inline-checkout').hidden, true);
   assert.equal(f.node('#subscription-workspace').hidden, false);
-  assert.deepEqual(trackingGlobal.funnelEvents, [['checkout_started', { plan: 'pro' }], ['payment_confirmed', 'pro']]);
+  assert.deepEqual(trackingGlobal.funnelEvents, [['checkout_started', { plan: 'usage' }], ['payment_confirmed', 'usage']]);
 });
 
 test('inactive completion does not count as confirmed payment or offer machine access', async t => {
-  const f = await fixture(t, null, 'builder', { active: false, subscription: null, completionState: { active: false } });
+  const f = await fixture(t, null, 'usage', { active: false, subscription: null, completionState: { active: false } });
   await checkoutGlobal.checkoutOptions.onComplete({ id: 'cs_pending' });
   assert.equal(f.node('#subscription-workspace').hidden, true);
   assert.equal(trackingGlobal.funnelEvents.filter(([name]) => name === 'payment_confirmed').length, 0);
 });
 
 test('failed payment confirmation never counts as payment or offers machine access', async t => {
-  const f = await fixture(t, null, 'builder', { active: false, subscription: null, failPath: '/subscription/complete' });
+  const f = await fixture(t, null, 'usage', { active: false, subscription: null, failPath: '/subscription/complete' });
   f.setFail('billing_unavailable');
   await assert.rejects(checkoutGlobal.checkoutOptions.onComplete({ id: 'cs_pending' }), /couldn’t confirm/);
   assert.equal(f.node('#subscription-workspace').hidden, true);
@@ -242,14 +247,14 @@ test('failed payment confirmation never counts as payment or offers machine acce
 test('checkout keeps its form visible while authentication and billing load', async t => {
   let release!: () => void;
   const sessionGate = new Promise<void>(resolve => { release = resolve; });
-  const f = await fixture(t, null, 'pro', { active: false, subscription: null, sessionGate });
+  const f = await fixture(t, null, 'usage', { active: false, subscription: null, sessionGate });
   assert.equal(f.node('#pricing-plans').hidden, true);
   assert.equal(f.node('#inline-checkout').hidden, false);
   assert.equal(f.node('#checkout-form').hidden, false);
   assert.equal(f.node('#checkout-email').disabled, true);
   assert.equal(f.node('#checkout-submit').disabled, true);
   assert.equal(f.node('#checkout-payment-slot').dataset.loading, 'true');
-  assert.equal(f.node('#checkout-title').textContent, 'Pro — $180/month');
+  assert.equal(f.node('#checkout-title').textContent, 'Usage — $5/month minimum');
   assert.equal(checkoutGlobal.checkoutOptions, null);
   release();
   await new Promise(resolve => setImmediate(resolve));
@@ -259,7 +264,7 @@ test('checkout keeps its form visible while authentication and billing load', as
 });
 
 test('the payment placeholder stays until ready and ignores callbacks from closed checkout', async t => {
-  const f = await fixture(t, null, 'pro', { active: false, subscription: null });
+  const f = await fixture(t, null, 'usage', { active: false, subscription: null });
   const options = checkoutGlobal.checkoutOptions;
   const slot = f.node('#checkout-payment-slot');
   assert.equal(slot.dataset.loading, 'true');
@@ -275,12 +280,12 @@ test('the payment placeholder stays until ready and ignores callbacks from close
 });
 
 test('returning from payment applies completion state even when subscription lookup is unavailable', async t => {
-  const f = await fixture(t, null, 'scale', { active: false, subscription: null, failRead: true,
+  const f = await fixture(t, null, 'usage', { active: false, subscription: null, failRead: true,
     search: '?subscription_return=1&session_id=cs_owned' });
   assert.equal(f.calls.filter(call => call.path === '/subscription/complete').length, 1);
   assert.equal(f.calls.filter(call => call.path === '/subscription').length, 0);
   assert.equal(f.calls.filter(call => call.path === '/subscription/checkout').length, 0);
-  assert.match(f.node('#pro-status').textContent, /Scale subscription is active/);
+  assert.match(f.node('#pro-status').textContent, /Usage subscription is active/);
   assert.match(f.button.textContent, /Current plan/);
   assert.equal(f.button.disabled, true);
 });
@@ -288,14 +293,14 @@ test('returning from payment applies completion state even when subscription loo
 for (const gate of ['sessionGate', 'loadGate']) {
   test(`signing out during ${gate === 'sessionGate' ? 'account' : 'subscription'} loading cannot restore stale billing state`, async t => {
     let release!: () => void; const pending = new Promise<void>(resolve => { release = resolve; });
-    const f = await fixture(t, 'builder', 'pro', { [gate]: pending });
+    const f = await fixture(t, 'builder', 'usage', { [gate]: pending });
     f.signOutExternally(); release(); await new Promise(resolve => setImmediate(resolve));
     assert.equal(f.node('#pro-account').textContent, '');
     assert.equal(f.node('#billing-manage').hidden, true);
     assert.equal(f.node('#billing-cancel').hidden, true);
     assert.equal(f.node('#pro-login').hidden, false);
     assert.equal(f.button.disabled, false);
-    assert.match(f.button.textContent, /Subscribe to Pro/);
+    assert.match(f.button.textContent, /\$5 monthly minimum/);
     assert.equal(f.node('#pro-status').textContent, 'Signed out.');
     assert.deepEqual(f.redirects, []);
   });
@@ -338,20 +343,48 @@ test('checkout Back to plans returns to pricing', async t => {
 
 
 test('rejected visitors can browse pricing without authentication cookies or checkout', async t => {
-  const f = await fixture(t, null, 'builder', { pathname: '/pricing/', cookieChoice: 'rejected' });
+  const f = await fixture(t, null, 'usage', { pathname: '/pricing/', cookieChoice: 'rejected' });
   assert.equal(f.calls.some(call => call.path === '/auth/me'), false);
   assert.equal(f.calls.some(call => call.path === '/subscription'), false);
   assert.equal(checkoutGlobal.checkoutOptions, null);
   assert.match(f.node('#pro-status').textContent, /Change your cookie choice/);
   await f.button.click();
-  assert.deepEqual(f.redirects, ['/pricing/builder']);
+  assert.deepEqual(f.redirects, ['/pricing/usage']);
 });
 
 test('rejected visitors opening a checkout route go to login before Stripe mounts', async t => {
-  const f = await fixture(t, null, 'builder', { cookieChoice: 'rejected' });
+  const f = await fixture(t, null, 'usage', { cookieChoice: 'rejected' });
   assert.equal(f.calls.some(call => call.path === '/auth/me'), false);
   assert.equal(checkoutGlobal.checkoutOptions, null);
-  assert.deepEqual(f.redirects, ['/login?returnTo=%2Fpricing%2Fbuilder']);
+  assert.deepEqual(f.redirects, ['/login?returnTo=%2Fpricing%2Fusage']);
+});
+
+test('legacy subscribe routes redirect new customers to the usage subscription', async t => {
+  const f = await fixture(t, null, 'builder', { active: false, subscription: null });
+  assert.deepEqual(f.redirects, ['/pricing/usage']);
+  assert.equal(f.calls.some(call => call.path === '/subscription/checkout'), false);
+});
+
+test('a higher spending cap requires explicit authorization and preserves unsubmitted input', async t => {
+  const f = await fixture(t, 'usage', 'usage');
+  const cap = f.node('#usage-spend-limit'); cap.value = '50';
+  cap.listeners.get('input')?.();
+  await f.node('#usage-limit-form').submit();
+  assert.match(f.node('#usage-status').textContent, /Authorize usage charges/);
+  assert.equal(cap.value, '50');
+  assert.equal(f.calls.filter(call => call.path === '/subscription/usage' && call.body).length, 0);
+  const authorize = f.node('#usage-authorize'); authorize.checked = true;
+  authorize.listeners.get('change')?.();
+  await f.node('#usage-limit-form').submit();
+  assert.deepEqual(f.calls.find(call => call.path === '/subscription/usage' && call.body)!.body,
+    { spendLimitCents: 5000, authorizeOverages: true });
+  assert.match(f.node('#usage-status').textContent, /cap saved/);
+});
+
+test('usage checkout stays disabled until its recurring price is configured', async t => {
+  const f = await fixture(t, null, 'usage', { active: false, subscription: null, usageConfigured: false });
+  assert.equal(f.button.disabled, true);
+  assert.equal(f.calls.some(call => call.path === '/subscription/checkout'), false);
 });
 
 test.after(() => hooks.deregister());

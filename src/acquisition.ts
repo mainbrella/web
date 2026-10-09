@@ -51,6 +51,6 @@ window.addEventListener('pageshow', () => { if (started && (landing || quickstar
 document.addEventListener('click', event => {
   if (!(event.target instanceof Element)) return;
   const link = event.target.closest<HTMLAnchorElement>('a[href]');
-  if (!link || link.origin !== location.origin || !/^\/pricing\/builder\/?$/.test(link.pathname)) return;
+  if (!link || link.origin !== location.origin || !/^\/pricing\/(?:usage|builder)\/?$/.test(link.pathname)) return;
   trackFunnel('cta_click', { placement: link.dataset.acquisitionCta || (link.closest('header') ? 'navigation' : 'content') });
 });

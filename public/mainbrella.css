@@ -223,6 +223,17 @@ h3 { font-size: 18px; line-height: 1.4; letter-spacing: -.015em; }
 .plan-price span { font-size: 15px; color: var(--muted); font-weight: 400; letter-spacing: 0; }
 .plan > p:not(.plan-price) { max-width: 42ch; color: var(--muted); }
 .pricing-plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; border-top: 1px solid var(--line); padding-top: 28px; }
+.pricing-plans.pricing-usage { display: block; border: 0; padding-top: 0; max-width: 480px; }
+.pricing-usage .plan-price { font-size: 32px; margin-bottom: 8px; }
+.pricing-usage .plan-price span { display: inline; }
+.usage-billing { margin: 24px 0; max-width: 560px; }
+.usage-billing h2 { font-size: 20px; }
+.usage-billing form { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+.usage-billing label { display: block; }
+.usage-billing input[type="number"] { box-sizing: border-box; width: 140px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); font: inherit; }
+.usage-billing button { min-height: 44px; }
+.usage-overages { flex-basis: 100%; display: flex !important; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; }
+.usage-overages input { width: 18px; height: 18px; flex-shrink: 0; }
 .plan { display: flex; flex-direction: column; min-width: 0; }
 .plan-features { flex: 1; margin: 20px 0 0; padding: 0; list-style: none; }
 .plan-features li { margin-top: 8px; font-size: 15px; }

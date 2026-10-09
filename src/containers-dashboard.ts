@@ -145,7 +145,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     sizePicker.disabled = busy || disposed || !data?.sizes?.length;
     if (sizeRate) {
       const size = data?.sizes?.find(item => item.id === selectedSize());
-      sizeRate.textContent = size ? `${size.name} uses ${size.computeUnits} compute ${size.computeUnits === 1 ? 'unit' : 'units'} per hour.` : '';
+      sizeRate.textContent = size ? `${size.name} costs $${(size.computeUnits * 0.02).toFixed(2)}/hour and uses ${size.computeUnits} compute ${size.computeUnits === 1 ? 'unit' : 'units'} per hour.` : '';
       if (data?.active && !canCreateContainer(data, selectedSize())) {
         sizeRate.textContent = data.containers.length >= data.limits.maxContainers
           ? 'All container slots are in use. Stop a container to free a slot.'
@@ -215,7 +215,7 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
           const specs = document.createElement('span'); specs.className = 'machine-specs';
           specs.textContent = `${size.cpuVcpu} vCPU · ${size.diskGB} GB disk`;
           const rate = document.createElement('span'); rate.className = 'machine-rate';
-          rate.textContent = `${size.computeUnits} CU/hr`;
+          rate.textContent = data?.billing ? `$${(size.computeUnits * 0.02).toFixed(2)}/hr` : `${size.computeUnits} CU/hr`;
           const accessibleRate = document.createElement('span'); accessibleRate.className = 'visually-hidden';
           accessibleRate.textContent = `${size.computeUnits} compute ${size.computeUnits === 1 ? 'unit' : 'units'} per hour`;
           rate.setAttribute('aria-hidden', 'true');
@@ -240,9 +240,9 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
     usageContainers.textContent = `${data.containers.length} / ${data.limits.maxContainers.toLocaleString()}`;
     usageConcurrency.textContent = data.limits.maxConcurrentComputeUnits !== undefined
       ? `${data.usage.concurrentComputeUnits ?? 0} / ${data.limits.maxConcurrentComputeUnits.toLocaleString()} concurrent compute units` : 'Active container slots';
-    usageCompute.textContent = data.usage.availableComputeUnitHours !== undefined
-      ? `${data.usage.availableComputeUnitHours.toLocaleString(undefined, { maximumFractionDigits: 1 })}${data.limits.maxComputeUnitHours !== undefined ? ` / ${data.limits.maxComputeUnitHours.toLocaleString()}` : ''}` : '—';
-    usageComputeDetail.textContent = data.usage.availableComputeUnitHours !== undefined
+    usageCompute.textContent = data.billing ? `$${(data.billing.estimatedCents / 100).toFixed(2)} / $${(data.billing.spendLimitCents / 100).toFixed(2)}` : data.usage.availableComputeUnitHours !== undefined
+      ? `${data.usage.availableComputeUnitHours.toLocaleString(undefined, { maximumFractionDigits: 1 })}${data.limits.maxComputeUnitHours != null ? ` / ${data.limits.maxComputeUnitHours.toLocaleString()}` : ''}` : '—';
+    usageComputeDetail.textContent = data.billing ? `${data.billing.computeUnitHours.toFixed(1)} unit-hours · Monthly spend / cap, before taxes` : data.usage.availableComputeUnitHours !== undefined
       ? `${data.usage.computeUnitHours.toFixed(1)} used · ${data.usage.reservedComputeUnitHours.toFixed(1)} reserved` : 'Compute usage unavailable';
     usageStarts.textContent = `${remaining.toLocaleString()} / ${data.limits.maxStartsPerMonth.toLocaleString()}`;
     usageStartsDetail.textContent = `${data.usage.starts.toLocaleString()} starts used · Resets monthly (UTC)`;
@@ -531,6 +531,8 @@ export function createContainersDashboard({ onUnauthenticated }: { onUnauthentic
           ? 'This image is no longer available. Choose another image.'
         : cause.message === 'container_limit_exceeded'
           ? `Your plan allows ${data?.limits?.maxContainers ?? 'the current maximum'} running containers. Stop one or change plans to create another.`
+          : cause.message === 'spend_limit_reached' ? 'Your monthly spending cap is used or reserved. Stop a machine or increase your cap in billing.'
+          : cause.message === 'billing_reconciliation_required' ? 'Usage billing needs reconciliation. Contact support before starting more machines.'
           : cause.message === 'subscription_required'
             ? 'Choose a plan to create containers.'
             : cause.message === 'container_not_running'

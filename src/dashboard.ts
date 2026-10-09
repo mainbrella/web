@@ -73,14 +73,14 @@ async function loadDashboard() {
       billing.href = `/pricing/${data.plan}`;
       billing.textContent = 'Manage subscription';
     } else if (!data.active && !data.subscription) {
-      billing.href = '/pricing/builder';
-      billing.textContent = `Upgrade to ${plans.builder.name} — $${plans.builder.price}/month`;
+      billing.href = '/pricing/usage';
+      billing.textContent = 'Start usage billing — $5 monthly minimum';
       billing.className = 'button button-small';
     } else {
       billing.textContent = 'View plans';
     }
     if (!data.active && !data.subscription) {
-      note.textContent = 'Images and container creation require an active subscription. Upgrade to Builder to choose an image and launch your first container.';
+      note.textContent = 'Images and container creation require an active subscription. Start usage billing to choose an image and launch your first container.';
       note.hidden = false;
     } else if (data.subscription && !data.active) {
       note.textContent = 'Your subscription is inactive. Manage subscription to review billing.';

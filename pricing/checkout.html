@@ -16,21 +16,21 @@
       <div class="checkout-stage" id="checkout-stage" data-reserve="true" data-checkout="true">
         <div id="pricing-plans" hidden>
           <h1 id="plan-title">Subscribe</h1>
-          <p class="pricing-note">All plans offer five machine sizes, from 256 MiB to 12 GiB RAM. Your subscription includes a fixed monthly compute allowance, with no automatic overage charges.</p>
+          <p class="pricing-note">Usage billing offers five machine sizes, from 256 MiB to 12 GiB RAM. A $5 monthly minimum includes $5 of compute; additional usage costs $0.02 per compute-unit hour.</p>
           <p id="selected-plan-limits" class="pricing-note" hidden></p>
           <button class="button" data-plan="" type="button" disabled>Continue to checkout</button>
           <details class="plan-rules">
             <summary>Plan rules and included access</summary>
-            <p>Small uses 6 compute units per hour; XL uses 28. Running time, including idle time, uses your allowance. Starting a session reserves its runtime; stopping releases unused runtime. Allowances reset each UTC month without rollover, and sessions end at the month boundary or their earlier deadline. No automatic overage charges.</p>
+            <p>Compute costs $0.02 per unit-hour. Small uses 6 units ($0.12/hour); XL uses 28 ($0.56/hour). Provisioning and idle time are metered. A $5 spending cap applies by default; change it in billing. Starting reserves runtime against the cap; only elapsed runtime is charged.</p>
             <p>All plans offer five machine sizes, from Lite (256 MiB RAM) to XL (4 vCPU, 12 GiB RAM, 20 GB ephemeral disk), with bash, tmux, outbound internet, SSH and browser terminals. The default image includes Node 24; other runtimes depend on the selected image. Each container allows four terminal connections; each account allows ten live SSH commands, valid for up to 15 minutes.</p>
             <p>Starts are shared across your account and reset at the start of each UTC month. Failed starts count. Stopping a container or changing plans does not reset usage. Sessions end at their hard limit or the end of the paid period at creation, whichever comes first. Ordinary stop discards unsaved files; save a workspace or export outputs first.</p>
-            <p>Upgrades require payment through Stripe. Downgrades and cancellation take effect at renewal; lower limits may stop containers. <a href="/docs/limits/">Read all platform limits</a>.</p>
+            <p>Existing fixed-price subscriptions retain their terms until you explicitly switch at renewal. Cancellation takes effect at the end of the paid period; outstanding usage remains payable. <a href="/docs/limits/">Read all platform limits</a>.</p>
           </details>
         </div>
         <section class="inline-checkout" id="inline-checkout" aria-labelledby="checkout-title">
           <button class="text-link billing-link" id="checkout-back" type="button">← Back to plans</button>
           <h1 id="checkout-title" tabindex="-1">Subscribe</h1>
-          <p class="pricing-note" id="checkout-summary">Enter your payment details below. Your plan has a fixed monthly price; compute usage charges are not enabled.</p>
+          <p class="pricing-note" id="checkout-summary">Pay $5 at the start of each billing month, including $5 of compute. Additional compute is billed at renewal at $0.02 per compute-unit hour. A payment method is required.</p>
           <form id="checkout-form">
             <label for="checkout-email">Email for receipts and billing</label>
             <input id="checkout-email" name="email" type="email" autocomplete="email" required disabled />
@@ -61,22 +61,35 @@
               </div>
               <p class="pricing-note" id="checkout-promotion-status" role="status" aria-live="polite"></p>
             </details>
-            <p class="pricing-note">By subscribing, you authorize recurring monthly charges until you cancel and agree to the <a href="/terms/">Terms of Service</a>.</p>
+            <p class="pricing-note">By subscribing, you authorize the monthly minimum and additional compute charges at the published rates until you cancel and agree to the <a href="/terms/">Terms of Service</a>.</p>
             <p class="pricing-note" id="checkout-status" role="status" aria-live="polite" data-state="pending">Preparing secure payment…</p>
             <button class="button" id="checkout-submit" type="submit" disabled>Subscribe</button>
           </form>
         </section>
       </div>
+      <section class="usage-billing" id="usage-billing" aria-labelledby="usage-title" hidden>
+        <h2 id="usage-title">Compute usage</h2>
+        <p id="usage-summary" class="pricing-note" aria-live="polite">Loading compute usage…</p>
+        <form id="usage-limit-form">
+          <div><label for="usage-spend-limit">Monthly spending cap (USD)</label>
+          <input id="usage-spend-limit" type="number" min="5" max="1000" step="0.01" required disabled aria-describedby="usage-cap-note" /></div>
+          <label class="usage-overages"><input id="usage-authorize" type="checkbox" /> I authorize usage charges above $5, up to my selected cap.</label>
+          <button class="button button-small" id="usage-save" type="submit" disabled>Save cap</button>
+        </form>
+        <p class="pricing-note" id="usage-cap-note">Before taxes. Runtime is reserved before launch; only elapsed time is billed. A cap can shorten or block new sessions. Raise the cap and authorize overages before running workloads that need more than $5 of compute.</p>
+        <p class="pricing-note" id="usage-status" role="status" aria-live="polite"></p>
+      </section>
       <div class="billing-controls">
         <p class="pricing-note" id="pro-status" role="status" aria-live="polite">Checking subscription…</p>
         <p class="pricing-note" id="subscription-workspace" hidden><a class="button" href="/dashboard/">Open your machines</a></p>
         <p class="pricing-note" id="pro-account" hidden></p>
+        <a class="text-link billing-link" id="usage-switch" href="/pricing/usage" hidden>Switch to usage billing</a>
         <button class="text-link billing-link" id="billing-manage" type="button" hidden>Manage subscription</button>
         <button class="text-link billing-link" id="billing-cancel" type="button" hidden>Cancel subscription</button>
         <button class="text-link billing-link" id="billing-resume" type="button" hidden>Resume subscription</button>
         <a class="text-link billing-link" id="pro-login" href="/login" hidden>Sign in to subscribe</a>
         <button class="text-link billing-link" id="pro-logout" type="button" hidden>Sign out</button>
-        <p class="pricing-note">Billed monthly. Fixed monthly pricing; compute usage charges are not enabled. Applicable taxes and the total are shown at checkout. Container access is available with an active subscription. Read our <a href="/terms/">Terms of Service</a> and <a href="/privacy/">Privacy Policy</a>.</p>
+        <p class="pricing-note">Billed monthly. Usage billing starts at a $5 minimum, including $5 of compute. Additional usage is billed at renewal. Applicable taxes and the total are shown at checkout. Container access is available with an active subscription. Read our <a href="/terms/">Terms of Service</a> and <a href="/privacy/">Privacy Policy</a>.</p>
         <noscript><p class="pricing-note">Enable JavaScript to subscribe.</p></noscript>
       </div>
     </main>

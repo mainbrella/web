@@ -3,7 +3,7 @@
   "source": "mainbrella/backend",
   "licenseSha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
   "files": {
-    "API.md": "acda75dfd9220954f72003124818f97a37ac8429566ca355d05b415432a21457",
+    "API.md": "38cadc119bfebee5127f5310560f765672726626f0601efa8e8c5670d9b2a5c5",
     "SKILL.md": "30cd4bb332817f348821d06046dce5b3d27a2fd470411a590cafd25232a40c06",
     "sdk/javascript.md": "fe3d0b60864f7fe5c405ea44ac5f6955e7072ee6a168388585e79292b7f37188",
     "sdk/python.md": "658f27e8165e2821e171a176d0ddab4ac48448963a4a6d9f3c0585dc2cb1fcbe",
@@ -12,11 +12,11 @@
     "references/compiled-application-deployment.md": "6d4726890efa41bc37c7180722258a076aa589101697c8075605d634c7520ba4",
     "references/static-site-deployment-over-http.md": "c2b1f672a6865b15566b4e0d9cebdab0e43a581d375c844cc84bd3dbddd5dcd4",
     "references/images.md": "c750445141ebd12cff4679f39ee508afb2d4ede05b1e63ae098915980093e2e4",
-    "references/endpoints.md": "1b921a1706e3bcc0e80ed26193bfc1975d9072b4d24aea90d60687dccbb9e9b1",
+    "references/endpoints.md": "fde38eb44e74a9e142058d712d96ec1fc0a0efc9fa6dd07932e6cd88ed6b2e50",
     "references/http-command-execution.md": "3601a3387449ffee905686c48a33391349537733eca7b166f563647209b40c3d",
     "references/http-files.md": "67c15010906cad18c50a424c1eb2cd188b6ef3886a0cf058db027ec010800cdc",
     "references/filesystem-metadata-and-directories.md": "6268bfb7d061fb0d6e3d1ce376f49c84630e650828bb0ea57f545ed33e1f74ff",
-    "references/browser-billing-endpoints.md": "1fe2b992eeb63dd8ff5542b852d2fc684aeb49537c169be1de4216bfd3744ff7",
+    "references/browser-billing-endpoints.md": "2e458309b422114a3b613f2e12594524d2f910dc082720894a526a4c22718812",
     "references/errors-and-retry-behavior.md": "b3ab328b07df20a4a0847ff1c9c804e436021149de79d5f8b6f0cb28a2c15b25",
     "references/card-free-trial-coupons.md": "82a6ce927af289530984a300999a4840fa72c954d405874cf870da9072caa939",
     "references/capability-discovery.md": "fa4b2359c8f0ba97192a7d09e839580da38c01b2a52a2c5ff174527402123c01",
@@ -27,13 +27,14 @@
     "references/workload-metrics-and-lifecycle-history.md": "2b8df35247c4c8f2030700f5809c8a2e7a7577f8a65f0ab1417f5183e7d0d131",
     "references/lifecycle-webhooks.md": "d53567686481e7deee6d65f85afd035312469e8130fdfb0c965b6e2365c6326a",
     "references/public-operational-status.md": "f8e868f8232ff37fd56da2432535accad59b309a641aa12855aad5983ff4a23a",
-    "references/machine-sizes-and-compute-allowance.md": "ed636389603026b455ae85a5f0c19634d406ece64c1b1b03b40ef5efaaf25159",
-    "references/saved-workspaces-and-portable-export.md": "b8735620fc99bff8c17bd542aa7359fcf677838ca614e26eacf89ff7ab27040e",
+    "references/machine-sizes-and-compute-allowance.md": "fa836822e92ba1d6b9f88d789e9075346df1265a99764f9f7016baefda259747",
+    "references/saved-workspaces-and-portable-export.md": "55f5728d3190141dc05dbfefff2a7258e8b5bdeb8e45b92ecddef05cd70b580d",
     "references/public-repository-launches.md": "cf4b7a5a9d936084b53a9db8ec89764899a0b036dac7a2c8f2ca111c78102063",
+    "references/usage-subscription-billing.md": "b5c1bb21e77995e539afa072a09ddda0b04f95b779e891c9de65417b564dccee",
     "references/javascript-sdk.md": "fe3d0b60864f7fe5c405ea44ac5f6955e7072ee6a168388585e79292b7f37188",
     "references/python-sdk.md": "658f27e8165e2821e171a176d0ddab4ac48448963a4a6d9f3c0585dc2cb1fcbe",
-    "references/index.md": "fcaf143f47cd9dd248834f6172598efbb7191d4770346ce2db54d855bec735d7",
+    "references/index.md": "42b5ce86239a4fbd49988b85958a0d24ff88e7b1c5f2144a8873b01faf1291ac",
     "scripts/mainbrella-deploy-static.mjs": "c16e216de0839f889865172e47f45898890e6941e502bd89795e2fef77c549ec",
-    "llms-full.txt": "3ac6d28739ed1ea31fb237c846334e89c6bf7e8d5506b4709a20b8522fd6a22b"
+    "llms-full.txt": "eb2646e7e909c12635306c7ce8a7424b112a5133dd6f1e0444374c3413882f0c"
   }
 }

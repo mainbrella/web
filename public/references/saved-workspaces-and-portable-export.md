@@ -11,7 +11,8 @@ Restore with `POST /containers` and `{workspaceId}` using a new persisted creati
 
 | Plan | Saved workspaces | Reserved capacity | Retention | Saves/month | Capture capacity/month | Retained capture capacity |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Builder | 3 | 8 GB | 7 days | 10 | 20 GB | 20 GB |
+| Usage | 20 | 160 GB | 14 days | 100 | 400 GB | 400 GB |
+| Builder (legacy) | 3 | 8 GB | 7 days | 10 | 20 GB | 20 GB |
 | Pro | 20 | 160 GB | 14 days | 100 | 400 GB | 400 GB |
 | Scale | 100 | 1,000 GB | 29 days | 500 | 2,000 GB | 2,000 GB |
 

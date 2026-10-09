@@ -23,9 +23,14 @@ export interface ContainerLimits {
   maxSessionMs: number;
   idleTimeoutMs: number;
   maxConcurrentComputeUnits?: number;
-  maxComputeUnitHours?: number;
+  maxComputeUnitHours?: number | null;
+}
+export interface UsageBilling {
+  periodStart: number; periodEnd: number; computeUnitHours: number; estimatedCents: number;
+  minimumCents: number; spendLimitCents: number; committedCents: number; alert: 50 | 80 | 100 | null; overagesEnabled: boolean; invoicingPending: boolean;
 }
 export interface ContainerData {
+  billing?: UsageBilling | null;
   active: boolean;
   containers: Container[];
   usage: { starts: number; computeUnitHours: number; reservedComputeUnitHours: number; availableComputeUnitHours?: number; concurrentComputeUnits?: number };
@@ -56,5 +61,6 @@ export interface SubscriptionState {
 }
 export interface BillingConfig {
   configured: boolean;
+  usage_configured?: boolean;
   plans?: Record<string, { price: number; name: string; limits: ContainerLimits }>;
 }

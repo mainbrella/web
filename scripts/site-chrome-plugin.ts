@@ -23,7 +23,7 @@ export function siteChrome(path: string) {
     <nav id="platform-navigation" aria-label="Main navigation">
       ${navigation.map(item => link(item, path)).join('\n      ')}
       <a class="login-link" href="/login/">Sign in</a>
-      <a class="button button-small" href="/pricing/builder/">Start building</a>
+      <a class="button button-small" href="/pricing/usage/">Start building</a>
     </nav>
   </header>`;
   const groups: [string, [string, string][]][] = [

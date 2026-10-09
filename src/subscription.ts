@@ -1,5 +1,5 @@
 import { identifyAccount, trackConfirmedPayment, trackFunnel } from './acquisition-analytics.ts';
-import type { User, BillingConfig, Subscription, SubscriptionState } from './types.ts';
+import type { User, BillingConfig, Subscription, SubscriptionState, UsageBilling } from './types.ts';
 import { needsSignInCookies, signInCookieMessage } from './cookie-preferences.ts';
 import { mountStripeEmbeddedCheckout } from "./payments/stripeEmbeddedCheckout.ts";
 import { API_ORIGIN, createAuthClient } from "./auth.ts";
@@ -15,7 +15,7 @@ const planPath = (plan: string) => `/pricing/${plan}`;
 const priceFor = (plan: string) => config?.plans?.[plan]?.price ?? plans[plan].price;
 if (selectedPlan) {
   document.title = `${plans[selectedPlan].name} subscription · Mainbrella`;
-  document.querySelector<HTMLElement>("#plan-title")!.textContent = `${plans[selectedPlan].name} — $${plans[selectedPlan].price}/month`;
+  document.querySelector<HTMLElement>("#plan-title")!.textContent = `${plans[selectedPlan].name} — $${plans[selectedPlan].price}/month${selectedPlan === 'usage' ? ' minimum' : ''}`;
   planButtons.forEach((button) => { button.dataset.plan = selectedPlan; });
 }
 const checkoutView = document.querySelector<HTMLElement>("#inline-checkout")!;
@@ -35,14 +35,18 @@ function setPaymentLoading(loading: boolean) {
 function showCheckoutShell(plan: string) {
   checkoutView.hidden = false;
   document.querySelector<HTMLElement>("#pricing-plans")!.hidden = true;
-  document.querySelector<HTMLElement>("#checkout-title")!.textContent = `${plans[plan].name} — $${priceFor(plan)}/month`;
+  document.querySelector<HTMLElement>("#checkout-title")!.textContent = `${plans[plan].name} — $${priceFor(plan)}/month${plan === 'usage' ? ' minimum' : ''}`;
   checkoutEmail.value = user?.email || "";
   checkoutEmail.readOnly = false;
   checkoutEmail.disabled = true;
   checkoutForm.hidden = false;
   const submit = document.querySelector<HTMLButtonElement>("#checkout-submit")!;
   submit.disabled = true;
-  submit.textContent = `Subscribe for $${priceFor(plan)}/month`;
+  submit.textContent = plan === 'usage' ? 'Start usage billing — $5 minimum' : `Subscribe for $${priceFor(plan)}/month`;
+  const summary = document.querySelector<HTMLElement>('#checkout-summary');
+  if (summary) summary.textContent = plan === 'usage'
+    ? 'Pay $5 at the start of each billing month, including $5 of compute. Additional compute is billed at renewal at $0.02 per compute-unit hour. A $5 spending cap applies by default. A payment method is required.'
+    : `Your existing ${plans[plan].name} plan costs $${priceFor(plan)}/month with a fixed compute allowance.`;
   const checkoutStatus = document.querySelector<HTMLElement>("#checkout-status")!;
   checkoutStatus.textContent = "Preparing secure payment…";
   checkoutStatus.dataset.state = "pending";
@@ -76,7 +80,13 @@ function renderPolicy() {
     if (price?.firstChild) price.firstChild.textContent = `$${plan.price}`;
     const hours = limits.maxSessionMs / 3600000;
     const idle = limits.idleTimeoutMs / 60000;
-    const rules = [
+    const rules = key === 'usage' ? [
+      '$5 of compute included; $0.02 per additional compute-unit hour',
+      'Set a monthly spending cap — $5 by default — overages disabled',
+      `${limits.maxContainers} containers within ${limits.maxConcurrentComputeUnits} concurrent units`,
+      `${limits.maxStartsPerMonth.toLocaleString()} starts per UTC month`,
+      `Sandbox sessions up to ${hours} hours · ${idle}-minute idle timeout`,
+    ] : [
       limits.maxComputeUnitHours ? `${limits.maxComputeUnitHours.toLocaleString()} compute-unit hours/month` : `${limits.maxContainers} concurrent containers`,
       `${limits.maxStartsPerMonth.toLocaleString()} starts per month`,
       `Up to ${hours}-hour sessions · ${idle}-minute idle timeout`,
@@ -97,9 +107,10 @@ function renderPolicy() {
   });
   if (selectedPlan) {
     const details = config.plans[selectedPlan];
-    document.querySelector<HTMLElement>("#plan-title")!.textContent = `${details.name} — $${details.price}/month`;
+    document.querySelector<HTMLElement>("#plan-title")!.textContent = `${details.name} — $${details.price}/month${selectedPlan === 'usage' ? ' minimum' : ''}`;
     const limits = details.limits;
-    const compute = limits.maxComputeUnitHours ? `${limits.maxComputeUnitHours.toLocaleString()} compute-unit hours/month · All five sizes · ` : "";
+    const compute = selectedPlan === 'usage' ? '$5 included · $0.02/compute-unit hour · '
+      : limits.maxComputeUnitHours ? `${limits.maxComputeUnitHours.toLocaleString()} compute-unit hours/month · All five sizes · ` : "";
     const capacity = limits.maxConcurrentComputeUnits ? ` within ${limits.maxConcurrentComputeUnits} compute units` : "";
     const summary = document.querySelector<HTMLElement>("#selected-plan-limits")!;
     summary.textContent = `${compute}${limits.maxContainers} concurrent containers${capacity} · ${limits.maxStartsPerMonth.toLocaleString()} starts per UTC month · Up to ${limits.maxSessionMs / 3600000}-hour sessions · ${limits.idleTimeoutMs / 60000}-minute idle timeout.`;
@@ -151,7 +162,46 @@ function periodEnd() {
     ? `on ${new Date(end).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}`
     : 'at the end of the current billing period';
 }
+let usageBilling: UsageBilling | null = null;
+let usageError = '';
+let capDirty = false;
+const money = (cents: number) => (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+async function loadUsage() {
+  const version = authVersion;
+  try {
+    const data = await api('/subscription/usage');
+    if (version !== authVersion) return;
+    if (!data.billing) throw new Error('billing_unavailable');
+    usageBilling = data.billing;
+    capDirty = false;
+    usageError = '';
+  } catch {
+    if (version !== authVersion) return;
+    usageError = 'Could not load compute usage. Refresh to try again.';
+  }
+  render();
+}
 function render() {
+  const usageView = document.querySelector<HTMLElement>('#usage-billing');
+  if (usageView) {
+    const visible = Boolean(user && subscriptionState?.active && subscriptionState.plan === 'usage');
+    usageView.hidden = !visible;
+    const summary = document.querySelector<HTMLElement>('#usage-summary');
+    const cap = document.querySelector<HTMLInputElement>('#usage-spend-limit');
+    const save = document.querySelector<HTMLButtonElement>('#usage-save');
+    const feedback = document.querySelector<HTMLElement>('#usage-status');
+    if (summary) summary.textContent = usageBilling
+      ? `${money(usageBilling.estimatedCents)} this billing month · ${usageBilling.computeUnitHours.toFixed(2)} compute-unit hours · Renews ${new Date(usageBilling.periodEnd).toLocaleDateString()}`
+      : 'Loading compute usage…';
+    if (cap) { cap.disabled = busy || !usageBilling || !visible; if (usageBilling && !capDirty) cap.value = String(usageBilling.spendLimitCents / 100); }
+    const authorize = document.querySelector<HTMLInputElement>('#usage-authorize');
+    if (authorize) { authorize.disabled = busy || !usageBilling || !visible; if (usageBilling && !capDirty) authorize.checked = usageBilling.overagesEnabled; }
+    if (save) save.disabled = busy || !usageBilling || !visible;
+    if (feedback) feedback.textContent = usageError || (usageBilling?.alert
+      ? `You have reached ${usageBilling.alert}% of your spending cap. New sessions may be shortened or blocked when the cap is committed.` : '');
+  }
+  const usageSwitch = document.querySelector<HTMLElement>('#usage-switch');
+  if (usageSwitch) usageSwitch.hidden = !user || !subscriptionState?.active || !subscription || subscriptionState.plan === 'usage';
   const workspace = document.querySelector<HTMLElement>('#subscription-workspace');
   if (workspace) workspace.hidden = !user || !subscriptionState?.active || !ready || !checkoutView.hidden;
   const checkoutStage = document.querySelector<HTMLElement>("#checkout-stage")!;
@@ -179,9 +229,10 @@ function render() {
     const keepCurrent = currentPlan === targetPlan && Boolean(scheduledPlan);
     const isCurrent = currentPlan === targetPlan && !scheduledPlan && !subscriptionState?.trial;
     const needsPayment = user && subscription && !subscriptionState?.active;
-    button.disabled = busy || !ready || isCurrent || Boolean(needsPayment);
+    const legacyUnavailable = targetPlan !== 'usage' && (!subscription || subscriptionState?.plan === 'usage');
+    button.disabled = busy || !ready || isCurrent || Boolean(needsPayment) || legacyUnavailable || (targetPlan === 'usage' && config?.usage_configured !== true);
     if (user && subscriptionState?.active && !subscriptionState?.trial) {
-      const rank: Record<string, number> = { builder: 0, pro: 1, scale: 2 };
+      const rank: Record<string, number> = { usage: -1, builder: 0, pro: 1, scale: 2 };
       button.textContent = keepCurrent
         ? `Keep ${plans[targetPlan].name}`
         : isCurrent
@@ -189,8 +240,11 @@ function render() {
           : rank[targetPlan] > rank[currentPlan!]
             ? `Upgrade to ${plans[targetPlan].name} — $${priceFor(targetPlan)}/month`
             : `Change to ${plans[targetPlan].name} — $${priceFor(targetPlan)}/month`;
+      if (targetPlan === 'usage' && !isCurrent) button.textContent = 'Switch to usage billing at renewal';
     } else if (needsPayment) {
       button.textContent = 'Payment needed · Manage billing';
+    } else if (targetPlan === 'usage') {
+      button.textContent = 'Start building — $5 monthly minimum';
     } else {
       button.textContent = selectedPlan
         ? `Subscribe to ${plans[targetPlan].name} — $${priceFor(targetPlan)}/month`
@@ -208,6 +262,7 @@ function applySubscription(data: SubscriptionState) {
   }
   subscription = data.subscription;
   subscriptionState = data;
+  if (data.plan !== 'usage') usageBilling = null;
   if (data.active) {
     const name = plans[data.plan]?.name || "Your plan";
     if (data.trial) {
@@ -221,7 +276,7 @@ function applySubscription(data: SubscriptionState) {
   } else if (subscription) {
     message("Your subscription needs attention. Manage billing to update payment details or cancel.");
   } else {
-    message("Choose a plan to start your monthly subscription.");
+    message("Start usage billing with a $5 monthly minimum.");
   }
 }
 async function refresh() {
@@ -229,7 +284,8 @@ async function refresh() {
   const data = await api("/subscription");
   if (version !== authVersion) return false;
   applySubscription(data);
-  return true;
+  if (data.active && data.plan === 'usage') await loadUsage();
+  return version === authVersion;
 }
 async function initialize() {
   const version = authVersion;
@@ -266,6 +322,7 @@ async function initialize() {
       const confirmation = await api("/subscription/complete", { session_id: params.get("session_id") });
       if (version !== authVersion) return;
       applySubscription(confirmation);
+      if (confirmation.active && confirmation.plan === 'usage') await loadUsage();
       if (confirmation.active && confirmation.subscription && Object.hasOwn(plans, confirmation.plan)) {
         trackConfirmedPayment(params.get('session_id')!, confirmation.plan);
       }
@@ -289,6 +346,11 @@ async function initialize() {
       history.replaceState(null, "", `${location.pathname}${params.size ? `?${params}` : ""}${location.hash}`);
     }
     ready = true;
+    if (selectedPlan && selectedPlan !== 'usage' && !subscription) {
+      location.assign(planPath('usage'));
+      return;
+    }
+    if (selectedPlan === 'usage' && config?.usage_configured !== true) throw new Error('billing_unavailable');
     if (selectedPlan && user && !subscription && !subscriptionState?.active && !returningFromCheckout) {
       await openCheckout(selectedPlan);
     } else {
@@ -305,7 +367,7 @@ async function initialize() {
       checkoutStatus.dataset.state = "error";
       setPaymentLoading(false);
     }
-    disablePlans(false);
+    render();
   }
 }
 async function openCheckout(plan: string) {
@@ -351,6 +413,7 @@ async function openCheckout(plan: string) {
           const confirmation = await api("/subscription/complete", { session_id: session.id, client_secret: data.client_secret });
           if (version !== checkoutVersion) return;
           applySubscription(confirmation);
+          if (confirmation.active && confirmation.plan === 'usage') await loadUsage();
           if (confirmation.active && confirmation.subscription && Object.hasOwn(plans, confirmation.plan)) {
             trackConfirmedPayment(session.id, confirmation.plan);
           }
@@ -430,7 +493,7 @@ async function changePlan(plan: string) {
   if (busy) return;
   const version = authVersion;
   if (!user || !subscriptionState?.active) return openBilling();
-  const order: Record<string, number> = { builder: 0, pro: 1, scale: 2 };
+  const order: Record<string, number> = { usage: -1, builder: 0, pro: 1, scale: 2 };
   if (plan === subscriptionState.plan && !subscriptionState.scheduled_plan) {
     message(`${plans[plan].name} is already your current plan.`);
     return;
@@ -458,7 +521,9 @@ async function changePlan(plan: string) {
   const targetPrice = priceFor(plan);
   const changeText = plan === subscriptionState.plan
     ? `Cancel the scheduled change and keep ${current}?`
-    : `Schedule a change from ${current} ($${currentPrice}/month) to ${target} ($${targetPrice}/month) at your next renewal? Your current plan stays active until then. Containers exceeding the new limits will stop when the change takes effect.`;
+    : plan === 'usage'
+      ? `Switch from ${current} to usage billing at your next renewal? The $5 monthly minimum includes $5 of compute. Additional compute costs $0.02 per compute-unit hour. A $5 monthly spending cap applies by default; overages stay disabled until you authorize a higher cap. Your current plan stays active until renewal.`
+      : `Schedule a change from ${current} ($${currentPrice}/month) to ${target} ($${targetPrice}/month) at your next renewal? Your current plan stays active until then. Containers exceeding the new limits will stop when the change takes effect.`;
   if (!window.confirm(changeText)) return;
   busy = true;
   render();
@@ -482,7 +547,7 @@ async function cancelSubscription() {
   if (busy) return;
   const version = authVersion;
   const access = subscriptionState?.active ? 'Your paid plan stays active until then. ' : '';
-  if (!window.confirm(`Cancel your subscription ${periodEnd()}? ${access}Any scheduled plan change will be canceled.`)) return;
+  if (!window.confirm(`Cancel your subscription ${periodEnd()}? ${access}Any scheduled plan change will be canceled.${subscriptionState?.plan === 'usage' ? ' Outstanding compute usage remains payable.' : ''}`)) return;
   busy = true;
   render();
   try {
@@ -527,6 +592,31 @@ planButtons.forEach((button) => button.addEventListener("click", async () => {
   if (subscription) return openBilling();
   return openCheckout(button.dataset.plan!);
 }));
+document.querySelector<HTMLInputElement>('#usage-spend-limit')?.addEventListener('input', () => { capDirty = true; });
+document.querySelector<HTMLInputElement>('#usage-authorize')?.addEventListener('change', () => { capDirty = true; });
+document.querySelector<HTMLFormElement>('#usage-limit-form')?.addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget as HTMLFormElement;
+  if (busy || !ready || !user || subscriptionState?.plan !== 'usage' || !form.reportValidity()) return;
+  const cap = document.querySelector<HTMLInputElement>('#usage-spend-limit')!;
+  const spendLimitCents = Math.round(Number(cap.value) * 100);
+  const authorizeOverages = document.querySelector<HTMLInputElement>('#usage-authorize')!.checked;
+  if (spendLimitCents > 500 && !authorizeOverages) { usageError = 'Authorize usage charges above $5 to raise your cap.'; render(); return; }
+  const version = authVersion;
+  busy = true; render();
+  try {
+    const data = await api('/subscription/usage', { spendLimitCents, authorizeOverages });
+    if (version !== authVersion) return;
+    if (!data.billing) throw new Error('billing_unavailable');
+    usageBilling = data.billing; capDirty = false;
+    usageError = 'Spending cap saved.';
+  } catch (error) {
+    if (version !== authVersion) return;
+    usageError = error instanceof Error && error.message === 'spend_limit_below_committed_usage'
+      ? 'This cap is below usage already incurred or reserved. Stop machines to release unused runtime, then try again.'
+      : 'Could not save the spending cap. Try again.';
+  } finally { if (version === authVersion) { busy = false; render(); } }
+});
 manage.addEventListener("click", openBilling);
 cancelButton?.addEventListener("click", cancelSubscription);
 resumeButton?.addEventListener("click", resumeSubscription);
