@@ -1,4 +1,5 @@
 import { API_ORIGIN, createAuthClient } from './auth.ts';
+import { createProjectHosting } from './project-hosting.ts';
 
 interface Project { id: string; name: string; domain?: string | null; created_at: string }
 
@@ -18,8 +19,10 @@ const cancel = document.querySelector<HTMLButtonElement>('#project-cancel')!;
 const formError = document.querySelector<HTMLElement>('#project-error')!;
 const formStatus = document.querySelector<HTMLElement>('#project-status')!;
 const dialogTitle = document.querySelector<HTMLElement>('#project-dialog-title')!;
+const hosting = createProjectHosting({ onUnauthenticated: () => goToLogin() });
 let projects: Project[] = [];
 let editButtons = new Map<string, HTMLButtonElement>();
+let endpointButtons = new Map<string, HTMLButtonElement>();
 let editingProject: Project | null = null;
 let busy = false;
 let authenticated = false;
@@ -30,6 +33,7 @@ const abort = new AbortController();
 function goToLogin() {
   disposed = true;
   abort.abort();
+  hosting.dispose();
   dialog.close();
   list.replaceChildren();
   controls();
@@ -42,12 +46,14 @@ function controls() {
   retry.disabled = busy || disposed;
   name.disabled = domain.disabled = create.disabled = cancel.disabled = busy || disposed;
   for (const button of editButtons.values()) button.disabled = busy || disposed;
+  for (const button of endpointButtons.values()) button.disabled = busy || disposed;
   form.setAttribute('aria-busy', String(busy));
 }
 
 function render() {
   list.replaceChildren();
   editButtons = new Map();
+  endpointButtons = new Map();
   for (const project of projects) {
     const row = document.createElement('tr');
     row.className = 'project-table-row';
@@ -68,6 +74,15 @@ function render() {
     edit.addEventListener('click', () => openProjectDialog(project));
     editButtons.set(project.id, edit);
     actions.append(edit);
+    const endpoint = document.createElement('button');
+    endpoint.type = 'button';
+    endpoint.className = 'dashboard-retry';
+    endpoint.textContent = 'Endpoint';
+    endpoint.setAttribute('aria-label', `Manage endpoint for ${project.name}`);
+    endpoint.disabled = busy || disposed;
+    endpoint.addEventListener('click', () => hosting.open(project));
+    endpointButtons.set(project.id, endpoint);
+    actions.append(endpoint);
     const actionCell = document.createElement('td');
     actionCell.className = 'project-actions';
     actionCell.append(actions);

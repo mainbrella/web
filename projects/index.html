@@ -42,6 +42,40 @@
         </div>
       </form>
     </dialog>
+    <dialog id="endpoint-dialog" class="private-services-dialog endpoint-dialog" aria-labelledby="endpoint-title">
+      <h2 id="endpoint-title">Endpoint</h2>
+      <p id="endpoint-status" class="dashboard-status" role="status"></p>
+      <p id="endpoint-error" class="dashboard-error" role="alert" hidden></p>
+      <button id="endpoint-refresh" class="dashboard-retry" type="button">Refresh endpoint</button>
+      <p><a id="endpoint-url" target="_blank" rel="noopener" hidden></a></p>
+      <p class="dashboard-status">The public URL forwards to the selected application port. Containers and registered network services must be running.</p>
+      <label for="endpoint-mode">Target</label>
+      <select id="endpoint-mode"><option value="container">Container</option><option value="network">Private Services network</option></select>
+      <div id="endpoint-container-field">
+        <label for="endpoint-container">Running container</label><select id="endpoint-container"></select>
+        <label for="endpoint-port">Application port</label><input id="endpoint-port" type="number" min="1024" max="65535" step="1" value="3000" inputmode="numeric" />
+      </div>
+      <div id="endpoint-network-field" hidden>
+        <label for="endpoint-network">Network</label><select id="endpoint-network"></select>
+        <label for="endpoint-service">Registered service</label><select id="endpoint-service"></select>
+      </div>
+      <div class="container-actions endpoint-actions">
+        <button id="endpoint-save" class="button button-small" type="button">Publish endpoint</button>
+        <button id="endpoint-unpublish" class="dashboard-retry" type="button" hidden>Unpublish</button>
+      </div>
+      <section id="endpoint-domains" hidden aria-labelledby="endpoint-domains-title">
+        <h3 id="endpoint-domains-title">Custom domains</h3>
+        <form id="endpoint-domain-form">
+          <label for="endpoint-hostname">Hostname</label>
+          <input id="endpoint-hostname" type="text" maxlength="253" placeholder="app.example.com" autocomplete="off" autocapitalize="none" spellcheck="false" />
+          <button id="endpoint-domain-add" class="dashboard-retry" type="submit">Add domain</button>
+        </form>
+        <div id="endpoint-domain-list" class="endpoint-domain-list"></div>
+        <div class="endpoint-table-scroll"><table class="endpoint-dns-table"><caption class="visually-hidden">Custom domain DNS records</caption><thead><tr><th scope="col">Type</th><th scope="col">Name</th><th scope="col">Value</th><th scope="col"><span class="visually-hidden">Copy</span></th></tr></thead><tbody id="endpoint-records"></tbody></table></div>
+        <div class="endpoint-table-scroll"><table class="endpoint-dns-table"><caption class="visually-hidden">Apex DNS records</caption><thead><tr><th scope="col">Type</th><th scope="col">Name</th><th scope="col">Value</th><th scope="col"><span class="visually-hidden">Copy</span></th></tr></thead><tbody id="endpoint-apex"></tbody></table></div>
+      </section>
+      <div class="container-actions"><button id="endpoint-close" class="dashboard-retry" type="button">Close</button></div>
+    </dialog>
     <script type="module" src="/src/account-menu.ts"></script>
     <script type="module" src="/src/projects.ts"></script>
   </body>

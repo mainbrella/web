@@ -208,6 +208,28 @@
 .private-services-dialog :is(input, select) { display: block; box-sizing: border-box; width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--control-border); border-radius: 4px; background: var(--paper); color: var(--ink); }
 .private-services-dialog .dashboard-status { margin-top: 6px; font-size: 12px; }
 .private-services-dialog .container-actions { flex-wrap: wrap; margin-top: 20px; }
+.endpoint-dialog { width: min(620px, calc(100% - 32px)); }
+.endpoint-dialog h3 { margin: 22px 0 8px; font-size: 15px; }
+.endpoint-dialog [hidden] { display: none !important; }
+.endpoint-dialog .endpoint-actions { margin-top: 14px; }
+.endpoint-dialog #endpoint-domains { margin-top: 22px; }
+.endpoint-domain-list { display: grid; gap: 8px; margin-top: 10px; }
+.endpoint-domain-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.endpoint-domain-row strong { overflow-wrap: anywhere; }
+.endpoint-domain-row .dashboard-status { margin: 0 auto 0 0; }
+.endpoint-domain-row .dashboard-error { flex-basis: 100%; margin: 0; }
+.endpoint-table-scroll { max-width: 100%; margin-top: 12px; overflow-x: auto; }
+.endpoint-dns-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12px; }
+.endpoint-dns-table th, .endpoint-dns-table td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+.endpoint-dns-table thead th { color: var(--muted); font-size: 11px; font-weight: 500; }
+.endpoint-dns-table tr > :first-child { width: 64px; }
+.endpoint-dns-table tr > :last-child { width: 64px; }
+.endpoint-dns-table tbody tr > th { padding-top: 14px; font-weight: 600; }
+.endpoint-dns-table code { overflow-wrap: anywhere; font-size: 11px; }
+.endpoint-dns-table button { min-height: 36px; }
+@media (max-width: 560px) {
+  .endpoint-dns-table { min-width: 420px; }
+}
 @media (max-width: 1100px) {
   .machine-table .machine-column-4 { display: none; }
   .machine-table .machine-column-0 { width: 22%; }
