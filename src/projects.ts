@@ -16,7 +16,10 @@ const create = document.querySelector<HTMLButtonElement>('#project-create')!;
 const cancel = document.querySelector<HTMLButtonElement>('#project-cancel')!;
 const formError = document.querySelector<HTMLElement>('#project-error')!;
 const formStatus = document.querySelector<HTMLElement>('#project-status')!;
+const dialogTitle = document.querySelector<HTMLElement>('#project-dialog-title')!;
 let projects: Project[] = [];
+let editButtons = new Map<string, HTMLButtonElement>();
+let editingProject: Project | null = null;
 let busy = false;
 let authenticated = false;
 let disposed = false;
@@ -37,11 +40,13 @@ function controls() {
   newProject.disabled = busy || disposed || !authenticated;
   retry.disabled = busy || disposed;
   name.disabled = create.disabled = cancel.disabled = busy || disposed;
+  for (const button of editButtons.values()) button.disabled = busy || disposed;
   form.setAttribute('aria-busy', String(busy));
 }
 
 function render() {
   list.replaceChildren();
+  editButtons = new Map();
   for (const project of projects) {
     const row = document.createElement('li');
     row.className = 'container-row';
@@ -49,18 +54,31 @@ function render() {
     const title = document.createElement('strong');
     title.textContent = project.name;
     details.append(title);
-    row.append(details);
+    const actions = document.createElement('div');
+    actions.className = 'container-actions';
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'dashboard-retry';
+    edit.textContent = 'Edit';
+    edit.setAttribute('aria-label', `Edit project ${project.name}`);
+    edit.disabled = busy || disposed;
+    edit.addEventListener('click', () => openProjectDialog(project));
+    editButtons.set(project.id, edit);
+    actions.append(edit);
+    row.append(details, actions);
     list.append(row);
   }
   status.textContent = projects.length ? '' : "You haven't created any projects.";
 }
 
-async function request(projectName?: string) {
-  const response = await fetch(`${API_ORIGIN}/projects`, {
-    method: projectName === undefined ? 'GET' : 'POST', credentials: 'include', redirect: 'error',
+async function request(fields?: { name: string }, id?: string) {
+  const method = fields === undefined ? 'GET' : id === undefined ? 'POST' : 'PATCH';
+  const endpoint = id === undefined ? `${API_ORIGIN}/projects` : `${API_ORIGIN}/projects?id=${encodeURIComponent(id)}`;
+  const response = await fetch(endpoint, {
+    method, credentials: 'include', redirect: 'error',
     signal: AbortSignal.any([abort.signal, AbortSignal.timeout(15_000)]),
-    headers: { accept: 'application/json', ...(projectName === undefined ? {} : { 'content-type': 'application/json' }) },
-    ...(projectName === undefined ? {} : { body: JSON.stringify({ name: projectName }) }),
+    headers: { accept: 'application/json', ...(fields === undefined ? {} : { 'content-type': 'application/json' }) },
+    ...(fields === undefined ? {} : { body: JSON.stringify(fields) }),
   });
   if (response.status === 401) { goToLogin(); throw new Error('not_authenticated'); }
   const data = await response.json().catch(() => null);
@@ -93,51 +111,81 @@ async function load() {
   } finally { busy = false; controls(); }
 }
 
-newProject.addEventListener('click', () => {
+function openProjectDialog(project?: Project) {
+  if (busy || disposed || !authenticated) return;
+  editingProject = project ?? null;
   form.reset();
   formError.hidden = true;
+  formError.textContent = '';
   formStatus.textContent = '';
+  dialogTitle.textContent = editingProject ? 'Edit project' : 'New project';
+  create.textContent = editingProject ? 'Save changes' : 'Create project';
+  if (editingProject) name.value = editingProject.name;
   dialog.showModal();
   name.focus();
-});
+}
+
+function resetProjectDialog() {
+  editingProject = null;
+  form.reset();
+  formError.hidden = true;
+  formError.textContent = '';
+  formStatus.textContent = '';
+  dialogTitle.textContent = 'New project';
+  create.textContent = 'Create project';
+}
+
+newProject.addEventListener('click', () => openProjectDialog());
 cancel.addEventListener('click', () => dialog.close());
 dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); });
 form.addEventListener('submit', async event => {
   event.preventDefault();
   if (busy || disposed || !form.reportValidity()) return;
-  const projectName = name.value.trim();
-  if (!projectName) {
+  const fields = { name: name.value.trim() };
+  if (!fields.name) {
     formError.textContent = 'Enter a project name.';
     formError.hidden = false;
     name.focus();
     return;
   }
   busy = true;
+  const editing = editingProject;
+  let restoreFocusId: string | null = null;
   controls();
   formError.hidden = true;
-  formStatus.textContent = 'Creating project…';
+  formStatus.textContent = editing ? 'Saving changes…' : 'Creating project…';
   try {
-    const data = await request(projectName);
+    const data = await request(fields, editing?.id);
     if (disposed) return;
-    if (!data.project || typeof data.project.id !== 'string' || typeof data.project.name !== 'string') throw new Error('invalid_response');
-    projects.unshift(data.project);
+    if (!data.project || typeof data.project.id !== 'string' || typeof data.project.name !== 'string'
+      || (editing && data.project.id !== editing.id)) throw new Error('invalid_response');
+    if (editing) {
+      const index = projects.findIndex(project => project.id === editing.id);
+      if (index < 0) throw new Error('project_missing');
+      projects[index] = data.project;
+    } else projects.unshift(data.project);
     render();
     dialog.close();
-    status.textContent = 'Project created.';
+    restoreFocusId = data.project.id;
+    status.textContent = editing ? 'Project updated.' : 'Project created.';
   } catch {
     if (disposed) return;
-    refreshOnClose = true;
-    formError.textContent = 'Could not confirm project creation. Close this dialog and refresh the list before trying again.';
+    refreshOnClose = !editing;
+    formError.textContent = editing
+      ? 'Could not save your changes. Check your connection and try again.'
+      : 'Could not confirm project creation. Close this dialog and refresh the list before trying again.';
     formError.hidden = false;
   } finally {
     busy = false;
     formStatus.textContent = '';
     controls();
+    if (restoreFocusId && !disposed) editButtons.get(restoreFocusId)?.focus();
   }
 });
 
 retry.addEventListener('click', load);
 dialog.addEventListener('close', () => {
+  resetProjectDialog();
   if (refreshOnClose && !disposed) { refreshOnClose = false; load(); }
 });
 window.addEventListener('auth-change', event => { if (event.detail?.user === null) goToLogin(); });
