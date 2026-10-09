@@ -33,7 +33,8 @@ const errors: Record<string, string> = {
   domain_reconciliation_required: 'Domain state changed while saving. Refresh the endpoint before trying again.',
   project_conflict: 'Endpoint settings changed elsewhere. Refresh the endpoint before trying again.',
   ownership_txt_missing: 'Add the ownership TXT record shown below, then check DNS again.',
-  routing_dns_missing: 'Add the routing DNS records shown below, then check DNS again.',
+  routing_dns_missing: 'Add the routing DNS records shown below, then check DNS again. On Cloudflare DNS, use DNS only (gray cloud).',
+  domain_verification_unavailable: 'Domain verification is temporarily unavailable. Try again.',
   service_unavailable: 'This service is temporarily unavailable. Refresh the endpoint and try again.',
 };
 
