@@ -16,6 +16,8 @@ test('endpoint response validates target union and retains DNS status and record
   assert.throws(() => parseEndpointData({ ...endpoint, endpoint: { ...endpoint.endpoint, target: { kind: 'container', id: 'c1', createdAt: '2026-02-30T00:00:00Z', port: 3000 } } }), /invalid_response/);
   assert.throws(() => parseEndpointData({ ...endpoint, endpoint: { ...endpoint.endpoint, target: { kind: 'network', network: 'valid-net', id: 'c1' } } }), /invalid_response/);
   assert.throws(() => parseEndpointData({ ...endpoint, endpoint: { ...endpoint.endpoint, target: { kind: 'container', id: 'c1', createdAt: '2026-01-01T00:00:00.000Z', port: 1023 } } }), /invalid_response/);
+  assert.throws(() => parseEndpointData({ ...endpoint, hosting: { ...endpoint.hosting, localDevelopment: 'true' } }), /invalid_response/);
+  assert.equal(parseEndpointData({ ...endpoint, hosting: { ...endpoint.hosting, localDevelopment: true } }).hosting.localDevelopment, true);
 });
 
 test('endpoint and custom domain links enforce their HTTPS hostname contracts', () => {
@@ -28,6 +30,11 @@ test('endpoint and custom domain links enforce their HTTPS hostname contracts', 
   assert.equal(safeCustomDomainUrl('shop.xn--p1ai')?.href, 'https://shop.xn--p1ai/');
   assert.equal(safeCustomDomainUrl('www.example.com')?.href, 'https://www.example.com/');
   assert.equal(safeCustomDomainUrl('example.com/path'), null);
+  assert.equal(safeCustomDomainUrl('app.localhost', true)?.href, 'http://app.localhost:8787/');
+  assert.equal(safeCustomDomainUrl('app.localhost', true)?.protocol, 'http:');
+  for (const hostname of ['p-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.localhost', `${'a'.repeat(48)}.localhost`, 'app.dev.localhost', 'App.localhost', 'app.example.com', 'foo_bar.localhost']) {
+    assert.equal(safeCustomDomainUrl(hostname, true), null, hostname);
+  }
 });
 
 test('publishing sends the exact selected container generation and preserves a failed draft', async () => {
@@ -171,4 +178,42 @@ test('controller keeps registered domains removable after catalog failure and ne
   assert.equal(removed, true);
   assert.equal(list.children.length, 0);
   assert.match(node('#endpoint-error').textContent, /target options could not be refreshed/);
+});
+
+test('local development activates aliases after two checks and links active aliases to the app', async t => {
+  const nodes = new Map<string, FakeElement>(); const made: FakeElement[] = [];
+  const node = (selector: string) => { if (!nodes.has(selector)) nodes.set(selector, new FakeElement()); return nodes.get(selector)!; };
+  const oldDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  Object.defineProperty(globalThis, 'document', { value: { querySelector: node, createElement: (tagName: string) => { const item = new FakeElement(); item.tagName = tagName.toUpperCase(); made.push(item); return item; } }, configurable: true });
+  let currentDomain = { ...domain, hostname: 'app.localhost', status: 'pending_tls', dnsStatus: 'verified', tlsStatus: 'pending' };
+  let verifications = 0;
+  const fetcher = async (input: RequestInfo | URL) => {
+    const url = new URL(String(input));
+    if (url.pathname === '/projects/endpoint') return Response.json({ ...endpoint, endpoint: { ...endpoint.endpoint, url: `http://p-${'a'.repeat(32)}.localhost:8787/`, target: { kind: 'container', id: 'container-1', createdAt: '2026-01-01T00:00:00.000Z', port: 3000 }, backendStatus: 'running' }, domains: [currentDomain], hosting: { ...endpoint.hosting, localDevelopment: true } });
+    if (url.pathname === '/capabilities') return Response.json({ networking: { privateServices: false } });
+    if (url.pathname === '/containers') return Response.json({ containers: [{ id: 'container-1', createdAt: '2026-01-01T00:00:00.000Z', status: 'running', expiresAt: 0 }] });
+    if (url.pathname === '/projects/domains/verify') {
+      verifications++;
+      if (verifications === 2) currentDomain = { ...currentDomain, status: 'active', tlsStatus: 'active' };
+      return Response.json({ domain: currentDomain });
+    }
+    throw new Error(`unexpected request ${url.pathname}`);
+  };
+  const controller = createProjectHosting({ onUnauthenticated() {}, fetcher });
+  node('#endpoint-dialog').querySelectorAll = (selector: string) => selector === '[data-endpoint-action]' ? made.filter(item => item.dataset.endpointAction) : [];
+  t.after(() => controller.dispose());
+  t.after(() => { if (oldDocument) Object.defineProperty(globalThis, 'document', oldDocument); else Reflect.deleteProperty(globalThis, 'document'); });
+  const flush = async () => { await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve)); };
+  controller.open({ id: 'project-1', name: 'Local' }); await flush();
+  assert.equal(node('#endpoint-url').href, `http://p-${'a'.repeat(32)}.localhost:8787/`);
+  assert.equal(node('#endpoint-hostname').placeholder, 'app.localhost');
+  assert.match(node('#endpoint-local-note').textContent, /DNS and TLS are simulated locally/);
+  const list = node('#endpoint-domain-list');
+  assert.equal(list.children[0].children[0].href, '');
+  assert.equal(list.children[0].children[2].textContent, 'Activate locally');
+  await list.children[0].children[2].fire('click'); await flush();
+  assert.equal(list.children[0].children[2].textContent, 'Activate locally');
+  await list.children[0].children[2].fire('click'); await flush();
+  assert.equal(list.children[0].children[0].href, 'http://app.localhost:8787/');
+  assert.equal(list.children[0].children[1].textContent, 'Active');
 });

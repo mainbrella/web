@@ -14,7 +14,7 @@ export interface ProjectDomain {
 export interface EndpointData {
   endpoint: { projectId: string; url: string; target: EndpointTarget | null; backendStatus: 'running' | 'unavailable' | 'unlinked' };
   domains: ProjectDomain[];
-  hosting: { supported: boolean; customDomains: boolean; apexIps: string[] };
+  hosting: { supported: boolean; customDomains: boolean; apexIps: string[]; localDevelopment?: boolean };
 }
 
 const errors: Record<string, string> = {
@@ -44,6 +44,7 @@ export function parseEndpointData(input: unknown): EndpointData {
   if (!endpoint || typeof endpoint.projectId !== 'string' || typeof endpoint.url !== 'string'
     || !['running', 'unavailable', 'unlinked'].includes(endpoint.backendStatus)
     || !hosting || typeof hosting.supported !== 'boolean' || typeof hosting.customDomains !== 'boolean'
+    || hosting.localDevelopment !== undefined && typeof hosting.localDevelopment !== 'boolean'
     || !Array.isArray(hosting.apexIps) || !hosting.apexIps.every(ip => typeof ip === 'string') || !Array.isArray(value?.domains)) throw new Error('invalid_response');
   const target = endpoint.target;
   if (target !== null) {
@@ -121,8 +122,18 @@ export function safeEndpointUrl(value: string): URL | null {
     return url;
   } catch { return null; }
 }
-export function safeCustomDomainUrl(hostname: string): URL | null {
+export function safeCustomDomainUrl(hostname: string, localDevelopment = false): URL | null {
   try {
+    if (localDevelopment) {
+      const api = new URL(API_ORIGIN);
+      const label = hostname.endsWith('.localhost') ? hostname.slice(0, -'.localhost'.length) : '';
+      if (api.protocol !== 'http:' || !['localhost', '127.0.0.1'].includes(api.hostname)
+        || !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)
+        || /^p-[a-f0-9]{32}$/.test(label) || /^[a-f0-9]{48}$/.test(label)) return null;
+      const url = new URL(`http://${hostname}/`);
+      url.port = api.port;
+      return url;
+    }
     const url = new URL(`https://${hostname}/`);
     if (url.protocol !== 'https:' || url.username || url.password || url.hostname.toLowerCase() !== hostname.toLowerCase()
       || hostname.length > 253 || !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(hostname)) return null;
@@ -152,6 +163,7 @@ export function createProjectHosting({ onUnauthenticated, fetcher = fetch }: { o
   const domainList = document.querySelector<HTMLElement>('#endpoint-domain-list')!;
   const domainForm = document.querySelector<HTMLFormElement>('#endpoint-domain-form')!;
   const hostname = document.querySelector<HTMLInputElement>('#endpoint-hostname')!;
+  const localNote = document.querySelector<HTMLElement>('#endpoint-local-note')!;
   const records = document.querySelector<HTMLElement>('#endpoint-records')!;
   const apex = document.querySelector<HTMLElement>('#endpoint-apex')!;
   const close = document.querySelector<HTMLButtonElement>('#endpoint-close')!;
@@ -205,7 +217,7 @@ export function createProjectHosting({ onUnauthenticated, fetcher = fetch }: { o
     domainList.replaceChildren(); records.replaceChildren(); apex.replaceChildren();
     for (const item of data?.domains ?? []) {
       const row = document.createElement('div'); row.className = 'endpoint-domain-row';
-      const domainUrl = safeCustomDomainUrl(item.hostname);
+      const domainUrl = safeCustomDomainUrl(item.hostname, data?.hosting.localDevelopment === true);
       const name = item.status === 'active' && data?.endpoint.backendStatus === 'running' && domainUrl
         ? document.createElement('a') : document.createElement('strong');
       name.textContent = item.hostname;
@@ -214,7 +226,7 @@ export function createProjectHosting({ onUnauthenticated, fetcher = fetch }: { o
       row.append(name, state);
       const humanError = domainErrorText(item.error);
       if (humanError) { const detail = document.createElement('p'); detail.className = 'dashboard-error'; detail.textContent = humanError; row.append(detail); }
-      const check = document.createElement('button'); check.type = 'button'; check.className = 'dashboard-retry'; check.textContent = item.status === 'active' ? 'Check DNS' : 'Verify DNS'; check.dataset.endpointAction = 'true';
+      const check = document.createElement('button'); check.type = 'button'; check.className = 'dashboard-retry'; check.textContent = data?.hosting.localDevelopment && item.status === 'pending_tls' ? 'Activate locally' : item.status === 'active' ? 'Check DNS' : 'Verify DNS'; check.dataset.endpointAction = 'true';
       check.dataset.unavailable = String(!data?.hosting.customDomains);
       check.addEventListener('click', () => operate(async projectId => { const updated = await client.verifyDomain(projectId, item.id); return () => replaceDomain(updated); })); row.append(check);
       const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'dashboard-retry'; remove.textContent = 'Remove'; remove.dataset.endpointAction = 'true'; remove.addEventListener('click', () => { if (!window.confirm(`Remove ${item.hostname} from this project?`)) return; return operate(async projectId => { const domains = await client.removeDomain(projectId, item.id); return () => { if (data) data.domains = domains; }; }); }); row.append(remove);
@@ -228,6 +240,10 @@ export function createProjectHosting({ onUnauthenticated, fetcher = fetch }: { o
         for (const record of apexRecords) addRecordRow(apex, record);
       }
     }
+    const localDevelopment = data?.hosting.localDevelopment === true;
+    hostname.placeholder = localDevelopment ? 'app.localhost' : 'app.example.com';
+    localNote.hidden = !localDevelopment || !data?.hosting.customDomains;
+    localNote.textContent = localDevelopment ? 'DNS and TLS are simulated locally. Click Verify DNS twice to activate the alias.' : '';
     domainForm.hidden = !data?.hosting.customDomains;
     domainSection.hidden = !data || (!data.hosting.customDomains && data.domains.length === 0);
   }
@@ -280,7 +296,7 @@ export function createProjectHosting({ onUnauthenticated, fetcher = fetch }: { o
     if (busy || disposed || !currentProject || !data) return;
     const at = epoch, projectId = currentProject.id; busy = true; controls(); feedback('Saving…');
     try { const apply = await action(projectId); if (disposed || epoch !== at || currentProject?.id !== projectId) return; apply(); feedback(''); render(); }
-    catch (caught) { if (disposed || epoch !== at) return; const code = (caught as Error)?.message ?? ''; feedback(errors[code] ?? 'Could not confirm this change. Refresh the endpoint before trying again.', true); }
+    catch (caught) { if (disposed || epoch !== at) return; const code = (caught as Error)?.message ?? ''; feedback(data?.hosting.localDevelopment && ['invalid_hostname', 'domain_invalid'].includes(code) ? 'Use one local hostname such as app.localhost.' : errors[code] ?? 'Could not confirm this change. Refresh the endpoint before trying again.', true); }
     finally { if (!disposed && epoch === at) { busy = false; controls(); } }
   }
   targetMode.addEventListener('change', () => { containerField.hidden = targetMode.value !== 'container'; networkField.hidden = targetMode.value !== 'network'; controls(); });
@@ -301,7 +317,7 @@ export function createProjectHosting({ onUnauthenticated, fetcher = fetch }: { o
   close.addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => { epoch++; requestAbort.abort(); currentProject = null; data = null; busy = false; feedback(''); records.replaceChildren(); apex.replaceChildren(); domainList.replaceChildren(); });
   return {
-    open(project: { id: string; name: string; domain?: string | null }) { if (disposed) return; epoch++; requestAbort.abort(); requestAbort = new AbortController(); client = createProjectHostingClient({ fetcher, onUnauthenticated, signal: requestAbort.signal }); currentProject = project; data = null; catalogError = false; containers = []; networks = []; hostname.value = project.domain ?? ''; port.value = '3000'; targetMode.value = 'container'; container.value = ''; network.value = ''; service.value = ''; identities.clear(); feedback(''); domainSection.hidden = true; dialog.showModal(); load(); },
+    open(project: { id: string; name: string; domain?: string | null }) { if (disposed) return; epoch++; requestAbort.abort(); requestAbort = new AbortController(); client = createProjectHostingClient({ fetcher, onUnauthenticated, signal: requestAbort.signal }); currentProject = project; data = null; catalogError = false; containers = []; networks = []; hostname.value = project.domain ?? ''; port.value = '3000'; targetMode.value = 'container'; container.value = ''; network.value = ''; service.value = ''; identities.clear(); feedback(''); domainSection.hidden = true; localNote.hidden = true; dialog.showModal(); load(); },
     dispose() { disposed = true; epoch++; requestAbort.abort(); dialog.close(); controls(); },
   };
 }

@@ -89,6 +89,11 @@ website together; the checkout response now supplies a client secret instead of 
 hosted URL.
 
 For local development, run the backend on port 8787 and this site on port 5173.
+Start the frontend with `npm run dev` from this directory. If the backend uses a
+different port or origin, set `VITE_API_URL` when starting Vite, for example
+`VITE_API_URL=http://localhost:9000 npm run dev`. When local project hosting is
+enabled, aliases use one label such as `app.localhost`; DNS and TLS checks are
+simulated, so click Verify DNS twice to activate an alias.
 Use matching Stripe test secret/publishable keys and test recurring prices in a local branch; the supplied
 production prices belong to their Stripe account and mode. The backend verifies
 subscription state with Stripe, saves billing details in `pro_billing`, and
