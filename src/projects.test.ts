@@ -59,11 +59,12 @@ async function fixture(t: TestContext, respond: (url: string, options: RequestIn
   await import(`./projects.ts?test=${++sequence}`);
   const flush = async () => { await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve)); };
   await flush();
-  return { node: (selector: string) => node(selector), calls, redirects };
+  return { node: (selector: string) => node(selector), calls, redirects, flush };
 }
 
 function defaultResponse(url: string, options: RequestInit) {
   if (new URL(url).pathname === '/auth/me') return Response.json({ user: { id: 'account' } });
+  if (new URL(url).pathname === '/projects/endpoint') return Response.json({ endpoint: { projectId: new URL(url).searchParams.get('id'), url: 'https://p-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.mainbrella.dev/', target: null, backendStatus: 'unlinked' }, domains: [], hosting: { supported: true, customDomains: true, apexIps: [] } });
   if (options.method === 'GET') return Response.json({ projects: [originalProject, secondProject] });
   if (options.method === 'PATCH') {
     const requested = JSON.parse(String(options.body));
@@ -73,7 +74,7 @@ function defaultResponse(url: string, options: RequestInit) {
 }
 
 function editButton(f: Awaited<ReturnType<typeof fixture>>, index: number) {
-  return f.node('#project-list').children[index].children[2].children[0].children[0];
+  return f.node('#project-list').children[index].children[3].children[0].children[0];
 }
 
 test('shared dialog creates and edits projects, preserves order, and resets its mode', async t => {
@@ -132,6 +133,7 @@ test('failed edit keeps the draft, locks controls while pending, and can be retr
   let failNext = true;
   const f = await fixture(t, (url, options) => {
     if (new URL(url).pathname === '/auth/me') return Response.json({ user: { id: 'account' } });
+    if (new URL(url).pathname === '/projects/endpoint') return defaultResponse(url, options);
     if (options.method === 'GET') return Response.json({ projects: [originalProject] });
     if (failNext) return new Promise<Response>(resolve => { finish = resolve; });
     const requested = JSON.parse(String(options.body));
@@ -167,6 +169,7 @@ test('failed edit keeps the draft, locks controls while pending, and can be retr
 test('a 401 during edit disposes the page and redirects to login', async t => {
   const f = await fixture(t, (url, options) => {
     if (new URL(url).pathname === '/auth/me') return Response.json({ user: { id: 'account' } });
+    if (new URL(url).pathname === '/projects/endpoint') return defaultResponse(url, options);
     if (options.method === 'GET') return Response.json({ projects: [originalProject] });
     return Response.json({ error: 'unauthorized' }, { status: 401 });
   });
@@ -179,4 +182,77 @@ test('a 401 during edit disposes the page and redirects to login', async t => {
   assert.equal(f.node('#project-new').disabled, true);
   await staleEdit.fire('click');
   assert.equal(f.node('#project-dialog').open, false);
+});
+
+test('preview shows configured safe URLs and marks unavailable endpoints', async t => {
+  const f = await fixture(t, (url, options) => {
+    if (new URL(url).pathname === '/auth/me') return Response.json({ user: { id: 'account' } });
+    if (options.method === 'GET' && new URL(url).pathname === '/projects') return Response.json({ projects: [originalProject, secondProject] });
+    const projectId = new URL(url).searchParams.get('id');
+    const offline = projectId === 'project-2';
+    const host = offline ? `p-${'b'.repeat(32)}` : `p-${'a'.repeat(32)}`;
+    return Response.json({ endpoint: { projectId, url: `https://${host}.mainbrella.dev/`, target: { kind: 'container', id: 'container-1', createdAt: '2026-01-01T00:00:00.000Z', port: 3000 }, backendStatus: offline ? 'unavailable' : 'running' }, domains: [], hosting: { supported: true, customDomains: true, apexIps: [] } });
+  });
+  const rows = f.node('#project-list').children;
+  const link = rows[0].children[2].children[0];
+  assert.equal(link.target, '_blank');
+  assert.equal(link.rel, 'noopener');
+  assert.match(link.href, /^https:\/\/p-a{32}\.mainbrella\.dev\/$/);
+  assert.equal(rows[1].children[2].children[0].textContent, `https://p-${'b'.repeat(32)}.mainbrella.dev/`);
+  assert.equal(rows[1].children[2].children[1].textContent, 'Unavailable');
+});
+
+test('preview lookup failures stay local and can be retried', async t => {
+  let fail = true;
+  const f = await fixture(t, (url, options) => {
+    if (new URL(url).pathname === '/auth/me') return Response.json({ user: { id: 'account' } });
+    if (new URL(url).pathname === '/projects' && options.method === 'GET') return Response.json({ projects: [originalProject] });
+    if (new URL(url).pathname === '/projects/endpoint' && fail) return Response.json({ error: 'unavailable' }, { status: 503 });
+    return Response.json({ endpoint: { projectId: 'project-1', url: 'https://p-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.mainbrella.dev/', target: null, backendStatus: 'unlinked' }, domains: [], hosting: { supported: true, customDomains: true, apexIps: [] } });
+  });
+  const row = f.node('#project-list').children[0];
+  const retryPreview = row.children[2].children[1];
+  assert.equal(row.children[0].textContent, 'First project');
+  assert.equal(row.children[2].children[0].textContent, 'Could not load');
+  fail = false;
+  await retryPreview.fire('click');
+  await f.flush();
+  assert.equal(row.children[2].textContent, 'Not set');
+  assert.equal(f.node('#projects-error').hidden, true);
+});
+
+test('unsafe configured preview URLs show a retryable error, not an unset state', async t => {
+  const f = await fixture(t, (url, options) => {
+    if (new URL(url).pathname === '/auth/me') return Response.json({ user: { id: 'account' } });
+    if (new URL(url).pathname === '/projects' && options.method === 'GET') return Response.json({ projects: [originalProject] });
+    return Response.json({ endpoint: { projectId: 'project-1', url: 'javascript:alert(1)', target: { kind: 'container', id: 'container-1', createdAt: '2026-01-01T00:00:00.000Z', port: 3000 }, backendStatus: 'running' }, domains: [], hosting: { supported: true, customDomains: true, apexIps: [] } });
+  });
+  const preview = f.node('#project-list').children[0].children[2];
+  assert.equal(preview.children[0].textContent, 'Could not load');
+  assert.equal(preview.children[1].textContent, 'Retry');
+});
+
+test('sign-out aborts pending preview lookups and ignores their late responses', async t => {
+  let finishPreview!: (response: Response) => void;
+  let previewSignal: AbortSignal | undefined;
+  const f = await fixture(t, (url, options) => {
+    if (new URL(url).pathname === '/auth/me') return Response.json({ user: { id: 'account' } });
+    if (new URL(url).pathname === '/projects/endpoint' && new URL(url).searchParams.get('id') === 'project-1') {
+      previewSignal = options.signal as AbortSignal;
+      return new Promise<Response>(resolve => { finishPreview = resolve; });
+    }
+    if (new URL(url).pathname === '/projects/endpoint') return defaultResponse(url, options);
+    if (options.method === 'GET') return Response.json({ projects: [originalProject, secondProject] });
+    return Response.json({ error: 'unauthorized' }, { status: 401 });
+  });
+  const submit = editButton(f, 0).fire('click').then(() => {
+    f.node('#project-name').value = 'Private draft';
+    return f.node('#project-form').fire('submit');
+  });
+  await submit;
+  assert.deepEqual(f.redirects, ['/login/?returnTo=%2Fprojects%2F']);
+  assert.equal(previewSignal?.aborted, true);
+  finishPreview(Response.json({ endpoint: { projectId: 'project-1', url: `https://p-${'a'.repeat(32)}.mainbrella.dev/`, target: { kind: 'container', id: 'container-1', createdAt: '2026-01-01T00:00:00.000Z', port: 3000 }, backendStatus: 'running' }, domains: [], hosting: { supported: true, customDomains: true, apexIps: [] } }));
+  await f.flush();
+  assert.equal(f.node('#project-list').children.length, 0);
 });

@@ -1,5 +1,5 @@
 import { API_ORIGIN, createAuthClient } from './auth.ts';
-import { createProjectHosting } from './project-hosting.ts';
+import { createProjectHosting, createProjectHostingClient, safeEndpointUrl } from './project-hosting.ts';
 
 interface Project { id: string; name: string; domain?: string | null; created_at: string }
 
@@ -19,16 +19,21 @@ const cancel = document.querySelector<HTMLButtonElement>('#project-cancel')!;
 const formError = document.querySelector<HTMLElement>('#project-error')!;
 const formStatus = document.querySelector<HTMLElement>('#project-status')!;
 const dialogTitle = document.querySelector<HTMLElement>('#project-dialog-title')!;
-const hosting = createProjectHosting({ onUnauthenticated: () => goToLogin() });
+const abort = new AbortController();
+const previewClient = createProjectHostingClient({ onUnauthenticated: () => goToLogin(), signal: abort.signal });
+const hosting = createProjectHosting({ onUnauthenticated: () => goToLogin(), onClose: refreshPreview });
 let projects: Project[] = [];
 let editButtons = new Map<string, HTMLButtonElement>();
 let endpointButtons = new Map<string, HTMLButtonElement>();
+let previewCells = new Map<string, HTMLElement>();
+type PreviewState = { kind: 'loading' } | { kind: 'error' } | { kind: 'ready'; url: string | null; configured: boolean; available: boolean };
+const previews = new Map<string, PreviewState>();
+const previewEpoch = new Map<string, number>();
 let editingProject: Project | null = null;
 let busy = false;
 let authenticated = false;
 let disposed = false;
 let refreshOnClose = false;
-const abort = new AbortController();
 
 function goToLogin() {
   disposed = true;
@@ -50,10 +55,83 @@ function controls() {
   form.setAttribute('aria-busy', String(busy));
 }
 
+function renderPreview(projectId: string) {
+  const cell = previewCells.get(projectId);
+  if (!cell) return;
+  cell.replaceChildren();
+  const preview = previews.get(projectId) ?? { kind: 'loading' as const };
+  if (preview.kind === 'loading') {
+    cell.textContent = 'Loading…';
+    return;
+  }
+  if (preview.kind === 'error') {
+    const label = document.createElement('span');
+    label.textContent = 'Could not load';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'dashboard-retry';
+    button.textContent = 'Retry';
+    button.setAttribute('aria-label', 'Retry preview URL');
+    button.addEventListener('click', () => refreshPreview(projectId));
+    cell.append(label, button);
+    return;
+  }
+  if (!preview.url) {
+    cell.textContent = preview.configured ? 'Unavailable' : 'Not set';
+    return;
+  }
+  if (preview.available) {
+    const link = document.createElement('a');
+    link.href = preview.url;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = preview.url;
+    link.setAttribute('aria-label', `Open preview for ${projects.find(project => project.id === projectId)?.name ?? 'project'}`);
+    cell.append(link);
+  } else {
+    const url = document.createElement('span');
+    url.textContent = preview.url;
+    const note = document.createElement('span');
+    note.className = 'project-preview-note';
+    note.textContent = 'Unavailable';
+    cell.append(url, note);
+  }
+}
+
+function refreshPreview(projectId: string) {
+  if (disposed || !projects.some(project => project.id === projectId)) return;
+  const epoch = (previewEpoch.get(projectId) ?? 0) + 1;
+  previewEpoch.set(projectId, epoch);
+  previews.set(projectId, { kind: 'loading' });
+  renderPreview(projectId);
+  void previewClient.endpoint(projectId).then(data => {
+    if (disposed || previewEpoch.get(projectId) !== epoch) return;
+    const configured = data.endpoint.target !== null && data.endpoint.backendStatus !== 'unlinked';
+    const safeUrl = configured ? safeEndpointUrl(data.endpoint.url) : null;
+    if (configured && !safeUrl) {
+      previews.set(projectId, { kind: 'error' });
+      renderPreview(projectId);
+      return;
+    }
+    previews.set(projectId, {
+      kind: 'ready',
+      url: safeUrl?.href ?? null,
+      configured,
+      available: data.endpoint.backendStatus === 'running',
+    });
+    renderPreview(projectId);
+  }).catch(() => {
+    if (disposed || previewEpoch.get(projectId) !== epoch) return;
+    previews.set(projectId, { kind: 'error' });
+    renderPreview(projectId);
+  });
+}
+
 function render() {
   list.replaceChildren();
   editButtons = new Map();
   endpointButtons = new Map();
+  previewCells = new Map();
   for (const project of projects) {
     const row = document.createElement('tr');
     row.className = 'project-table-row';
@@ -63,6 +141,9 @@ function render() {
     const projectDomain = document.createElement('td');
     projectDomain.className = 'project-domain';
     projectDomain.textContent = project.domain || '—';
+    const previewCell = document.createElement('td');
+    previewCell.className = 'project-preview';
+    previewCells.set(project.id, previewCell);
     const actions = document.createElement('div');
     actions.className = 'container-actions';
     const edit = document.createElement('button');
@@ -86,8 +167,10 @@ function render() {
     const actionCell = document.createElement('td');
     actionCell.className = 'project-actions';
     actionCell.append(actions);
-    row.append(title, projectDomain, actionCell);
+    row.append(title, projectDomain, previewCell, actionCell);
     list.append(row);
+    if (!previews.has(project.id)) refreshPreview(project.id);
+    else renderPreview(project.id);
   }
   status.textContent = projects.length ? '' : "You haven't created any projects.";
 }
@@ -123,6 +206,7 @@ async function load() {
     if (disposed) return;
     if (!Array.isArray(data.projects)) throw new Error('invalid_response');
     projects = data.projects;
+    for (const id of previews.keys()) if (!projects.some(project => project.id === id)) { previews.delete(id); previewEpoch.delete(id); }
     render();
   } catch {
     if (disposed) return;

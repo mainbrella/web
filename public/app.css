@@ -91,12 +91,17 @@
 .project-table th { padding: 10px 12px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 11px; font-weight: 500; }
 .project-table th:first-child { border-radius: 4px 0 0 0; }
 .project-table th:last-child { border-radius: 0 4px 0 0; }
-.project-table th:nth-child(1) { width: 40%; }
-.project-table th:nth-child(2) { width: 45%; }
-.project-table th:nth-child(3) { width: 15%; }
+.project-table th:nth-child(1) { width: 25%; }
+.project-table th:nth-child(2) { width: 28%; }
+.project-table th:nth-child(3) { width: 32%; }
+.project-table th:nth-child(4) { width: 15%; }
 .project-table td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: middle; overflow-wrap: anywhere; }
 .project-table .project-name { font-weight: 500; }
 .project-table .project-domain { color: var(--muted); }
+.project-table .project-preview { overflow-wrap: anywhere; }
+.project-table .project-preview a { display: inline-flex; align-items: center; min-height: 44px; overflow-wrap: anywhere; text-decoration: underline; text-underline-offset: 3px; }
+.project-table .project-preview .dashboard-retry { min-height: 44px; margin-left: 8px; }
+.project-preview-note { display: block; color: var(--muted); font-size: 11px; }
 .project-table .container-actions { justify-content: flex-end; }
 @media (max-width: 700px) {
   .project-table, .project-table tbody, .project-table tr, .project-table td { display: block; width: auto; }
@@ -106,6 +111,9 @@
   .project-table .project-name { grid-column: 1; grid-row: 1; }
   .project-table .project-domain { grid-column: 1 / -1; grid-row: 2; font-size: 12px; }
   .project-table .project-domain::before { color: var(--muted); content: "Domain: "; }
+  .project-table .project-preview { grid-column: 1 / -1; grid-row: 3; display: flex; flex-wrap: wrap; gap: 4px 8px; }
+  .project-table .project-preview .dashboard-retry { margin-left: 0; }
+  .project-table .project-preview::before { color: var(--muted); content: "Preview: "; }
   .project-table .project-actions { grid-column: 2; grid-row: 1; }
   .project-table .container-actions { justify-content: flex-end; }
 }

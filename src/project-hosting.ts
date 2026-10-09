@@ -144,7 +144,7 @@ export async function copyDnsValue(value: string, writeText: (text: string) => P
   try { await writeText(value); return true; } catch { return false; }
 }
 
-export function createProjectHosting({ onUnauthenticated, fetcher = fetch }: { onUnauthenticated: () => void; fetcher?: typeof fetch }) {
+export function createProjectHosting({ onUnauthenticated, onClose, fetcher = fetch }: { onUnauthenticated: () => void; onClose?: (projectId: string) => void; fetcher?: typeof fetch }) {
   const dialog = document.querySelector<HTMLDialogElement>('#endpoint-dialog')!;
   const title = document.querySelector<HTMLElement>('#endpoint-title')!;
   const status = document.querySelector<HTMLElement>('#endpoint-status')!;
@@ -315,7 +315,7 @@ export function createProjectHosting({ onUnauthenticated, fetcher = fetch }: { o
   domainForm.addEventListener('submit', event => { event.preventDefault(); const value = hostname.value.trim(); if (!value) return; operate(async projectId => { const added = await client.addDomain(projectId, value); return () => { hostname.value = ''; replaceDomain(added); }; }); });
   refresh.addEventListener('click', () => { if (!busy && currentProject) { catalogError = false; load(); } });
   close.addEventListener('click', () => dialog.close());
-  dialog.addEventListener('close', () => { epoch++; requestAbort.abort(); currentProject = null; data = null; busy = false; feedback(''); records.replaceChildren(); apex.replaceChildren(); domainList.replaceChildren(); });
+  dialog.addEventListener('close', () => { const projectId = currentProject?.id; epoch++; requestAbort.abort(); currentProject = null; data = null; busy = false; feedback(''); records.replaceChildren(); apex.replaceChildren(); domainList.replaceChildren(); if (projectId) onClose?.(projectId); });
   return {
     open(project: { id: string; name: string; domain?: string | null }) { if (disposed) return; epoch++; requestAbort.abort(); requestAbort = new AbortController(); client = createProjectHostingClient({ fetcher, onUnauthenticated, signal: requestAbort.signal }); currentProject = project; data = null; catalogError = false; containers = []; networks = []; hostname.value = project.domain ?? ''; port.value = '3000'; targetMode.value = 'container'; container.value = ''; network.value = ''; service.value = ''; identities.clear(); feedback(''); domainSection.hidden = true; localNote.hidden = true; dialog.showModal(); load(); },
     dispose() { disposed = true; epoch++; requestAbort.abort(); dialog.close(); controls(); },
