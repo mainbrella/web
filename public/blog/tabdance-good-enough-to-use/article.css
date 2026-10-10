@@ -1,25 +1,19 @@
 .tabdance-followup h1 { max-width: none; }
 .tabdance-followup code { overflow-wrap: anywhere; }
 .tabdance-followup .docs-code code { overflow-wrap: normal; }
-.tabdance-followup .article-logo {
-  display: block;
-  width: 160px;
-  max-width: 100%;
-  height: auto;
-  border-radius: 16px;
-  margin: 24px 0;
-}
 .tabdance-followup .article-figure a { display: block; }
 .tabdance-followup .article-figure a:focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 4px;
 }
 .tabdance-followup .drop-example { margin: 28px 0; }
-.tabdance-followup .drop-example figcaption { color: var(--ink); font-size: 18px; }
 .tabdance-followup .drop-example .docs-code { margin: 12px 0; }
-.tabdance-followup .drop-example p { margin-top: 12px; font-size: 17px; }
+.tabdance-followup .test-examples { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 28px 0; }
+.tabdance-followup .test-examples .example { min-width: 0; }
+.tabdance-followup .test-examples .docs-code { margin: 12px 0 0; padding: 0; background: transparent; font-size: 13px; }
 .tabdance-followup .shortcut-table,
-.tabdance-followup .selection-table {
+.tabdance-followup .selection-table,
+.tabdance-followup .secrets-table {
   width: 100%;
   margin: 24px 0;
   border-collapse: collapse;
@@ -29,24 +23,29 @@
 .tabdance-followup .shortcut-table th,
 .tabdance-followup .shortcut-table td,
 .tabdance-followup .selection-table th,
-.tabdance-followup .selection-table td {
+.tabdance-followup .selection-table td,
+.tabdance-followup .secrets-table th,
+.tabdance-followup .secrets-table td {
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
 }
-.tabdance-followup .selection-table tbody th { font-weight: 400; }
+.tabdance-followup .selection-table tbody th,
+.tabdance-followup .secrets-table tbody th { font-weight: 400; }
 .tabdance-followup .selection-table th:first-child { width: 44%; padding-right: 16px; }
+.tabdance-followup .secrets-table th:first-child { width: 48%; padding-right: 16px; }
+.tabdance-followup .secrets-table code { overflow-wrap: normal; }
 .tabdance-followup .shortcut-table th:first-child,
 .tabdance-followup .shortcut-table td:first-child { width: 36%; padding-right: 16px; }
 .tabdance-followup kbd { font: inherit; white-space: nowrap; }
 @media (max-width: 600px) {
-  .tabdance-followup .article-logo { width: 144px; }
+  .tabdance-followup .test-examples { grid-template-columns: 1fr; }
   .tabdance-followup .shortcut-table,
-  .tabdance-followup .selection-table { font-size: 16px; }
+  .tabdance-followup .selection-table,
+  .tabdance-followup .secrets-table { font-size: 16px; }
   .tabdance-followup .shortcut-table th:first-child,
   .tabdance-followup .shortcut-table td:first-child { width: 42%; padding-right: 12px; }
-  .tabdance-followup .drop-example figcaption { font-size: 17px; }
 }
 .tabdance-followup .sr-only {
   position: absolute;

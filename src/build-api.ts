@@ -35,7 +35,7 @@ export type BuildApp = {
 };
 export type BuildModel = { id: string; name: string; description?: string; efforts: string[]; defaultEffort: string };
 export type BuildModelOptions = { model?: string; effort?: string };
-export type BuildConfig = { available: boolean; model: string; models?: BuildModel[]; maxApps: number; dailyTurns: number; aiBilling: 'included' | 'prepaid'; aiMarkupPercent: number; computeUnitHourlyCents: number; size: 'small' };
+export type BuildConfig = { available: boolean; model: string; models?: BuildModel[]; maxApps: number; aiBilling: 'included' | 'prepaid'; aiMarkupPercent: number; computeUnitHourlyCents: number; size: 'small' };
 export type BuildSource = { revision: number; files: Record<string, string> };
 export class BuildAPIError extends Error {
   constructor(public code: string, public details?: string) { super(buildErrorMessage(code, details)); }
@@ -56,7 +56,6 @@ export function buildErrorMessage(code: string, details?: string | null): string
     build_unavailable: 'Build is unavailable right now. Please try again shortly.',
     build_busy: 'Another build is running in your account. Wait for it to finish.',
     revision_conflict: 'This app changed in another tab. Reload the app before trying again.',
-    build_daily_limit: 'You have reached the daily build limit. Try again tomorrow (UTC).',
     build_app_limit: 'You have reached the 50-app limit. Delete an app to make room.',
     build_turn_limit: 'This app has reached its 100-build limit. Export its source to keep working on it.',
     app_not_found: 'This app is no longer available.',

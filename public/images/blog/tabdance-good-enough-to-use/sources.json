@@ -1,5 +1,6 @@
 {
-  "reviewed_commit": "1ac4e614ddadad91b752cbe5e0b65c0e624a86f2",
+  "reviewed_commit": "47710798c42fdff54d3d07829dbedb3874558e57",
+  "app_capture_commit": "1ac4e614ddadad91b752cbe5e0b65c0e624a86f2",
   "original_article_commit": "045d83cdefd6dfbefcdcd416eaf16be355894290",
   "reviewed_at": "2026-10-10",
   "repository": "https://github.com/andrewarrow/TabDance",
@@ -15,7 +16,22 @@
     "source": "Sources/TerminalCore/TabDanceTerminalView.swift clearToStart, plus TerminalBehaviorTests wrapped-line checks",
     "fixture": "20 columns; a two-row command with the cursor at column five on its continuation row"
   },
-  "verification": {
+  "release-assets.png": {
+    "kind": "actual public GitHub release screenshot captured with Chromium",
+    "source": "https://github.com/andrewarrow/TabDance/releases/tag/47710798",
+    "capture": "Release title, publisher, signing and notarization notes, changelog link, and expanded Assets list at a 1000 CSS-pixel viewport and 2x device scale.",
+    "captured_at": "2026-10-10"
+  },
+  "release-assets-mobile.png": {
+    "kind": "same actual GitHub release at a 390 CSS-pixel viewport and 2x device scale"
+  },
+  "release_verification": {
+    "source": "https://github.com/andrewarrow/TabDance/releases/tag/47710798",
+    "workflow_run": "https://github.com/andrewarrow/TabDance/actions/runs/38082270573",
+    "result": "Build and publish jobs succeeded. Downloaded release DMG matches SHA256SUMS. Both DMG and contained app pass codesign verification; the app uses a Developer ID Application identity, hardened runtime, and timestamp. Its executable is arm64 and GitSHA.txt contains 4771079.",
+    "notarized": false
+  },
+  "original_verification_at_1ac4e61": {
     "swift_test": "28 XCTest cases and 9 Swift Testing cases passed",
     "build_app": "./build-app.sh passed; lipo reports x86_64 and arm64; bundled GitSHA.txt is 1ac4e61"
   }
