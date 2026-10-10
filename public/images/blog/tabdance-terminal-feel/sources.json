@@ -1,0 +1,27 @@
+{
+  "rio-workspaces.png": {
+    "kind": "original screenshot",
+    "credit": "Andrew Arrow, Rio PR #1954, September 22, 2026",
+    "source": "https://github.com/user-attachments/assets/fe410921-7ad6-479f-99ae-8a403f5ca283",
+    "context": "https://github.com/raphamorim/rio/pull/1954",
+    "presentation": "Original PNG preserved. Article crops to the upper left with CSS and links the full image."
+  },
+  "clear-selection": {
+    "kind": "original schematic; not a product screenshot or measurement",
+    "basis": "Andrew Arrow’s desired Command-K, cat, Command-A workflow: file contents with two surrounding rows above and below.",
+    "variants": ["clear-selection.svg", "clear-selection-mobile.svg", "clear-selection.png"]
+  },
+  "selection-snapshot": {
+    "kind": "original schematic of source behavior",
+    "source": "https://github.com/andrewarrow/rio/blob/3ccf378f97fa66d07f76408e5bee824d913abba5/frontends/rioterm/src/context/mod.rs#L1966-L2004",
+    "copy_path": "https://github.com/andrewarrow/rio/blob/3ccf378f97fa66d07f76408e5bee824d913abba5/frontends/rioterm/src/screen/mod.rs#L2013-L2028",
+    "variants": ["selection-snapshot.svg", "selection-snapshot-mobile.svg"]
+  },
+  "echo-roundtrip": {
+    "kind": "original schematic reconstructed from annotated disassembly; no measured timings",
+    "source": "https://github.com/andrewarrow/TabDance/blob/045d83cdefd6dfbefcdcd416eaf16be355894290/analysis/raw/dyld_disassembly.txt",
+    "basis": ["TTView keyDown:", "TTShell writeData:", "TTIOManager writeData:forShell:", "TTIOManager IOThread", "TTIOManager mainThread", "TTTabController shellDidReceiveData:"],
+    "variants": ["echo-roundtrip.svg", "echo-roundtrip-mobile.svg"]
+  },
+  "generator": "generate.py (Python standard library)"
+}
