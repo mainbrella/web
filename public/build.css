@@ -152,6 +152,48 @@
 .build-brief-answers dt { color: var(--muted); }
 .build-brief-answers dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
 
+/* Command and model evidence stays beside the build it belongs to. */
+.build-journal { margin-top: 12px; }
+.build-journal > summary, .build-operation-evidence > summary { display: flex; align-items: center; min-height: 44px; color: var(--muted); font-size: 12px; cursor: pointer; }
+.build-journal > summary::before, .build-operation-evidence > summary::before { content: '›'; margin-right: 8px; font-size: 16px; }
+.build-journal[open] > summary::before, .build-operation-evidence[open] > summary::before { transform: rotate(90deg); }
+.build-journal > summary::-webkit-details-marker, .build-operation > summary::-webkit-details-marker, .build-operation-evidence > summary::-webkit-details-marker { display: none; }
+.build-journal > summary:focus-visible, .build-operation > summary:focus-visible, .build-operation-evidence > summary:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; border-radius: 4px; }
+.build-journal-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-bottom: 8px; }
+.build-diagnostic-feedback { flex: 1 1 160px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.build-journal-toolbar .build-quiet-button { margin: 0; }
+.build-operation-list, .build-failure-operations { padding: 0; margin: 0; list-style: none; }
+#build-messages .build-operation-list > li + li, #build-messages .build-failure-operations > li + li { margin-top: 0; }
+.build-operation { min-width: 0; border-top: 1px solid var(--line); }
+.build-operation > summary { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; align-items: baseline; gap: 4px 8px; min-height: 44px; padding: 12px 0; font-size: 12px; line-height: 1.5; cursor: pointer; list-style: none; }
+.build-operation time { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 11px; }
+.build-operation-label { color: var(--ink); overflow-wrap: anywhere; }
+.build-operation-label::before { display: inline-block; content: '›'; margin-right: 6px; color: var(--muted); }
+.build-operation[open] > summary .build-operation-label::before { transform: rotate(90deg); }
+.build-operation-status { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.build-operation[data-state="failed"] .build-operation-status, .build-operation[data-state="blocked"] .build-operation-status { color: #ffb4ab; }
+.build-operation[data-state="running"] .build-operation-status { color: var(--blue); }
+.build-operation-body { padding: 0 0 12px; }
+#build-messages .build-operation-body > p { margin-bottom: 8px; color: var(--muted); font-size: 12px; }
+.build-diagnostic-output { min-width: 0; margin: 8px 0; }
+.build-diagnostic-output > span { display: block; margin-bottom: 4px; color: var(--muted); font-size: 11px; }
+.build-diagnostic-output pre { max-height: 240px; margin: 0; padding: 10px 12px; overflow: auto; border-radius: 4px; background: var(--paper); color: var(--ink); font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 2; }
+.build-diagnostic-output pre:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.build-diagnostic-metadata { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 16px; margin: 12px 0 0; font-size: 12px; }
+.build-diagnostic-metadata dt { color: var(--muted); }
+.build-diagnostic-metadata dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.build-operation-evidence { margin-top: 4px; }
+#build-messages .build-failure-heading { color: #ffb4ab; font-size: 12px; }
+#build-messages .build-diagnostic-note { margin-top: 8px; color: var(--muted); font-size: 12px; }
+.build-failure-operations { margin-top: 12px; }
+.build-message-error > .build-quiet-button { margin-top: 8px; }
+@media (max-width: 600px) {
+  .build-operation > summary { grid-template-columns: minmax(0, 1fr) auto; }
+  .build-operation time { grid-column: 1 / -1; }
+  .build-operation-status { max-width: 120px; }
+  .build-diagnostic-metadata { gap: 4px 8px; }
+}
+
 /* Clarifying questions sit directly above the message composer. */
 .build-questions { flex-shrink: 0; margin: 0 0 10px; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
 .build-questions fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }

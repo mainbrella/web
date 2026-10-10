@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { BuildDiagnostics, BuildOperation } from './build-api.ts';
-import { failureOperations, formatBuildDiagnostics, operationExplanation, operationLabel, operationOutput, operationStatus } from './build-diagnostics.ts';
+import { cleanDiagnosticOutput, failureOperations, formatBuildDiagnostics, operationExplanation, operationLabel, operationOutput, operationStatus } from './build-diagnostics.ts';
 
 const op = (id: string, patch: Partial<BuildOperation> = {}): BuildOperation => ({
   turn_id: 'turn-1', operation_id: id, attempt_id: '1', schema_version: 1, deployment_version: null,
@@ -11,6 +11,11 @@ const op = (id: string, patch: Partial<BuildOperation> = {}): BuildOperation => 
 const report = (patch: Partial<BuildDiagnostics> = {}): BuildDiagnostics => ({
   schemaVersion: 1, turnId: 'turn-1', status: 'failed', error: null, errorExplanation: null, log: '',
   failureOperationId: null, operations: [], billing: [], ...patch,
+});
+
+test('limit labels identify the resource without repeating the full stop reason', () => {
+  assert.equal(operationLabel(op('limit-output-tokens', { label: 'Build stopped: a long reason' })), 'Output token limit');
+  assert.equal(operationLabel(op('limit-round-limit')), 'Repair round limit');
 });
 
 test('failure selection uses the latest attempt for the reported operation and keeps prior command checks supporting', () => {
@@ -26,8 +31,17 @@ test('failure selection uses the latest attempt for the reported operation and k
 test('successful later command attempt supersedes a failed attempt for supporting checks', () => {
   const prior = op('compile-0', { kind: 'command', status: 'failed', created_at: 100, attempt_id: '1' });
   const retry = op('compile-0', { kind: 'command', status: 'succeeded', created_at: 200, updated_at: 220, attempt_id: '2' });
-  const cause = op('limit-output', { kind: 'limit', status: 'failed', created_at: 230 });
+  const cause = op('limit-output', { kind: 'tool', label: 'Stop for limit', status: 'failed', created_at: 230 });
   assert.deepEqual(failureOperations(report({ error: 'build_budget_exceeded', failureOperationId: 'limit-output', operations: [prior, retry, cause] })), [cause]);
+});
+
+test('a later successful check in another round supersedes an earlier failed command with the same command text', () => {
+  const earlier = op('compile-0', { kind: 'command', label: 'compile-0', status: 'failed', created_at: 100,
+    evidence: { command: 'npm run build' } });
+  const later = op('compile-1', { kind: 'command', label: 'compile-1', status: 'succeeded', created_at: 200,
+    evidence: { command: 'npm run build' } });
+  const cause = op('tool-2', { kind: 'tool', status: 'failed', created_at: 230 });
+  assert.deepEqual(failureOperations(report({ error: 'build_check_failed', failureOperationId: 'tool-2', operations: [earlier, later, cause] })), [cause]);
 });
 
 test('reported stop cause stays separate from earlier command and billing failures', () => {
@@ -76,4 +90,42 @@ test('old diagnostics explain incomplete streams from evidence when no server ex
   assert.match(operationExplanation(op('text-0', { kind: 'text', status: 'failed', evidence: { finishReason: 'length', tokenAllowance: 4096 } }))!, /4,096 token response limit/);
   assert.match(operationExplanation(op('text-0', { kind: 'text', status: 'failed', evidence: { termination: 'read_exception' } }))!, /stream ended unexpectedly/);
   assert.equal(operationExplanation(op('other', { explanation: '  server reason  ' })), 'server reason');
+});
+
+test('operation labels inspect command evidence when labels are generic', () => {
+  assert.equal(operationLabel(op('tool-1-2-command', { kind: 'tool', label: 'Run command', evidence: { toolName: 'run_command', command: 'tsc --noEmit' } })), 'Type-check and compile');
+  assert.equal(operationLabel(op('tool-1-2-command', { kind: 'tool', label: 'Run command', evidence: { toolName: 'run_command', command: 'npm install' } })), 'Install dependencies');
+  assert.equal(operationLabel(op('read-file', { kind: 'tool', label: 'Read src/compiler.ts', evidence: { toolName: 'read_file' } })), 'Read src/compiler.ts');
+  assert.equal(operationLabel(op('write-file', { kind: 'tool', label: 'Write src/directories.ts', evidence: { toolName: 'write_file' } })), 'Write src/directories.ts');
+  assert.equal(operationLabel(op('legacy-check', { kind: 'tool', label: 'Check the build' })), 'Type-check and compile');
+});
+
+test('old failed and blocked operations use failure details and meaningful state reasons', () => {
+  const limit = op('limit-output', { kind: 'tool', label: 'Limit reached', status: 'failed', result: { ok: false, failure: {
+    code: 'build_budget_exceeded', details: 'The build used its output allowance before checking the source.',
+  } } });
+  assert.equal(operationExplanation(limit), 'The build used its output allowance before checking the source.');
+  assert.equal(operationExplanation(op('blocked', { status: 'blocked', result: { ok: false, failure: { code: 'invalid_model_response', details: 'Malformed tool request.' } } })), 'Malformed tool request.');
+  assert.match(operationExplanation(op('skipped', { status: 'skipped' }))!, /Not run/);
+  assert.match(operationExplanation(op('proposed', { status: 'proposed' }))!, /Proposed/);
+  assert.match(operationExplanation(op('limit-output', { kind: 'tool', status: 'failed', result: { ok: false, failure: { code: 'build_budget_exceeded' } } }))!, /stopped before verification finished/);
+});
+
+test('specific inference errors override generic stream termination and billing journal rows remain visible without billing records', () => {
+  const disconnected = op('text-0', { kind: 'text', status: 'failed', evidence: { termination: 'read_exception' }, result: { ok: false, failure: { code: 'build_inference_disconnected' } } });
+  assert.match(operationExplanation(disconnected)!, /inference service disconnected/);
+  const billingOp = op('settle-text-0', { kind: 'billing', label: 'Settle model usage', status: 'failed', result: { ok: false, failure: { code: 'build_usage_storage_unavailable', details: 'Usage could not be stored.' } } });
+  const value = formatBuildDiagnostics(report({ operations: [billingOp] }));
+  assert.match(value, /Billing:[\s\S]*Settle model usage[\s\S]*Usage could not be stored/);
+});
+
+test('formatted provider details preserve line breaks while removing ANSI and legacy logs are sanitized', () => {
+  const provider = op('text-0', { kind: 'text', status: 'failed', result: { ok: false, failure: {
+    code: 'provider_error', providerCode: 'invalid_request', details: '\u001b[31mFirst line\u001b[0m\nSecond line\u0001',
+  } } });
+  const value = formatBuildDiagnostics(report({ operations: [provider], log: '\u001b[33mLegacy log\u001b[0m\nkept' }));
+  assert.match(value, /Failure details:\nFirst line\nSecond line/);
+  assert.match(value, /Turn log:\nLegacy log\nkept/);
+  assert.doesNotMatch(value, /\u001b|\u0001/);
+  assert.equal(cleanDiagnosticOutput(null), null);
 });

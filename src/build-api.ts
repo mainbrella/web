@@ -4,7 +4,7 @@ export type BuildActivity = { id: string; type: 'message' | 'tool'; text: string
 export type BuildImage = { id: string; toolId: string; label: string; path: string };
 export type BuildOperation = {
   turn_id: string; operation_id: string; attempt_id: string; schema_version: number; deployment_version: string | null;
-  kind: 'text' | 'image' | 'tool' | 'command' | 'source' | 'billing' | 'cleanup' | 'limit'; label: string;
+  kind: 'text' | 'image' | 'tool' | 'command' | 'source' | 'billing' | 'cleanup'; label: string;
   status: 'proposed' | 'skipped' | 'blocked' | 'succeeded' | 'failed' | 'unknown'; explanation?: string | null;
   dispatch_attempted: number | null; created_at: number; started_at: number | null; updated_at: number; finished_at: number | null;
   evidence: Record<string, unknown>; result: unknown | null; source: Record<string, string> | null;

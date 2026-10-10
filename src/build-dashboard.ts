@@ -1,8 +1,11 @@
-import { BuildAPIError, buildErrorMessage, createBuildClient, safeBuildPreviewURL, type BuildActivity, type BuildImage, type BuildApp, type BuildConfig, type BuildSource, type BuildTurn, type BuildModel, type BuildModelOptions } from './build-api.ts';
+import { BuildAPIError, buildErrorMessage, createBuildClient, safeBuildPreviewURL, type BuildActivity, type BuildImage, type BuildApp, type BuildConfig, type BuildSource, type BuildTurn, type BuildModel, type BuildModelOptions, type BuildDiagnostics } from './build-api.ts';
 import { buildExamples, createBuildDraftStore } from './build-drafts.ts';
 import { buildBriefQuestions, formatBuildBriefPrompt, readBuildBriefPrompt } from './build-brief.ts';
+import { cleanDiagnosticOutput, failureOperations, formatBuildDiagnostics, operationExplanation, operationOutput } from './build-diagnostics.ts';
+import { diagnosticTime, renderBuildOperation, renderOperationList } from './build-diagnostic-view.ts';
 
 type Clarification = { prompt: string; answers: [string, string]; step: 0 | 1 };
+type DiagnosticState = { key: string; loading: boolean; data?: BuildDiagnostics; error?: string };
 
 export function selectBuildModelOptions(models: BuildModel[], defaultModel: string | undefined, options: BuildModelOptions): BuildModelOptions {
   const previous = models.find(model => model.id === options.model);
@@ -69,6 +72,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   let clarification: Clarification | null = null;
   let previewPreference: boolean | null = null;
   let mobileView: 'conversation' | 'preview' = 'conversation';
+  const diagnostics = new Map<string, DiagnosticState>();
 
   const heading = node<HTMLElement>('.build-workspace-heading');
   const header = document.querySelector<HTMLElement>('.app-header')!;
@@ -334,6 +338,113 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     body.append(definitions);
   }
 
+  function diagnosticKey(turn: BuildTurn) {
+    return JSON.stringify([turn.status, turn.stage, turn.failureOperationId, turn.activity?.filter(item => item.type === 'tool').map(item => [item.id, item.status])]);
+  }
+
+  async function loadDiagnostics(turn: BuildTurn, force = false) {
+    if (!selected || disposed) return;
+    const appId = selected.id, key = diagnosticKey(turn), previous = diagnostics.get(turn.id);
+    if (previous?.loading || !force && previous?.key === key) return;
+    const state: DiagnosticState = { key, loading: true, data: previous?.data };
+    diagnostics.set(turn.id, state);
+    queueMicrotask(() => { if (!disposed && selected?.id === appId) renderConversation(selected, true); });
+    try {
+      const report = await client.diagnostics(appId, turn.id);
+      if (report.turnId !== turn.id) throw new Error('The diagnostic report did not match this build.');
+      if (!disposed) state.data = report;
+    } catch (cause) {
+      if (!disposed) state.error = cause instanceof Error ? cause.message : 'Could not load the operation journal.';
+    } finally {
+      state.loading = false;
+      if (!disposed && selected?.id === appId) renderConversation(selected, true);
+    }
+  }
+
+  function journalRow(turn: BuildTurn, existing?: HTMLDetailsElement) {
+    const journal = existing ?? document.createElement('details');
+    if (!existing) {
+      journal.className = 'build-journal'; journal.dataset.turnId = turn.id;
+      const summary = document.createElement('summary');
+      const toolbar = document.createElement('div'), feedback = document.createElement('span');
+      toolbar.className = 'build-journal-toolbar'; feedback.className = 'build-diagnostic-feedback'; feedback.setAttribute('role', 'status');
+      for (const [action, label] of [['refresh', 'Refresh'], ['download', 'Download diagnostics']]) {
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'build-quiet-button';
+        button.dataset.diagnosticAction = action; button.textContent = label;
+        button.addEventListener('click', () => {
+          const current = selected?.turns?.find(item => item.id === turn.id);
+          if (!current) return;
+          if (action === 'refresh') void loadDiagnostics(current, true);
+          else {
+            const report = diagnostics.get(turn.id)?.data;
+            if (!report) return;
+            const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
+            const link = document.createElement('a'); link.href = url; link.download = `build-${turn.id}-diagnostics.json`; link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          }
+        });
+        toolbar.append(button);
+      }
+      toolbar.prepend(feedback);
+      const list = document.createElement('ol'); list.className = 'build-operation-list'; list.setAttribute('aria-label', 'Recorded operations');
+      journal.append(summary, toolbar, list);
+      journal.addEventListener('toggle', () => {
+        const current = selected?.turns?.find(item => item.id === turn.id);
+        if (journal.open && current) void loadDiagnostics(current);
+      });
+    }
+    const state = diagnostics.get(turn.id);
+    journal.querySelector('summary')!.textContent = `Operation journal${state?.data ? ` · ${state.data.operations.length} operations` : ''}`;
+    journal.querySelector<HTMLElement>('.build-diagnostic-feedback')!.textContent = state?.error ?? (state?.loading ? 'Loading journal…'
+      : state?.data ? state.data.operations.length ? '' : 'No operations were recorded for this build.' : 'Open to load command output and model details.');
+    journal.querySelector<HTMLButtonElement>('[data-diagnostic-action="refresh"]')!.disabled = Boolean(state?.loading);
+    journal.querySelector<HTMLButtonElement>('[data-diagnostic-action="download"]')!.disabled = !state?.data;
+    journal.setAttribute('aria-busy', String(Boolean(state?.loading)));
+    if (state?.data) renderOperationList(journal.querySelector('.build-operation-list')!, state.data.operations, state.data.status);
+    return journal;
+  }
+
+  function failureRow(turn: BuildTurn, existing?: HTMLElement) {
+    const row = existing ?? document.createElement('li'); row.className = 'build-message-error';
+    if (!row.querySelector('.build-failure-summary')) {
+      row.replaceChildren();
+      const label = document.createElement('span'), summary = document.createElement('p'), feedback = document.createElement('p');
+      label.className = 'build-failure-heading'; summary.className = 'build-failure-summary'; feedback.className = 'build-diagnostic-note'; feedback.setAttribute('role', 'status');
+      const operations = document.createElement('ol'); operations.className = 'build-failure-operations'; operations.setAttribute('aria-label', 'Failure details');
+      const legacy = document.createElement('div'), legacyLabel = document.createElement('span'), legacyOutput = document.createElement('pre');
+      legacy.className = 'build-diagnostic-output build-failure-log'; legacyLabel.textContent = 'Last recorded build output';
+      legacyOutput.tabIndex = 0; legacyOutput.setAttribute('aria-label', 'Last recorded build output'); legacy.append(legacyLabel, legacyOutput);
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'build-quiet-button';
+      button.addEventListener('click', () => {
+        const current = selected?.turns?.find(item => item.id === turn.id);
+        if (current) void loadDiagnostics(current, true);
+      });
+      row.append(label, summary, feedback, operations, legacy, button);
+    }
+    const state = diagnostics.get(turn.id), report = state?.data;
+    const operations = report ? failureOperations(report) : [];
+    const cause = operations[0];
+    const causeExplanation = turn.error !== 'build_budget_exceeded' || cause?.operation_id.startsWith('limit-')
+      ? cause && operationExplanation(cause) : null;
+    row.querySelector('.build-failure-heading')!.textContent = `Build stopped${turn.finishedAt ? ` · ${diagnosticTime(turn.finishedAt)}` : ''}`;
+    row.querySelector('.build-failure-summary')!.textContent = report?.errorExplanation || turn.errorExplanation
+      || causeExplanation || buildErrorMessage(turn.error || 'build_failed');
+    const feedback = row.querySelector<HTMLElement>('.build-diagnostic-note')!;
+    feedback.textContent = state?.error ? `Could not load failure details. ${state.error}` : state?.loading ? 'Loading failure details…'
+      : report && !operations.length ? 'No operation evidence was recorded for this build.' : '';
+    feedback.hidden = !feedback.textContent;
+    // The limit's reason is already visible above; show its preceding failed check directly.
+    const visible = operations.filter(operation => !operation.operation_id.startsWith('limit-') && !['succeeded', 'skipped', 'proposed'].includes(operation.status));
+    renderOperationList(row.querySelector('.build-failure-operations')!, visible, report?.status ?? turn.status, true, true);
+    const legacyLog = !visible.some(op => operationOutput(op).length) ? cleanDiagnosticOutput(report?.log || turn.log) : null;
+    const legacy = row.querySelector<HTMLElement>('.build-failure-log')!;
+    legacy.hidden = !legacyLog; legacy.querySelector('pre')!.textContent = legacyLog ?? '';
+    const button = row.querySelector<HTMLButtonElement>('button')!;
+    button.textContent = state?.error ? 'Retry loading details' : 'Show failure details';
+    button.disabled = Boolean(state?.loading); button.hidden = Boolean(report && !state?.error || state?.loading);
+    return row;
+  }
+
   function activityRow(turn: BuildTurn, existing?: HTMLElement) {
     const row = existing ?? document.createElement('li');
     row.className = 'build-activity-message';
@@ -356,27 +467,45 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       : turn.status === 'failed' ? 'Build needs attention' : turn.mode === 'preview' ? 'Preview ready' : 'Built app';
     const tools = (turn.activity ?? []).filter(item => item.type === 'tool');
     details.querySelector<HTMLElement>('.build-activity-count')!.textContent = tools.length ? `${tools.length} ${tools.length === 1 ? 'step' : 'steps'}` : '';
-    const body = details.querySelector<HTMLElement>('.build-activity-body')!; body.replaceChildren();
-    if (turn.mode === 'build') {
-      const inference = document.createElement('p'); inference.className = 'build-current-model';
-      inference.textContent = `${modelName(turn.model)}${turn.effort ? ` · ${effortLabel(turn.effort)} effort` : ''}`; body.append(inference);
+    const container = details.querySelector<HTMLElement>('.build-activity-body')!;
+    let body = container.querySelector<HTMLElement>('.build-activity-content');
+    if (!body) { body = document.createElement('div'); body.className = 'build-activity-content'; container.prepend(body); }
+    const journal = container.querySelector<HTMLDetailsElement>('.build-journal');
+    const report = diagnostics.get(turn.id)?.data;
+    const bodyKey = JSON.stringify([turn.model, turn.effort, turn.prompt, tools, report?.operations.map(op => [op.operation_id, op.attempt_id, op.updated_at])]);
+    if (body.dataset.activityKey !== bodyKey) {
+      body.dataset.activityKey = bodyKey;
+      const previousOperations = new Map(Array.from(body.querySelectorAll<HTMLDetailsElement>('.build-operation'), item => [item.dataset.operationKey, item]));
+      body.replaceChildren();
+      if (turn.mode === 'build') {
+        const inference = document.createElement('p'); inference.className = 'build-current-model';
+        inference.textContent = `${modelName(turn.model)}${turn.effort ? ` · ${effortLabel(turn.effort)} effort` : ''}`; body.append(inference);
+      }
+      appendBriefAnswers(body, readBuildBriefPrompt(turn.prompt).answers);
+      const activity = document.createElement('ul'); activity.className = 'build-activity-list';
+      for (const item of tools) {
+        const state = item.status === 'running' && turn.status === 'failed' ? 'unknown' : item.status;
+        const operation = report?.operations.filter(op => op.operation_id === `${item.id}-command` || op.operation_id === item.id).sort((a, b) => a.created_at - b.created_at).at(-1);
+        if (operation && ['failed', 'blocked', 'unknown'].includes(state)) {
+          const entry = document.createElement('li'); entry.className = 'build-tool-diagnostic';
+          entry.append(renderBuildOperation(operation, report!.status, previousOperations.get(`${operation.operation_id}:${operation.attempt_id}`)));
+          activity.append(entry); continue;
+        }
+        const entry = document.createElement('li'), icon = document.createElement('span'), text = document.createElement('p');
+        entry.className = `build-tool build-tool-${state}`;
+        const statusLabel = { running: 'In progress', proposed: 'Proposed', skipped: 'Not run', blocked: 'Blocked', unknown: 'Outcome unknown', failed: 'Failed', succeeded: 'Completed' }[state];
+        icon.textContent = state === 'succeeded' ? '✓' : state === 'failed' ? '!' : state === 'running' || state === 'proposed' ? '⋯' : '–';
+        icon.setAttribute('aria-label', statusLabel);
+        text.textContent = `${item.text}${['skipped','blocked','unknown','proposed'].includes(state) ? ` · ${statusLabel}` : ''}${item.explanation && !['skipped','proposed'].includes(state) ? ` — ${item.explanation}` : ''}`;
+        entry.append(icon, text); activity.append(entry);
+      }
+      if (tools.length) body.append(activity);
+      if (!body.children.length) {
+        const text = document.createElement('p'); text.textContent = turn.stage || 'Waiting for build activity…'; body.append(text);
+      }
     }
-    appendBriefAnswers(body, readBuildBriefPrompt(turn.prompt).answers);
-    const activity = document.createElement('ul'); activity.className = 'build-activity-list';
-    for (const item of tools) {
-      const state = item.status === 'running' && turn.status === 'failed' ? 'unknown' : item.status;
-      const entry = document.createElement('li'), icon = document.createElement('span'), text = document.createElement('p');
-      entry.className = `build-tool build-tool-${state}`;
-      const statusLabel = { running: 'In progress', proposed: 'Proposed', skipped: 'Not run', blocked: 'Blocked', unknown: 'Outcome unknown', failed: 'Failed', succeeded: 'Completed' }[state];
-      icon.textContent = state === 'succeeded' ? '✓' : state === 'failed' ? '!' : state === 'running' || state === 'proposed' ? '⋯' : '–';
-      icon.setAttribute('aria-label', statusLabel);
-      text.textContent = `${item.text}${['skipped','blocked','unknown','proposed'].includes(state) ? ` · ${statusLabel}` : ''}${item.explanation && !['skipped','proposed'].includes(state) ? ` — ${item.explanation}` : ''}`;
-      entry.append(icon, text); activity.append(entry);
-    }
-    if (tools.length) body.append(activity);
-    if (!body.children.length) {
-      const text = document.createElement('p'); text.textContent = turn.stage || 'Waiting for build activity…'; body.append(text);
-    }
+    const nextJournal = journalRow(turn, journal ?? undefined);
+    if (!journal) container.append(nextJournal);
     return row;
   }
 
@@ -411,9 +540,9 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     return row;
   }
 
-  function renderConversation(app: BuildApp) {
+  function renderConversation(app: BuildApp, force = false) {
     const key = JSON.stringify(app.turns);
-    if (key === conversationKey) return;
+    if (key === conversationKey && !force) return;
     conversationKey = key;
     const nearBottom = conversationScroll.scrollHeight - conversationScroll.scrollTop - conversationScroll.clientHeight < 80;
     const existing = new Map(Array.from(messages.children, child => [(child as HTMLElement).dataset.messageKey, child as HTMLElement]));
@@ -448,16 +577,23 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       }
       const activityKey = `activity-${turn.id}`, activity = activityRow(turn, existing.get(activityKey));
       activity.dataset.messageKey = activityKey; rows.push(activity);
-      if (turn.status === 'failed') message(`result-${turn.id}`, 'Build', turn.errorExplanation || buildErrorMessage(turn.error || 'build_failed', turn.log), 'build-message-error');
+      if (turn.status === 'failed') {
+        const key = `result-${turn.id}`, row = failureRow(turn, existing.get(key)); row.dataset.messageKey = key; rows.push(row);
+      }
       else if (turn.summary && !turn.activity?.some(item => item.type === 'message' && item.text === turn.summary)) message(`result-${turn.id}`, 'Build', turn.summary);
       else if (!turn.activity?.length && turn.status === 'succeeded') message(`result-${turn.id}`, 'Build', turn.stage);
     }
     for (const row of Array.from(messages.children)) if (!rows.includes(row as HTMLElement)) row.remove();
     rows.forEach((row, index) => { if (messages.children[index] !== row) messages.insertBefore(row, messages.children[index] ?? null); });
     if (nearBottom) conversationScroll.scrollTop = conversationScroll.scrollHeight;
-    node<HTMLElement>('#build-logs').textContent = (app.turns ?? []).map(turn =>
+    node<HTMLElement>('#build-logs').textContent = (app.turns ?? []).map(turn => diagnostics.get(turn.id)?.data
+      ? formatBuildDiagnostics(diagnostics.get(turn.id)!.data!) :
       `${turn.mode === 'preview' ? 'Preview' : 'Build'} · ${turn.stage}${turn.mode === 'build' ? ` · ${modelName(turn.model)}${turn.effort ? ` · ${effortLabel(turn.effort)} effort` : ''}` : ''}${turn.aiCostCents ? ` · AI $${(turn.aiCostCents / 100).toFixed(6)}` : ''}${turn.activity?.length ? `\n${turn.activity.map(item => item.text).join('\n')}` : ''}${turn.error ? `\n${buildErrorMessage(turn.error)}` : ''}${turn.log ? `\n${turn.log}` : ''}`
     ).join('\n\n') || 'No build output yet.';
+    for (const turn of app.turns ?? []) {
+      const journal = messages.querySelector<HTMLDetailsElement>(`.build-journal[data-turn-id="${turn.id}"]`);
+      if (journal?.open || turn === app.turns?.at(-1) && (turn.status === 'failed' || turn.activity?.some(item => item.status === 'failed' || item.status === 'blocked') || tabs[2].getAttribute('aria-selected') === 'true')) void loadDiagnostics(turn);
+    }
   }
 
   function renderPreview() {
@@ -588,6 +724,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       node<HTMLElement>(`#${button.getAttribute('aria-controls')}`).hidden = !active;
     }
     if (tab.id === 'build-code-tab') void loadSource();
+    if (tab.id === 'build-logs-tab' && selected?.turns?.length) void loadDiagnostics(selected.turns.at(-1)!);
     if (focus) tab.focus();
   }
 
@@ -834,6 +971,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   function dispose() {
     disposed = true; version++; sourceVersion++; controller.abort(); clearTimeout(timer);
     disconnectStream(); optimistic = null;
+    diagnostics.clear();
     apps = []; selected = null; source = null; config = null; modelOptions = {}; renderModelOptions(); pendingSubmission = null; clarification = null;
     prompt.value = ''; update.value = ''; name.value = ''; messages.replaceChildren(); list.replaceChildren();
     node<HTMLElement>('#build-local-list').replaceChildren(); code.textContent = ''; node<HTMLElement>('#build-logs').textContent = '';
