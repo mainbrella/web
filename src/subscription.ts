@@ -321,7 +321,7 @@ element<HTMLFormElement>('topup-form').addEventListener('submit', async event =>
     const mountVersion = ++checkoutVersion;
     const current = () => accountVersion === version && mountVersion === checkoutVersion && Boolean(user);
     cleanupCheckout = mountStripeEmbeddedCheckout({
-      container: element('checkout-payment'), form: checkoutForm,
+      container: element('checkout-payment'), paymentSlot: checkoutSlot, form: checkoutForm,
       submitButton: submit, statusElement: element('checkout-status'),
       emailInput: checkoutEmail, totalElement: element('checkout-total'),
       promotionInput: checkoutPromotionInput, promotionApply: checkoutPromotionApply,

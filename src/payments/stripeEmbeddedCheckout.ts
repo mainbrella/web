@@ -1,6 +1,6 @@
 import type { Appearance, Stripe, StripePaymentElement, StripeCheckoutSession, StripeCheckoutLoadActionsSuccess, StripeCheckoutPaymentElementOptions } from '@stripe/stripe-js';
 interface CheckoutOptions {
-  container: HTMLElement; form: HTMLFormElement; submitButton: HTMLButtonElement; statusElement: HTMLElement;
+  container: HTMLElement; paymentSlot?: HTMLElement; form: HTMLFormElement; submitButton: HTMLButtonElement; statusElement: HTMLElement;
   clientSecret: string; publishableKey: string; submitLabel: string; emailInput: HTMLInputElement; totalElement: HTMLElement;
   promotionInput?: HTMLInputElement | null; promotionApply?: HTMLButtonElement | null; promotionRemove?: HTMLButtonElement | null; promotionStatus?: HTMLElement | null;
   onProcessing?: (processing: boolean) => void; onComplete?: (session: StripeCheckoutSession) => Promise<void>;
@@ -76,8 +76,13 @@ function setStatus(statusElement: HTMLElement | null | undefined, message: strin
   statusElement.dataset.state = state;
 }
 
+function isNoCostCheckout(session: StripeCheckoutSession) {
+  return session?.total?.total?.minorUnitsAmount === 0 && !session?.recurring;
+}
+
 export function mountStripeEmbeddedCheckout({
   container,
+  paymentSlot = container,
   form,
   submitButton,
   statusElement,
@@ -107,6 +112,7 @@ export function mountStripeEmbeddedCheckout({
   let confirmedSession: StripeCheckoutSession | null = null;
   let updatingPromotion = false;
   let paymentFailed = false;
+  let syncingPaymentElement = false;
 
   if (promotionInput) promotionInput.value = "";
   if (promotionStatus) setStatus(promotionStatus, "");
@@ -115,6 +121,7 @@ export function mountStripeEmbeddedCheckout({
   if (promotionRemove) promotionRemove.disabled = true;
 
   submitButton.disabled = true;
+  paymentSlot.hidden = false;
   setStatus(statusElement, "Loading payment form…", "pending");
 
   async function initialize() {
@@ -146,6 +153,47 @@ export function mountStripeEmbeddedCheckout({
       emailInput.readOnly = fixedEmail;
       syncSession = (session) => {
         if (destroyed) return;
+        const noPaymentRequired = isNoCostCheckout(session);
+        if (!syncingPaymentElement) {
+          syncingPaymentElement = true;
+          try {
+            paymentSlot.hidden = noPaymentRequired;
+            if (noPaymentRequired) {
+              // Mounted Elements participate in canConfirm. Remove card fields
+              // entirely so incomplete details cannot block a free purchase.
+              const previous = paymentElement;
+              paymentElement = null;
+              paymentReady = false;
+              previous?.destroy();
+              onReady?.();
+            } else if (!paymentElement) {
+              paymentReady = false;
+              paymentFailed = false;
+              const currentElement = checkout.createPaymentElement(PAYMENT_ELEMENT_OPTIONS);
+              paymentElement = currentElement;
+              currentElement.on("ready", () => {
+                if (destroyed || paymentElement !== currentElement) return;
+                paymentReady = true;
+                syncSession(checkoutActions!.getSession());
+                onReady?.();
+              });
+              currentElement.on("loaderror", (event) => {
+                if (destroyed || paymentElement !== currentElement) return;
+                paymentFailed = true;
+                const message = event?.error?.message || "Unable to load the payment form.";
+                syncSession(checkoutActions!.getSession());
+                setStatus(statusElement, message, "error");
+                onError?.(message);
+              });
+              currentElement.mount(container);
+            }
+          } finally {
+            syncingPaymentElement = false;
+          }
+        }
+        // Destroying the card Element can change Stripe's readiness immediately.
+        session = checkoutActions!.getSession();
+        const checkoutReady = noPaymentRequired || (paymentReady && !paymentFailed);
         const currentTotal = session?.total?.total?.amount;
         if (currentTotal) {
           totalElement.textContent = `Due today: ${currentTotal}`;
@@ -154,14 +202,15 @@ export function mountStripeEmbeddedCheckout({
             submitButton.textContent = confirmedSession ? "Retry confirmation" : amountCents === 0 ? "Confirm" : `Pay ${currentTotal}`;
           }
         }
-        submitButton.disabled = processing || paymentFailed || !paymentReady || updatingPromotion || (!confirmedSession && ((!fixedEmail && syncedEmail !== emailInput.value.trim()) || !emailInput.validity.valid || session?.canConfirm !== true));
-        if (paymentReady && !processing && !confirmedSession && ["", "pending", "incomplete"].includes(statusElement.dataset.state || "")) {
+        submitButton.disabled = processing || !checkoutReady || updatingPromotion || (!confirmedSession && ((!fixedEmail && syncedEmail !== emailInput.value.trim()) || !emailInput.validity.valid || session?.canConfirm !== true));
+        if (checkoutReady && !processing && !confirmedSession && ["", "pending", "incomplete"].includes(statusElement.dataset.state || "")) {
           const emailReady = emailInput.validity.valid && (fixedEmail || syncedEmail === emailInput.value.trim());
           const message = !emailReady ? "Enter a valid email for your receipt."
+            : noPaymentRequired ? (session?.canConfirm === true ? "No payment is due. Confirm to continue." : "Checkout is not ready to confirm. Please try again.")
             : session?.canConfirm !== true ? "Complete your card details to enable payment." : "";
           setStatus(statusElement, message, message ? "incomplete" : "");
         }
-        const promotionLocked = !paymentReady || paymentFailed || processing || updatingPromotion || Boolean(confirmedSession);
+        const promotionLocked = !checkoutReady || processing || updatingPromotion || Boolean(confirmedSession);
         if (promotionInput) promotionInput.disabled = promotionLocked;
         if (promotionApply) promotionApply.disabled = promotionLocked || !promotionInput?.value.trim();
         if (promotionRemove) {
@@ -171,25 +220,6 @@ export function mountStripeEmbeddedCheckout({
       };
       if (typeof checkout.on === "function") checkout.on("change", syncSession);
 
-      paymentElement = checkout.createPaymentElement(PAYMENT_ELEMENT_OPTIONS);
-      paymentElement.on?.("ready", () => {
-        if (destroyed) return;
-        paymentReady = true;
-        syncSession(checkoutActions!.getSession());
-        onReady?.();
-      });
-      paymentElement.on?.("loaderror", (event) => {
-        if (destroyed) return;
-        paymentFailed = true;
-        const message = event?.error?.message || "Unable to load the payment form.";
-        submitButton.disabled = true;
-        if (promotionInput) promotionInput.disabled = true;
-        if (promotionApply) promotionApply.disabled = true;
-        if (promotionRemove) promotionRemove.disabled = true;
-        setStatus(statusElement, message, "error");
-        onError?.(message);
-      });
-      paymentElement.mount(container);
       syncSession(checkoutActions.getSession?.());
       if (!fixedEmail && emailInput.value) await updateEmail();
     } catch (caught) {
@@ -232,7 +262,8 @@ export function mountStripeEmbeddedCheckout({
     if (checkoutActions) syncSession(checkoutActions.getSession());
   }
   async function updatePromotion(remove = false) {
-    if (destroyed || !checkoutActions || !paymentReady || paymentFailed || processing || updatingPromotion || confirmedSession) return;
+    if (destroyed || !checkoutActions || processing || updatingPromotion || confirmedSession) return;
+    if (!isNoCostCheckout(checkoutActions.getSession()) && (!paymentReady || paymentFailed)) return;
     const code = promotionInput?.value.trim();
     if (!remove && !code) return;
     updatingPromotion = true;

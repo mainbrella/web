@@ -62,12 +62,16 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
   let checkoutData: any = { sessionId: 'cs_test', client_secret: 'cs_test_secret_inline', publishable_key: `pk_test_fixture_${sequence + 1}` };
   let completionError: string | null = extra.completionError || null;
   const topupErrors: string[] = [...(extra.topupErrors || [])];
-  const stripeSession = { id: 'cs_test', email: 'owner@example.com', canConfirm: false, total: { total: { amount: '$20.00', minorUnitsAmount: 2000 } }, discountAmounts: [] as any[] };
+  const stripeSession = { id: 'cs_test', email: 'owner@example.com', canConfirm: Boolean(extra.zeroTotal),
+    total: { total: { amount: extra.zeroTotal ? '$0.00' : '$20.00', minorUnitsAmount: extra.zeroTotal ? 0 : 2000 } }, discountAmounts: [] as any[] };
   const confirmations: any[] = [];
   let sessionChanged: (session: any) => void = () => {};
   const paymentEvents = new Map<string, (event?: any) => void>();
   let mounted = false;
   let destroyed = false;
+  let paymentMounted = false;
+  let paymentCreations = 0;
+  let paymentDestructions = 0;
   let confirmGate: Promise<void> | null = null;
   let confirmationError: string | null = null;
   const actions = {
@@ -79,6 +83,8 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
       stripeSession.total.total.amount = code === 'FREE' ? '$0.00' : '$15.00';
       stripeSession.total.total.minorUnitsAmount = code === 'FREE' ? 0 : 1500;
       stripeSession.discountAmounts = [{ promotionCode: { code } }];
+      // Mounted, incomplete card fields prevent confirmation until removed.
+      if (code === 'FREE') stripeSession.canConfirm = !paymentMounted && extra.noCostCanConfirm !== false;
       sessionChanged(stripeSession);
       return { type: 'success' };
     },
@@ -86,6 +92,7 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
       stripeSession.total.total.amount = '$20.00';
       stripeSession.total.total.minorUnitsAmount = 2000;
       stripeSession.discountAmounts = [];
+      stripeSession.canConfirm = false;
       sessionChanged(stripeSession);
       return { type: 'success' };
     },
@@ -103,11 +110,14 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
     return { initCheckoutElementsSdk: () => ({
       loadActions: async () => ({ type: 'success', actions }),
       on: (_type: string, handler: (session: any) => void) => { sessionChanged = handler; },
-      createPaymentElement: () => ({
+      createPaymentElement: () => { paymentCreations++; return {
         on: (type: string, handler: (event?: any) => void) => paymentEvents.set(type, handler),
-        mount: () => { mounted = true; paymentEvents.get('ready')?.(); },
-        destroy: () => { destroyed = true; },
-      }),
+        mount: () => { mounted = true; paymentMounted = true; paymentEvents.get('ready')?.(); },
+        destroy: () => {
+          destroyed = true; paymentMounted = false; paymentDestructions++;
+          stripeSession.canConfirm = stripeSession.total.total.minorUnitsAmount === 0 && extra.noCostCanConfirm !== false;
+        },
+      }; },
     }) };
   };
   const replace = (key: string, value: any) => {
@@ -166,6 +176,7 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
     setPromotionGate(value: Promise<void> | null) { extra.promotionGate = value; },
     paymentLoadError() { paymentEvents.get('loaderror')?.({ error: { message: 'Unable to load card details.' } }); },
     confirmations, isMounted: () => mounted, isDestroyed: () => destroyed,
+    paymentCreations: () => paymentCreations, paymentDestructions: () => paymentDestructions,
     changeAccount(value: User | null) { events.get('auth-change')?.({ detail: { user: value } }); },
   };
 }
@@ -403,7 +414,7 @@ test('a destroyed checkout ignores a late promotion result', async t => {
   assert.equal(f.node('checkout-promotion-status').textContent, 'Applying code…');
 });
 
-test('zero-dollar Stripe promotion shows a confirmation action', async t => {
+test('a full $20 promotion removes incomplete card fields and adds $20 only after confirmation', async t => {
   const f = await fixture(t);
   await f.node('topup-form').submit(); await tick();
   const code = f.node('checkout-promotion-code');
@@ -411,6 +422,81 @@ test('zero-dollar Stripe promotion shows a confirmation action', async t => {
   await f.node('checkout-promotion-apply').click();
   assert.equal(f.node('checkout-total').textContent, 'Due today: $0.00');
   assert.equal(f.node('checkout-submit').textContent, 'Confirm');
+  assert.equal(f.node('checkout-submit').disabled, false);
+  assert.equal(f.node('checkout-payment-slot').hidden, true);
+  assert.equal(f.paymentDestructions(), 1);
+  assert.match(f.node('checkout-status').textContent, /No payment is due/);
+  assert.equal(f.calls.some(call => call.path === '/billing/topups/complete'), false);
+  assert.equal(f.node('billing-balance').textContent, '$12.34');
+  // A late error from the removed card element must not block free checkout.
+  f.paymentLoadError();
+  assert.equal(f.node('checkout-submit').disabled, false);
+  await f.node('checkout-form').submit(); await tick();
+  assert.equal(f.confirmations.length, 1);
+  assert.equal(f.calls.filter(call => call.path === '/billing/topups/complete').length, 1);
+  assert.equal(f.node('billing-balance').textContent, '$32.34');
+  assert.equal(f.node('inline-checkout').hidden, true);
+  assert.equal(f.storage.size, 0);
+});
+
+test('removing a full promotion restores card entry and requires valid payment details', async t => {
+  const f = await fixture(t);
+  await f.node('topup-form').submit(); await tick();
+  f.node('checkout-promotion-code').value = 'FREE';
+  f.node('checkout-promotion-code').input();
+  await f.node('checkout-promotion-apply').click();
+  assert.equal(f.node('checkout-payment-slot').hidden, true);
+  await f.node('checkout-promotion-remove').click();
+  assert.equal(f.node('checkout-payment-slot').hidden, false);
+  assert.equal(f.paymentCreations(), 2);
+  assert.equal(f.node('checkout-submit').textContent, 'Pay $20.00');
+  assert.equal(f.node('checkout-submit').disabled, true);
+  assert.match(f.node('checkout-status').textContent, /Complete your card details/);
+  await f.node('checkout-form').submit();
+  assert.equal(f.confirmations.length, 0);
+  f.paymentReady();
+  await f.node('checkout-form').submit(); await tick();
+  assert.equal(f.node('billing-balance').textContent, '$32.34');
+});
+
+test('reopening a zero-cost checkout never mounts or waits for a card form', async t => {
+  const f = await fixture(t, { zeroTotal: true });
+  await f.node('topup-form').submit(); await tick();
+  assert.equal(f.isMounted(), false);
+  assert.equal(f.node('checkout-payment-slot').hidden, true);
+  assert.equal(f.node('checkout-payment-slot').dataset.loading, 'false');
+  assert.equal(f.node('checkout-submit').disabled, false);
+  await f.node('checkout-form').submit(); await tick();
+  assert.equal(f.confirmations.length, 1);
+  assert.equal(f.node('billing-balance').textContent, '$32.34');
+});
+
+test('zero-cost checkout still respects Stripe confirmation readiness', async t => {
+  const f = await fixture(t, { noCostCanConfirm: false });
+  await f.node('topup-form').submit(); await tick();
+  f.node('checkout-promotion-code').value = 'FREE';
+  f.node('checkout-promotion-code').input();
+  await f.node('checkout-promotion-apply').click();
+  assert.equal(f.node('checkout-payment-slot').hidden, true);
+  assert.equal(f.node('checkout-submit').disabled, true);
+  assert.doesNotMatch(f.node('checkout-status').textContent, /card details/);
+  await f.node('checkout-form').submit();
+  assert.equal(f.confirmations.length, 0);
+  assert.equal(f.calls.some(call => call.path === '/billing/topups/complete'), false);
+});
+
+test('a pending zero-cost confirmation can retry verification without confirming Stripe twice', async t => {
+  const f = await fixture(t, { zeroTotal: true, completionError: 'payment_pending' });
+  await f.node('topup-form').submit(); await tick();
+  await f.node('checkout-form').submit(); await tick();
+  assert.equal(f.node('billing-balance').textContent, '$12.34');
+  assert.equal(f.node('checkout-submit').textContent, 'Retry confirmation');
+  assert.equal(f.node('checkout-submit').disabled, false);
+  f.setCompletionError(null);
+  await f.node('checkout-form').submit(); await tick();
+  assert.equal(f.confirmations.length, 1);
+  assert.equal(f.calls.filter(call => call.path === '/billing/topups/complete').length, 2);
+  assert.equal(f.node('billing-balance').textContent, '$32.34');
 });
 
 test('retrying a pending inline confirmation verifies again without charging again', async t => {
