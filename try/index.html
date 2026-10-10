@@ -4,9 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#0d1014">
-    <meta name="description" content="Paste a public GitHub repository, prepare setup instructions with ChatGPT or Claude, and run it in a Mainbrella cloud Linux machine.">
+    <meta name="description" content="Try a public GitHub repository in a Mainbrella cloud Linux machine. Only have a private repo? We'll help you install the GitHub App to connect it.">
     <meta property="og:title" content="Run your GitHub project in the cloud · Mainbrella">
-    <meta property="og:description" content="Paste a public GitHub repository, prepare setup instructions, and run it in a cloud Linux machine.">
+    <meta property="og:description" content="Start with a public GitHub repository. Private repos need an extra GitHub App installation step—we'll help you get connected.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://mainbrella.com/try/">
     <link rel="canonical" href="https://mainbrella.com/try/">
@@ -22,7 +22,7 @@
       <section class="try-hero" aria-labelledby="try-title">
         <div class="try-intro">
           <h1 id="try-title">Run your GitHub project in a cloud Linux machine.</h1>
-          <p class="try-description">Paste a public repository. Use your ChatGPT or Claude account to prepare the setup, then review it in Mainbrella.</p>
+          <p class="try-description">Try a public repository first for the quickest setup. Use your ChatGPT or Claude account to prepare the setup, then review it in Mainbrella.</p>
           <form id="try-form" class="try-form" action="/run/" method="get">
             <label for="try-repo">Public GitHub repository</label>
             <div class="try-form-controls">
@@ -32,6 +32,7 @@
             <p id="try-repo-hint" class="try-hint">For example, https://github.com/owner/repository</p>
             <p id="try-repo-error" class="try-error" role="alert" hidden></p>
           </form>
+          <p class="try-private">Only have a private repository? You can use it too, with one extra step: install the Mainbrella GitHub App and grant it access to your repository. <a href="mailto:support@mainbrella.com?subject=Help%20connecting%20a%20private%20repository">We'll help you install the app and get connected.</a></p>
           <p class="try-pricing">A Mainbrella account and prepaid balance are needed to run a project. Add $5 or more; no monthly subscription. <a href="/pricing/">See pricing</a></p>
           <a class="try-yaml" href="/yaml/">YAML launch format and examples</a>
         </div>

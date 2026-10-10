@@ -17,6 +17,8 @@
 .try-hint, .try-error { margin-top: 6px; color: var(--muted); font-size: 13px; }
 .try-error { color: #ffb4ab; }
 .try-error[hidden] { display: none; }
+.try-private { max-width: 52ch; margin-top: 16px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.try-private a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .try-pricing { max-width: 52ch; margin-top: 20px; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .try-pricing a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .try-yaml { display: inline-flex; align-items: center; min-height: 44px; margin-top: 4px; color: var(--muted); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
