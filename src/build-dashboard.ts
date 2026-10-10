@@ -1,11 +1,15 @@
-import { BuildAPIError, buildErrorMessage, createBuildClient, safeBuildPreviewURL, type BuildApp, type BuildConfig, type BuildSource } from './build-api.ts';
+import { BuildAPIError, buildErrorMessage, createBuildClient, safeBuildPreviewURL, type BuildApp, type BuildConfig, type BuildSource, type BuildTurn } from './build-api.ts';
 import { buildExamples, createBuildDraftStore } from './build-drafts.ts';
+import { buildBriefQuestions, formatBuildBriefPrompt, readBuildBriefPrompt } from './build-brief.ts';
+
+type Clarification = { prompt: string; answers: [string, string]; step: 0 | 1 };
 
 export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated: () => void }) {
   const host = document.querySelector<HTMLElement>('#dashboard-build')!;
   const node = <T extends HTMLElement>(selector: string) => host.querySelector<T>(selector)!;
   const home = node<HTMLElement>('#build-home');
   const workspace = node<HTMLElement>('#build-workspace');
+  const panels = node<HTMLElement>('.build-workspace-panels');
   const prompt = node<HTMLTextAreaElement>('#build-prompt');
   const create = node<HTMLButtonElement>('#build-create');
   const update = node<HTMLTextAreaElement>('#build-update');
@@ -13,6 +17,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   const name = node<HTMLInputElement>('#build-draft-name');
   const list = node<HTMLElement>('#build-draft-list');
   const messages = node<HTMLElement>('#build-messages');
+  const conversationScroll = node<HTMLElement>('#build-conversation-scroll');
   const progress = node<HTMLElement>('#build-progress');
   const error = node<HTMLElement>('#build-storage-error');
   const retry = node<HTMLButtonElement>('#build-retry');
@@ -23,6 +28,14 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   const file = node<HTMLSelectElement>('#build-file');
   const code = node<HTMLElement>('#build-code');
   const tabs = ['preview', 'code', 'logs'].map(id => node<HTMLButtonElement>(`#build-${id}-tab`));
+  const questions = node<HTMLFormElement>('#build-questions');
+  const questionTitle = node<HTMLElement>('#build-question-title');
+  const customAnswer = node<HTMLInputElement>('#build-question-custom');
+  const questionNext = node<HTMLButtonElement>('#build-question-next');
+  const questionBack = node<HTMLButtonElement>('#build-question-back');
+  const questionSkip = node<HTMLButtonElement>('#build-question-skip');
+  const togglePreview = node<HTMLButtonElement>('#build-toggle-preview');
+  const mobile = window.matchMedia('(max-width: 900px)');
   const controller = new AbortController();
   const client = createBuildClient(() => { dispose(); onUnauthenticated(); }, controller.signal);
   let config: BuildConfig | null = null;
@@ -43,16 +56,30 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   let stopWatching: (() => void) | null = null;
   let watchedAppId: string | null = null;
   let optimistic: { text: string; newApp: boolean } | null = null;
+  let clarification: Clarification | null = null;
+  let previewPreference: boolean | null = null;
+  let mobileView: 'conversation' | 'preview' = 'conversation';
+
+  function layout() {
+    const visible = previewPreference ?? Boolean(selected?.revision || selected?.preview);
+    panels.classList.toggle('has-preview', visible);
+    panels.dataset.mobileView = mobileView;
+    togglePreview.hidden = !selected;
+    const expanded = visible && (!mobile.matches || mobileView === 'preview');
+    togglePreview.textContent = mobile.matches ? expanded ? 'Conversation' : 'Preview' : visible ? 'Hide preview' : 'Show preview';
+    togglePreview.setAttribute('aria-expanded', String(expanded));
+  }
 
   function controls() {
     const locked = busy || disposed;
     const active = apps.some(app => app.activeTurnId) || Boolean(selected?.activeTurnId);
     const available = config?.available && loaded && !active;
     create.disabled = locked || !available || !prompt.value.trim() || apps.length >= (config?.maxApps ?? 50);
-    send.disabled = locked || !available || !selected || !update.value.trim();
-    create.textContent = busy && !selected ? 'Starting…' : 'Build app ↑';
-    send.textContent = busy ? 'Sending…' : 'Send ↑';
-    for (const input of [prompt, update, name]) input.disabled = locked;
+    send.disabled = locked || !available || !(selected || clarification) || !update.value.trim();
+    create.setAttribute('aria-label', busy && !selected ? 'Starting build' : 'Start building');
+    send.setAttribute('aria-label', busy ? 'Sending message' : 'Send message');
+    for (const input of [prompt, update]) input.disabled = locked;
+    name.disabled = locked || Boolean(clarification);
     for (const button of host.querySelectorAll<HTMLButtonElement>('.build-workspace-heading button, .build-draft-open, .build-draft-delete')) button.disabled = locked;
     node<HTMLButtonElement>('#build-stop').disabled = locked || Boolean(selected?.activeTurnId);
     node<HTMLButtonElement>('#build-start-preview').disabled = locked || !available;
@@ -61,6 +88,12 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     create.title = active ? 'A build is already running in your account.' : apps.length >= (config?.maxApps ?? 50) ? 'Delete an app to make room.' : '';
     send.title = active ? 'You can write your next change while Build works.' : '';
     node<HTMLElement>('.build-more').hidden = !selected;
+    const canCreate = !locked && available && apps.length < (config?.maxApps ?? 50);
+    questionNext.disabled = !canCreate || !clarification?.answers[clarification.step].trim();
+    questionSkip.disabled = !canCreate;
+    questionBack.disabled = locked || clarification?.step !== 1;
+    for (const input of questions.querySelectorAll<HTMLInputElement>('input')) input.disabled = locked;
+    layout();
   }
 
   function clearError() { error.hidden = true; retry.hidden = true; retryAction = null; }
@@ -100,6 +133,99 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     try { sessionStorage.removeItem(`mainbrella-build-submission:v1:${userId}`); } catch { /* Optional storage. */ }
   }
 
+  function saveClarification() {
+    try {
+      const key = `mainbrella-build-brief:v1:${userId}`;
+      if (clarification) sessionStorage.setItem(key, JSON.stringify(clarification));
+      else sessionStorage.removeItem(key);
+    } catch { /* The in-memory brief still works without browser storage. */ }
+  }
+  function restoreClarification() {
+    try {
+      const saved: unknown = JSON.parse(sessionStorage.getItem(`mainbrella-build-brief:v1:${userId}`) || 'null');
+      if (!saved || typeof saved !== 'object') return;
+      const brief = saved as Clarification;
+      if (typeof brief.prompt !== 'string' || !brief.prompt.trim() || brief.prompt.length > 6000
+        || !Array.isArray(brief.answers) || brief.answers.length !== 2
+        || !brief.answers.every(answer => typeof answer === 'string' && answer.length <= 180)
+        || brief.step !== 0 && brief.step !== 1) return;
+      prompt.value = brief.prompt;
+      beginClarification(brief);
+    } catch { /* Invalid or unavailable storage cannot block building. */ }
+  }
+  function clearClarification() {
+    clarification = null; questions.hidden = true; workspace.classList.remove('is-clarifying');
+    update.placeholder = 'Ask for a change…';
+    saveClarification();
+  }
+  function renderQuestions(focus = true) {
+    if (!clarification) return;
+    const brief = clarification, question = buildBriefQuestions[brief.step];
+    questionTitle.textContent = question.title;
+    node<HTMLElement>('#build-question-step').textContent = `${brief.step + 1} of 2`;
+    questionNext.textContent = brief.step === 0 ? 'Next' : 'Build app';
+    node<HTMLElement>('#build-question-error').hidden = true;
+    const options = node<HTMLElement>('#build-question-options');
+    options.replaceChildren(); options.classList.toggle('is-palette', brief.step === 1);
+    const answer = brief.answers[brief.step];
+    customAnswer.value = question.options.some(option => option.value === answer) ? '' : answer;
+    for (const option of question.options) {
+      const label = document.createElement('label'), radio = document.createElement('input');
+      label.className = option.colors ? 'build-style-option' : 'build-question-option';
+      radio.type = 'radio'; radio.name = 'build-question-answer'; radio.value = option.value; radio.checked = answer === option.value;
+      const copy = document.createElement('span'), title = document.createElement('strong');
+      copy.className = 'build-option-copy'; title.textContent = option.value; copy.append(title);
+      if (option.description) {
+        const description = document.createElement('span'); description.textContent = option.description; copy.append(description);
+      }
+      label.append(radio, copy);
+      if (option.colors) {
+        const swatches = document.createElement('span'); swatches.className = 'build-swatches'; swatches.setAttribute('aria-hidden', 'true');
+        for (const color of option.colors) {
+          const swatch = document.createElement('span'); swatch.style.setProperty('--swatch', color); swatches.append(swatch);
+        }
+        label.append(swatches);
+      }
+      radio.addEventListener('change', () => {
+        if (clarification !== brief) return;
+        brief.answers[brief.step] = option.value; customAnswer.value = ''; saveClarification(); controls();
+      });
+      options.append(label);
+    }
+    questions.hidden = false; saveClarification(); controls();
+    if (focus) questionTitle.focus();
+  }
+  function beginClarification(brief: Clarification) {
+    clarification = brief; selected = null; previewPreference = null; mobileView = 'conversation';
+    home.hidden = true; workspace.hidden = false; workspace.classList.add('is-clarifying');
+    workspace.classList.remove('is-building');
+    name.value = brief.prompt.split(/\r?\n/)[0].slice(0, 64);
+    progress.hidden = true; status.textContent = ''; conversationKey = '';
+    frame.removeAttribute('src'); frame.hidden = true; openPreview.hidden = true;
+    for (const id of ['start-preview', 'stop', 'resume']) node<HTMLButtonElement>(`#build-${id}`).hidden = true;
+    messages.replaceChildren(messageRow(brief.prompt), messageRow('A couple of details will help shape your app. You can also skip ahead and build.', 'build-message-intro', 'Build'));
+    messages.setAttribute('aria-busy', 'false');
+    update.value = ''; update.placeholder = 'Add more detail, or tell Build what to do instead…';
+    renderQuestions();
+  }
+  function submitNewApp(text: string) {
+    const key = submissionKey(JSON.stringify(['create', text]));
+    void mutate(() => client.create(text, key), ({ app }) => {
+      clearSubmission(key); clearClarification(); prompt.value = ''; update.value = ''; conversationKey = '';
+      setAppURL(app.id); renderApp(app); setTab(tabs[0]); update.focus();
+    }, text);
+  }
+  function submitBrief(answers: readonly string[], extra = '') {
+    if (!clarification || questionSkip.disabled) return;
+    try {
+      const text = formatBuildBriefPrompt(clarification.prompt + (extra ? `\n\n${extra}` : ''), answers);
+      submitNewApp(text);
+    } catch (cause) {
+      const error = node<HTMLElement>('#build-question-error');
+      error.textContent = cause instanceof Error ? cause.message : 'Check your brief and try again.'; error.hidden = false;
+    }
+  }
+
   function renderList() {
     list.replaceChildren();
     const empty = node<HTMLElement>('#build-empty');
@@ -110,7 +236,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       const open = document.createElement('button');
       open.type = 'button'; open.className = 'build-draft-open';
       const title = document.createElement('strong'); title.textContent = app.name;
-      const excerpt = document.createElement('span'); excerpt.textContent = app.prompt;
+      const excerpt = document.createElement('span'); excerpt.textContent = readBuildBriefPrompt(app.prompt).prompt;
       const meta = document.createElement('span'); meta.className = 'build-draft-meta';
       meta.textContent = `${app.activeTurnId ? 'Building' : app.preview ? 'Preview ready' : app.revision ? `Revision ${app.revision}` : 'Needs attention'} · ${new Date(app.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
       open.append(title, excerpt, meta);
@@ -132,11 +258,69 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     controls();
   }
 
+  function messageRow(text: string, className = 'build-message-user', label = 'You') {
+    const row = document.createElement('li'), author = document.createElement('span'), paragraph = document.createElement('p');
+    row.className = className; author.textContent = label; paragraph.textContent = text;
+    row.append(author, paragraph);
+    return row;
+  }
+
+  function appendBriefAnswers(body: HTMLElement, answers: readonly string[]) {
+    if (!answers.some(Boolean)) return;
+    const definitions = document.createElement('dl'); definitions.className = 'build-brief-answers';
+    for (const [index, label] of ['App type', 'Visual style'].entries()) {
+      if (!answers[index]) continue;
+      const term = document.createElement('dt'), value = document.createElement('dd');
+      term.textContent = label; value.textContent = answers[index]; definitions.append(term, value);
+    }
+    body.append(definitions);
+  }
+
+  function activityRow(turn: BuildTurn, existing?: HTMLElement) {
+    const row = existing ?? document.createElement('li');
+    row.className = 'build-activity-message';
+    let details = row.querySelector<HTMLDetailsElement>('details');
+    if (!details) {
+      details = document.createElement('details'); details.className = 'build-activity';
+      const summary = document.createElement('summary');
+      for (const className of ['build-activity-state', 'build-activity-title', 'build-activity-count']) {
+        const span = document.createElement('span'); span.className = className; summary.append(span);
+      }
+      const body = document.createElement('div'); body.className = 'build-activity-body';
+      details.append(summary, body); row.append(details);
+    }
+    const running = turn.status === 'running' || turn.status === 'queued';
+    details.dataset.state = running ? 'running' : turn.status;
+    const state = details.querySelector<HTMLElement>('.build-activity-state')!;
+    state.textContent = running ? '⋯' : turn.status === 'failed' ? '!' : '✓';
+    state.setAttribute('aria-label', running ? 'In progress' : turn.status === 'failed' ? 'Failed' : 'Completed');
+    details.querySelector<HTMLElement>('.build-activity-title')!.textContent = running ? turn.stage || 'Starting build…'
+      : turn.status === 'failed' ? 'Build needs attention' : turn.mode === 'preview' ? 'Preview ready' : 'Built app';
+    const tools = (turn.activity ?? []).filter(item => item.type === 'tool');
+    details.querySelector<HTMLElement>('.build-activity-count')!.textContent = tools.length ? `${tools.length} ${tools.length === 1 ? 'step' : 'steps'}` : '';
+    const body = details.querySelector<HTMLElement>('.build-activity-body')!; body.replaceChildren();
+    appendBriefAnswers(body, readBuildBriefPrompt(turn.prompt).answers);
+    const activity = document.createElement('ul'); activity.className = 'build-activity-list';
+    for (const item of tools) {
+      const state = item.status === 'running' && turn.status === 'failed' ? 'failed' : item.status;
+      const entry = document.createElement('li'), icon = document.createElement('span'), text = document.createElement('p');
+      entry.className = `build-tool build-tool-${state}`;
+      icon.textContent = state === 'running' ? '⋯' : state === 'failed' ? '!' : '✓';
+      icon.setAttribute('aria-label', state === 'running' ? 'In progress' : state === 'failed' ? 'Failed' : 'Completed');
+      text.textContent = item.text; entry.append(icon, text); activity.append(entry);
+    }
+    if (tools.length) body.append(activity);
+    if (!body.children.length) {
+      const text = document.createElement('p'); text.textContent = turn.stage || 'Waiting for build activity…'; body.append(text);
+    }
+    return row;
+  }
+
   function renderConversation(app: BuildApp) {
     const key = JSON.stringify(app.turns);
     if (key === conversationKey) return;
     conversationKey = key;
-    const nearBottom = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 80;
+    const nearBottom = conversationScroll.scrollHeight - conversationScroll.scrollTop - conversationScroll.clientHeight < 80;
     const existing = new Map(Array.from(messages.children, child => [(child as HTMLElement).dataset.messageKey, child as HTMLElement]));
     const rows: HTMLElement[] = [];
     function message(key: string, label: string, text: string, className = '') {
@@ -151,21 +335,19 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       rows.push(row);
     }
     for (const turn of app.turns ?? []) {
-      message(`user-${turn.id}`, 'You', turn.mode === 'preview' ? 'Restart the preview from saved source.' : turn.prompt);
+      message(`user-${turn.id}`, 'You', turn.mode === 'preview' ? 'Restart the preview from saved source.' : readBuildBriefPrompt(turn.prompt).prompt, 'build-message-user');
       for (const item of turn.activity ?? []) {
-        if (item.type === 'tool') {
-          const state = item.status === 'running' && turn.status === 'failed' ? 'failed' : item.status;
-          message(`${turn.id}-${item.id}`, state === 'running' ? '…' : state === 'failed' ? '!' : '✓', item.text, `build-tool build-tool-${state}`);
-          rows.at(-1)!.children[0].setAttribute('aria-label', state === 'running' ? 'In progress' : state === 'failed' ? 'Failed' : 'Completed');
-        } else message(`${turn.id}-${item.id}`, 'Build', item.text, item.status === 'running' && app.activeTurnId === turn.id ? 'build-message-streaming' : '');
+        if (item.type === 'message') message(`${turn.id}-${item.id}`, 'Build', item.text, item.status === 'running' && app.activeTurnId === turn.id ? 'build-message-streaming' : '');
       }
+      const activityKey = `activity-${turn.id}`, activity = activityRow(turn, existing.get(activityKey));
+      activity.dataset.messageKey = activityKey; rows.push(activity);
       if (turn.status === 'failed') message(`result-${turn.id}`, 'Build', buildErrorMessage(turn.error || 'build_failed'), 'build-message-error');
       else if (turn.summary && !turn.activity?.some(item => item.type === 'message' && item.text === turn.summary)) message(`result-${turn.id}`, 'Build', turn.summary);
       else if (!turn.activity?.length && turn.status === 'succeeded') message(`result-${turn.id}`, 'Build', turn.stage);
     }
     for (const row of Array.from(messages.children)) if (!rows.includes(row as HTMLElement)) row.remove();
     rows.forEach((row, index) => { if (messages.children[index] !== row) messages.insertBefore(row, messages.children[index] ?? null); });
-    if (nearBottom) messages.scrollTop = messages.scrollHeight;
+    if (nearBottom) conversationScroll.scrollTop = conversationScroll.scrollHeight;
     node<HTMLElement>('#build-logs').textContent = (app.turns ?? []).map(turn =>
       `${turn.mode === 'preview' ? 'Preview' : 'Build'} · ${turn.stage}${turn.activity?.length ? `\n${turn.activity.map(item => item.text).join('\n')}` : ''}${turn.error ? `\n${buildErrorMessage(turn.error)}` : ''}${turn.log ? `\n${turn.log}` : ''}`
     ).join('\n\n') || 'No build output yet.';
@@ -180,6 +362,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     empty.hidden = Boolean(url); frame.hidden = !url;
     panel.classList.toggle('has-preview', Boolean(url));
     openPreview.hidden = !url;
+    node<HTMLButtonElement>('#build-refresh-preview').hidden = !url;
     if (url) {
       openPreview.href = url;
       if (frame.getAttribute('src') !== url) frame.src = url;
@@ -205,8 +388,8 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     node<HTMLElement>('#build-revision').textContent = app.revision ? `Revision ${app.revision}` : 'New app';
     const turn = app.turns?.at(-1);
     status.textContent = app.activeTurnId ? 'You can write your next change' : turn?.status === 'failed' ? 'Ask Build to try again' : 'Changes saved';
-    const lastActivity = turn?.activity?.at(-1);
-    progress.hidden = !app.activeTurnId || lastActivity?.type === 'tool' && lastActivity.status === 'running' && lastActivity.text === turn?.stage;
+    progress.hidden = !app.activeTurnId;
+    progress.classList.add('visually-hidden');
     progress.textContent = app.activeTurnId ? turn?.stage || 'Connecting to Build…' : '';
     messages.setAttribute('aria-busy', String(Boolean(app.activeTurnId)));
     workspace.classList.toggle('is-building', Boolean(app.activeTurnId));
@@ -238,9 +421,10 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   function renderPending(text: string) {
     optimistic = { text, newApp: !selected };
     disconnectStream();
+    questions.hidden = true; workspace.classList.remove('is-clarifying');
     if (!selected) {
       home.hidden = true; workspace.hidden = false;
-      name.value = text.split(/\r?\n/)[0].slice(0, 64);
+      name.value = readBuildBriefPrompt(text).prompt.split(/\r?\n/)[0].slice(0, 64);
       node<HTMLElement>('#build-revision').textContent = 'New app';
       messages.replaceChildren(); conversationKey = '';
       node<HTMLElement>('#build-logs').textContent = 'Sending your request…';
@@ -251,10 +435,10 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       previewStatus.textContent = 'Getting started…';
       for (const id of ['start-preview', 'stop', 'resume']) node<HTMLButtonElement>(`#build-${id}`).hidden = true;
     }
-    const row = document.createElement('li'), label = document.createElement('span'), paragraph = document.createElement('p');
-    label.textContent = 'You'; paragraph.textContent = text; row.append(label, paragraph); messages.append(row);
-    messages.scrollTop = messages.scrollHeight;
+    messages.append(messageRow(readBuildBriefPrompt(text).prompt));
+    conversationScroll.scrollTop = conversationScroll.scrollHeight;
     progress.hidden = false; progress.textContent = 'Sending your request…';
+    progress.classList.remove('visually-hidden');
     status.textContent = '';
     messages.setAttribute('aria-busy', 'true'); workspace.classList.add('is-building');
     setTab(tabs[0]);
@@ -339,7 +523,9 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
         busy = false;
         if (optimistic) {
           const pending = optimistic; optimistic = null; conversationKey = '';
-          if (pending.newApp) { home.hidden = false; workspace.hidden = true; progress.hidden = true; }
+          if (pending.newApp && clarification) {
+            const unsent = update.value; beginClarification(clarification); update.value = unsent;
+          } else if (pending.newApp) { home.hidden = false; workspace.hidden = true; progress.hidden = true; }
           else if (selected) renderApp(selected);
         }
         controls(); watchApp(); schedule();
@@ -351,6 +537,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     if (busy || disposed) return;
     if (update.value.trim() && !window.confirm('Leave this app without sending your changes?')) return;
     await mutate(() => client.read(id), ({ app }) => {
+      clearClarification(); previewPreference = null; mobileView = 'conversation';
       update.value = ''; source = null; sourceVersion++; conversationKey = '';
       setAppURL(id); renderApp(app); setTab(tabs[0]); update.focus();
     });
@@ -359,18 +546,56 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   node<HTMLFormElement>('#build-create-form').addEventListener('submit', event => {
     event.preventDefault();
     if (create.disabled) return;
-    const text = prompt.value.trim(), key = submissionKey(JSON.stringify(['create', text]));
-    void mutate(() => client.create(text, key), ({ app }) => {
-      clearSubmission(key); prompt.value = ''; conversationKey = ''; setAppURL(app.id); renderApp(app); setTab(tabs[0]); update.focus();
-    }, text);
+    beginClarification({ prompt: prompt.value.trim(), answers: ['', ''], step: 0 });
   });
   node<HTMLFormElement>('#build-update-form').addEventListener('submit', event => {
     event.preventDefault();
-    if (send.disabled || !selected) return;
+    if (send.disabled) return;
+    if (clarification) { submitBrief(clarification.answers, update.value.trim()); return; }
+    if (!selected) return;
     const app = selected, text = update.value.trim(), key = submissionKey(JSON.stringify(['build', app.id, app.revision, text]));
     void mutate(() => client.turn(app, text, key), ({ app: next }) => {
       clearSubmission(key); update.value = ''; renderApp(next); update.focus();
     }, text);
+  });
+  questions.addEventListener('submit', event => {
+    event.preventDefault();
+    if (!clarification || questionNext.disabled) return;
+    if (clarification.step === 0) { clarification.step = 1; renderQuestions(); }
+    else submitBrief(clarification.answers);
+  });
+  questionBack.addEventListener('click', () => {
+    if (!clarification || questionBack.disabled) return;
+    clarification.step = 0; renderQuestions();
+  });
+  questionSkip.addEventListener('click', () => submitBrief(['', '']));
+  customAnswer.addEventListener('input', () => {
+    if (!clarification) return;
+    clarification.answers[clarification.step] = customAnswer.value.trim();
+    for (const radio of questions.querySelectorAll<HTMLInputElement>('input[type="radio"]')) radio.checked = false;
+    node<HTMLElement>('#build-question-error').hidden = true;
+    saveClarification(); controls();
+  });
+  togglePreview.addEventListener('click', () => {
+    if (mobile.matches) {
+      previewPreference = true;
+      mobileView = mobileView === 'conversation' ? 'preview' : 'conversation';
+    } else previewPreference = !panels.classList.contains('has-preview');
+    layout();
+    if (mobile.matches && mobileView === 'conversation') update.focus();
+  });
+  const resizeWorkspace = () => layout();
+  mobile.addEventListener('change', resizeWorkspace);
+  for (const device of ['desktop', 'mobile']) {
+    node<HTMLButtonElement>(`#build-device-${device}`).addEventListener('click', () => {
+      node<HTMLElement>('#build-preview-panel').classList.toggle('is-mobile', device === 'mobile');
+      for (const choice of ['desktop', 'mobile']) node<HTMLElement>(`#build-device-${choice}`).setAttribute('aria-pressed', String(choice === device));
+    });
+  }
+  node<HTMLButtonElement>('#build-refresh-preview').addEventListener('click', () => {
+    const preview = selected?.preview;
+    const url = preview && preview.expiresAt > Date.now() && safeBuildPreviewURL(preview.url);
+    if (url) frame.src = url;
   });
   node<HTMLButtonElement>('#build-start-preview').addEventListener('click', () => {
     if (!selected) return;
@@ -404,6 +629,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   node<HTMLButtonElement>('#build-back').addEventListener('click', () => {
     if (busy || update.value.trim() && !window.confirm('Leave this app without sending your changes?')) return;
     version++; sourceVersion++; selected = null; source = null; update.value = '';
+    clearClarification(); previewPreference = null; mobileView = 'conversation';
     disconnectStream();
     frame.removeAttribute('src'); setAppURL(null); clearError();
     workspace.hidden = true; home.hidden = false; renderList(); prompt.focus();
@@ -477,6 +703,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     busy = false; host.setAttribute('aria-busy', 'false'); controls();
     const appId = new URL(location.href).searchParams.get('app');
     if (appId && !selected) await openApp(appId);
+    else if (!appId && !selected && !clarification) restoreClarification();
     schedule();
   }
 
@@ -490,12 +717,13 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   function dispose() {
     disposed = true; version++; sourceVersion++; controller.abort(); clearTimeout(timer);
     disconnectStream(); optimistic = null;
-    apps = []; selected = null; source = null; config = null; pendingSubmission = null;
+    apps = []; selected = null; source = null; config = null; pendingSubmission = null; clarification = null;
     prompt.value = ''; update.value = ''; name.value = ''; messages.replaceChildren(); list.replaceChildren();
     node<HTMLElement>('#build-local-list').replaceChildren(); code.textContent = ''; node<HTMLElement>('#build-logs').textContent = '';
     frame.removeAttribute('src'); openPreview.removeAttribute('href'); controls();
     window.removeEventListener('beforeunload', beforeUnload);
     document.removeEventListener('visibilitychange', visibility);
+    mobile.removeEventListener('change', resizeWorkspace);
   }
   controls();
   return { load, dispose };

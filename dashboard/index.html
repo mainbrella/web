@@ -36,16 +36,14 @@
           <div id="build-home">
             <div class="build-start">
               <h2 id="build-prompt-label">What would you like to build?</h2>
-              <p class="build-description">Describe your app and watch it come together.</p>
               <form id="build-create-form" class="build-composer">
-                <textarea id="build-prompt" rows="3" maxlength="6000" required aria-labelledby="build-prompt-label" aria-describedby="build-availability" placeholder="A simple hello world app…"></textarea>
+                <textarea id="build-prompt" rows="3" maxlength="6000" required aria-labelledby="build-prompt-label" aria-describedby="build-availability" placeholder="Describe an app, a website, or an idea…"></textarea>
                 <div class="build-composer-footer">
                   <span class="build-shortcut" aria-hidden="true">Enter to build · Shift + Enter for a new line</span>
-                  <button id="build-create" class="button button-small" type="submit" disabled>Build app <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6" /></svg></button>
+                  <button id="build-create" class="button build-send" type="submit" aria-label="Start building" title="Start building" disabled><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6" /></svg></button>
                 </div>
               </form>
               <div class="build-examples" aria-label="Example app ideas">
-                <button type="button" data-build-example="hello">Hello world</button>
                 <button type="button" data-build-example="expense"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4zM8 16v-4m4 4V8m4 8v-6" /></svg>Expense tracker</button>
                 <button type="button" data-build-example="portfolio"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 9h18m-14 5h4" /></svg>Portfolio website</button>
                 <button type="button" data-build-example="team"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16m6-12h3m-3 4h3m-3 4h3" /></svg>Team task board</button>
@@ -64,28 +62,53 @@
               <button id="build-back" type="button" class="build-back" aria-label="Back to apps"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg></button>
               <input id="build-draft-name" type="text" maxlength="80" aria-label="App name" autocomplete="off" />
               <div class="build-workspace-actions">
+                <button id="build-toggle-preview" type="button" class="dashboard-retry" aria-controls="build-preview" aria-expanded="false" hidden>Show preview</button>
                 <button id="build-resume" type="button" class="dashboard-retry" hidden>Resume build</button>
                 <button id="build-start-preview" type="button" class="dashboard-retry" hidden>Start preview</button>
                 <details class="build-more"><summary>More</summary><div class="build-more-actions"><button id="build-export" type="button" class="dashboard-retry">Download source</button><button id="build-stop" type="button" class="dashboard-retry" hidden>Stop sandbox</button></div></details>
               </div>
             </div>
             <div class="build-workspace-panels">
-              <section class="build-conversation" aria-labelledby="build-conversation-title">
-                <div class="build-panel-heading"><h2 id="build-conversation-title">Conversation</h2><span id="build-revision">New app</span></div>
+              <section id="build-conversation" class="build-conversation" aria-labelledby="build-conversation-title">
+                <div class="build-panel-heading build-conversation-heading"><h2 id="build-conversation-title" class="visually-hidden">Conversation</h2><span id="build-revision">New app</span></div>
+                <div id="build-conversation-scroll" class="build-conversation-scroll">
                 <ol id="build-messages" aria-label="Build conversation"></ol>
                 <p id="build-progress" class="build-progress" role="status" hidden></p>
+                <form id="build-questions" class="build-questions" hidden>
+                  <fieldset>
+                    <legend id="build-question-title" tabindex="-1"></legend>
+                    <div id="build-question-options" class="build-question-options"></div>
+                    <label for="build-question-custom" class="build-custom-label">Or describe your own</label>
+                    <input id="build-question-custom" type="text" maxlength="180" autocomplete="off" placeholder="Write your own…" />
+                  </fieldset>
+                  <p id="build-question-error" class="dashboard-error" role="alert" hidden></p>
+                  <div class="build-question-footer">
+                    <button id="build-question-back" type="button" class="build-icon-button" aria-label="Previous question" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg></button>
+                    <span id="build-question-step">1 of 2</span>
+                    <button id="build-question-skip" type="button" class="build-quiet-button">Skip all</button>
+                    <button id="build-question-next" type="submit" class="button button-small" disabled>Next</button>
+                  </div>
+                </form>
+                </div>
                 <form id="build-update-form" class="build-composer build-update-composer">
-                  <label for="build-update" class="build-update-label">Ask for a change</label>
-                  <textarea id="build-update" rows="2" maxlength="6000" required placeholder="What would you like to change?"></textarea>
-                  <div class="build-composer-footer"><span id="build-save-status" role="status"></span><button id="build-update-save" class="button button-small" type="submit" disabled>Send</button></div>
+                  <label for="build-update" class="build-update-label">Message Build</label>
+                  <textarea id="build-update" rows="2" maxlength="6000" required placeholder="Ask for a change…"></textarea>
+                  <div class="build-composer-footer"><span id="build-save-status" role="status"></span><button id="build-update-save" class="button build-send" type="submit" aria-label="Send message" title="Send message" disabled><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6" /></svg></button></div>
                 </form>
               </section>
-              <section class="build-preview" aria-label="App preview and source">
+              <section id="build-preview" class="build-preview" aria-label="App preview and source">
                 <div class="build-panel-heading">
                   <div class="build-preview-tabs" role="tablist" aria-label="App views">
                     <button id="build-preview-tab" type="button" role="tab" aria-selected="true" aria-controls="build-preview-panel">Preview</button>
                     <button id="build-code-tab" type="button" role="tab" aria-selected="false" aria-controls="build-code-panel" tabindex="-1">Code</button>
                     <button id="build-logs-tab" type="button" role="tab" aria-selected="false" aria-controls="build-logs-panel" tabindex="-1">Logs</button>
+                  </div>
+                  <div class="build-preview-controls">
+                    <div class="build-device-controls" role="group" aria-label="Preview size">
+                      <button id="build-device-desktop" type="button" class="build-icon-button" aria-label="Desktop preview" aria-pressed="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M8 21h8m-4-4v4" /></svg></button>
+                      <button id="build-device-mobile" type="button" class="build-icon-button" aria-label="Mobile preview" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2" /><path d="M11 18h2" /></svg></button>
+                    </div>
+                    <button id="build-refresh-preview" type="button" class="build-icon-button" aria-label="Refresh preview" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5m-4.5-4a8 8 0 0 1 13-2l2.5 3M4 15l2.5 3a8 8 0 0 0 13-2" /></svg></button>
                   </div>
                 </div>
                 <div class="build-preview-toolbar"><span id="build-preview-status" role="status"></span><a id="build-open-preview" class="text-link" target="_blank" rel="noopener noreferrer" hidden>Open preview ↗</a></div>
@@ -97,7 +120,6 @@
                 <div id="build-logs-panel" class="build-code-panel" role="tabpanel" aria-labelledby="build-logs-tab" tabindex="0" hidden><pre id="build-logs">No build output yet.</pre></div>
               </section>
             </div>
-            <p class="build-runtime-note">Previews are temporary. Your source and conversation stay saved.</p>
           </section>
         </section>
         <dl id="container-usage" class="container-usage" aria-label="Account usage" hidden>

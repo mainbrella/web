@@ -50,7 +50,13 @@ show an error with retry rather than reporting a zero balance.
 
 The **Build** tab at `/dashboard/?view=build` connects to the session-authenticated
 `/build` API. Describe a frontend app and press Enter (Shift+Enter adds a line).
-The conversation opens immediately; assistant text and file activity stream through
+The full-screen workspace opens with two skippable questions about app type and
+visual style. Questions do not start a sandbox; their answers are included in the
+initial build prompt and shown in the saved build brief. Unsubmitted answers survive
+same-tab reloads. The conversation fills the workspace while building, then opens a
+wide preview alongside it. On smaller screens, switch between the conversation and
+preview. Preview controls support desktop/mobile sizing and refresh.
+Assistant text and grouped file activity stream through
 the session-authenticated `/build/apps/<id>/events` SSE endpoint. Progress is retained
 in D1, survives reloads, and reconnects without resubmitting the build. Status polling
 recovers if streaming disconnects. Use the live preview or browse its source in Code. Apps, source,

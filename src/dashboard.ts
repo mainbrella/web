@@ -22,6 +22,7 @@ let currentUser: User | null = null;
 let lastContainerBilling: ContainerData['billing'] = null;
 let dashboardTracked = false;
 const view = dashboardView(location.search);
+main.setAttribute('data-view', view);
 document.querySelector<HTMLElement>('#dashboard-title')!.textContent = view === 'overview' ? 'Overview' : view === 'build' ? 'Build' : view === 'production' ? 'Production' : 'Ad Hoc';
 document.querySelector<HTMLElement>('#dashboard-overview')!.hidden = view !== 'overview';
 document.querySelector<HTMLElement>('#dashboard-build')!.hidden = view !== 'build';
