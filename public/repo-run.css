@@ -16,6 +16,9 @@
 .run-body .repo-prompt-label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
 .run-body .repo-prompt-label textarea { width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--control-border); border-radius: 4px; background: var(--paper); color: var(--ink); font: 12px/1.6 ui-monospace, monospace; resize: vertical; }
 .repo-run-help { max-width: 720px; margin: 12px 0; }
+.repo-run-github { max-width: 720px; margin-top: 16px; }
+.repo-run-github p + p, .repo-run-github .container-actions + p { margin-top: 8px; }
+.repo-run-github .container-actions { margin-top: 8px; }
 #run-access a { margin-right: 8px; text-decoration: underline; }
 #run-progress { margin-top: 20px; }
 .repo-run-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }

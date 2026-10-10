@@ -33,15 +33,15 @@ if (form && input && error) {
     const repo = normalizeRepo(repoInput.value);
     if (!validRepo(repo)) {
       event.preventDefault();
-      repoInput.setCustomValidity('Enter a public GitHub URL or owner/repository.');
+      repoInput.setCustomValidity('Enter a GitHub URL or owner/repository.');
       repoInput.setAttribute('aria-invalid', 'true');
-      repoError.textContent = 'Enter a public GitHub URL or owner/repository.';
+      repoError.textContent = 'Enter a GitHub URL or owner/repository.';
       repoError.hidden = false;
       repoInput.focus();
       return;
     }
     repoInput.value = repo;
-    if (readConsent() !== 'accepted') return;
+    if (form.querySelector<HTMLInputElement>('input[name="private"]')?.checked || readConsent() !== 'accepted') return;
     event.preventDefault();
     if (submitButton) submitButton.disabled = true;
     if (submitButton) submitButton.textContent = 'Continuing…';

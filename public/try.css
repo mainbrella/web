@@ -19,6 +19,8 @@
 .try-error[hidden] { display: none; }
 .try-private { max-width: 52ch; margin-top: 16px; color: var(--muted); font-size: 14px; line-height: 1.6; }
 .try-private a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.try-form .try-private-choice { display: flex; align-items: center; gap: 8px; min-height: 44px; margin: 4px 0 0; font-weight: 400; }
+.try-form .try-private-choice input { flex: none; width: 18px; min-height: 18px; height: 18px; padding: 0; accent-color: var(--ink); }
 .try-pricing { max-width: 52ch; margin-top: 20px; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .try-pricing a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .try-yaml { display: inline-flex; align-items: center; min-height: 44px; margin-top: 4px; color: var(--muted); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }

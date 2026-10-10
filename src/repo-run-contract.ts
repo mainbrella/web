@@ -5,7 +5,7 @@ export interface RepoRunOptions {
 export interface RepositoryLaunch {
   id: string; phase: 'allocating' | 'cloning' | 'setup' | 'starting' | 'ready' | 'failed' | 'stopped';
   options: RepoRunOptions;
-  repository: { repo: string; ref: string; commit: string; suggestedCatalogId: string; manifests: string[] };
+  repository: { repo: string; ref: string; commit: string; suggestedCatalogId: string; manifests: string[]; private?: boolean };
   container: { id: string; createdAt: string; expiresAt: string } | null;
   executions: Partial<Record<'cloning' | 'setup' | 'starting', string>>;
   shellReadyAt: number | null; previewReadyAt: number | null; createdAt: number; error: string | null;

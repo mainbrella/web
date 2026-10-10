@@ -17,6 +17,7 @@ const terminalHost = element('run-terminal');
 const repo = element<HTMLInputElement>('run-repo');
 const configInput = element<HTMLTextAreaElement>('run-import-text');
 const params = new URLSearchParams(location.search);
+let privateRequested = params.get('private') === '1';
 let identity = launchIdentity(location.hash);
 // Existing configured links remain supported; new configurations stay in this tab.
 const legacyMode = Boolean(params.get('catalogId') || params.get('setupCommand') || params.get('startCommand'));
@@ -276,7 +277,13 @@ function promptDiagnostics(): RepoRunDiagnostics {
   return result;
 }
 const messages: Record<string, string> = {
-  public_repo_not_found: 'Public repository not found. Use an owner/repository name or a public GitHub URL.',
+  public_repo_not_found: 'This repository may be private or the URL may be incorrect. Check the URL or connect GitHub.',
+  github_connection_required: 'This repository may be private. Connect the read-only Import app to continue, or check the URL.',
+  github_repository_access_required: 'Check the repository URL and grant the Import app access to this repository. Your organization may require approval.',
+  github_import_unavailable: 'Private repository connections are temporarily unavailable. Try again or contact support@mainbrella.com.',
+  github_connection_busy: 'GitHub authorization is refreshing. Wait a moment and try again.',
+  repository_too_large: 'This repository exceeds the 32 MiB private import limit. Contact support for help.',
+  repository_import_failed: 'Could not import the private repository. Resume this launch to retry in the same machine.',
   repo_ref_not_found: 'This branch, tag, or commit was not found.',
   repo_directory_not_found: 'The working directory was not found in this repository.',
   github_rate_limited: 'GitHub is limiting repository lookups. Wait a few minutes and try again.',
@@ -305,6 +312,11 @@ const messages: Record<string, string> = {
 };
 function showError(cause: unknown) {
   const code = cause instanceof Error ? cause.message : 'launch_unavailable';
+  if (['public_repo_not_found', 'github_connection_required', 'github_repository_access_required', 'github_import_unavailable'].includes(code)) {
+    privateRequested = true;
+    element('run-github').hidden = false;
+    window.dispatchEvent(new CustomEvent('github-access-required', { detail: code }));
+  }
   error.textContent = messages[code] ?? 'Could not confirm launch progress. Resume to check the same launch again.';
   error.hidden = false;
 }
@@ -319,8 +331,9 @@ function options(): RepoRunOptions {
 }
 function submitLabel() { return 'Run repository'; }
 function updatePrompt() {
-  element('run-copy-step').hidden = true;
-  element<HTMLButtonElement>('run-prompt-copy').disabled = true;
+  element('run-copy-step').hidden = !(privateRequested && launchMode);
+  element<HTMLButtonElement>('run-prompt-copy').disabled = !privateRequested || !validRepo(repo.value);
+  element('run-copy-label').textContent = privateRequested ? 'For more setup, copy the prompt into a coding agent with access to this repository.' : '2. Copy the prompt into ChatGPT or Claude';
   element('run-prompt-preview').hidden = true;
   element('run-import-step').hidden = Boolean(identity) || legacyMode || (!launchMode && !promptCopied && !configId);
   element('run-access').hidden = !launchMode || Boolean(userId && active);
@@ -339,6 +352,7 @@ function updatePrompt() {
 }
 function configurationUrl(): URL {
   const url = imported ? new URL('/run/', location.origin) : repoRunUrl(options(), location.origin);
+  if (privateRequested) url.searchParams.set('private', '1');
   if (imported && configId) url.hash = `config=${configId}`;
   return url;
 }
@@ -380,14 +394,14 @@ function preparePrompt() {
   promptVersion++;
   const ready = validRepo(repo.value);
   const text = element<HTMLTextAreaElement>('run-prompt-text');
-  text.value = ready ? repoSetupPrompt(options(), location.origin) : '';
+  text.value = ready ? repoSetupPrompt(options(), location.origin, null, undefined, privateRequested) : '';
   element('run-prompt-preview').hidden = !ready || promptCopied;
   element('run-copy-step').hidden = !ready;
   element<HTMLButtonElement>('run-prompt-copy').disabled = !ready;
   element('run-import-step').hidden = !configId && (!ready || !promptCopied);
 }
 function validateRepo() {
-  repo.setCustomValidity(validRepo(repo.value) ? '' : 'Enter a public GitHub URL or owner/repository.');
+  repo.setCustomValidity(validRepo(repo.value) ? '' : 'Enter a GitHub URL or owner/repository.');
   return repo.reportValidity();
 }
 async function copyPrompt(existing = false) {
@@ -395,11 +409,11 @@ async function copyPrompt(existing = false) {
   const note = element(existing ? 'run-help-status' : 'run-prompt-status');
   const text = element<HTMLTextAreaElement>(existing ? 'run-help-text' : 'run-prompt-text');
   const button = element<HTMLButtonElement>(existing ? 'run-help-copy' : 'run-prompt-copy');
-  text.value = repoSetupPrompt(existing && launch ? launch.options : options(), location.origin, existing ? launch : null, existing ? promptDiagnostics() : undefined);
+  text.value = repoSetupPrompt(existing && launch ? launch.options : options(), location.origin, existing ? launch : null, existing ? promptDiagnostics() : undefined, privateRequested || Boolean(launch?.repository.private));
   const copiedVersion = promptVersion;
   const copiedRepo = repo.value;
   const copiedText = text.value;
-  if (validRepo(repo.value)) void captureRepository(repo.value, 'run_v1');
+  if (!privateRequested && validRepo(repo.value)) void captureRepository(repo.value, 'run_v1');
   button.disabled = true;
   note.textContent = '';
   try {
@@ -409,7 +423,7 @@ async function copyPrompt(existing = false) {
       element('run-import-step').hidden = false;
       element('run-prompt-preview').hidden = true;
     }
-    note.textContent = existing ? 'Copied. Paste into Codex to repair this container and get reusable YAML.' : 'Paste into ChatGPT or Claude, then paste its response below.';
+    note.textContent = existing ? 'Copied. Paste into Codex to repair this container and get reusable YAML.' : privateRequested ? 'Paste into a coding agent with repository access, then paste its response below.' : 'Paste into ChatGPT or Claude, then paste its response below.';
   } catch {
     if (existing) element<HTMLDetailsElement>('run-help-details').open = true;
     else element('run-prompt-preview').hidden = false;
@@ -427,6 +441,7 @@ function updateSignIn() {
 function saveIdentity(kind: 'launch' | 'request', id: string) {
   if (imported && kind === 'request') storeConfiguration(id, imported);
   const url = imported ? new URL('/run/', location.origin) : repoRunUrl(launch?.options ?? options(), location.origin);
+  if (privateRequested || launch?.repository.private) url.searchParams.set('private', '1');
   url.hash = `${kind}=${id}`;
   history.replaceState(null, '', url);
   identity = { kind, id };
@@ -485,6 +500,8 @@ function openTerminal() {
 }
 function render() {
   if (!launch) return;
+  if (launch.repository.private) privateRequested = true;
+  element('run-github').hidden = true;
   form.hidden = true;
   element('run-intro').hidden = true;
   status.textContent = '';
@@ -555,7 +572,7 @@ async function advance() {
     if (launch.phase !== state.phase) phaseObservedAt = Date.now();
     launch = state; progressCheckedAt = Date.now();
     render();
-    if (launchedHere && launch.previewReadyAt && !previewAttempted) { previewAttempted = true; void createPreview(); }
+    if (launchedHere && launch.previewReadyAt && !previewAttempted && !launch.repository.private) { previewAttempted = true; void createPreview(); }
     void logs();
     if (stopped || version !== sessionVersion || !launch) return;
     if (!['ready', 'failed', 'stopped'].includes(launch.phase)) timer = setTimeout(advance, 2000);
@@ -697,6 +714,7 @@ form.addEventListener('input', event => {
 });
 repo.addEventListener('change', () => { preparePrompt(); });
 element('run-help-copy').onclick = () => { void copyPrompt(true); };
+element('run-prompt-copy').onclick = () => { void copyPrompt(); };
 element<HTMLTextAreaElement>('run-prompt-text').addEventListener('copy', () => {
   const text = element<HTMLTextAreaElement>('run-prompt-text');
   if (validRepo(repo.value) && text.value && text.selectionStart === 0 && text.selectionEnd === text.value.length) {
@@ -718,6 +736,16 @@ const outputTimer = setInterval(() => { void logs(); }, 2000);
 window.addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
 window.addEventListener('pagehide', () => { stopped = true; clearTimeout(timer); clearInterval(expiryTimer); clearInterval(outputTimer); stopOutputStreams(); terminal?.dispose(); });
 window.addEventListener('auth-change', () => { if (!launchMode) return; stopped = true; signIn(); element('run-progress').hidden = true; });
+window.addEventListener('github-repository-ready', event => {
+  if (launch || identity || busy) return;
+  const detail = (event as CustomEvent).detail;
+  privateRequested = Boolean(detail.private);
+  // Keep a reviewed configuration when reconnecting; detection supplies first-use defaults only.
+  if (!imported && detail.suggestedConfiguration) {
+    configInput.value = stringifyRepoRunConfig(detail.suggestedConfiguration);
+    importConfiguration();
+  } else { updatePrompt(); preparePrompt(); }
+});
 window.addEventListener('cookie-consent-change', event => {
   if (!launchMode) return;
   if ((event as CustomEvent).detail?.choice === 'accepted') { stopped = false; void init(); }
@@ -730,4 +758,4 @@ if (configId && !imported) {
   element('run-import-status').className = 'dashboard-error';
 }
 if (launchMode) void init();
-if (params.has('repo') && validRepo(repo.value)) void captureRepository(repo.value, 'run_v1');
+if (!privateRequested && params.has('repo') && validRepo(repo.value)) void captureRepository(repo.value, 'run_v1');

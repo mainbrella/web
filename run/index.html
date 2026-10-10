@@ -22,14 +22,20 @@
       <p id="run-status" class="dashboard-status" role="status"></p>
       <p id="run-error" class="dashboard-error" role="alert" hidden></p>
       <p id="run-access" class="dashboard-status" hidden><a id="run-sign-in" href="/login/">Sign in</a><a id="run-plans" href="/pricing/" hidden>Add prepaid balance</a><span id="run-access-note"></span></p>
+      <section id="run-github" class="repo-run-github" aria-label="Private repository access" hidden>
+        <p id="run-github-status" class="dashboard-status" role="status">Private repositories need one extra step: connect the read-only Mainbrella Import app.</p>
+        <p class="dashboard-status">Choose <strong>Only select repositories</strong> on GitHub and select this repository. Your organization may require an owner's approval.</p>
+        <div class="container-actions"><button id="run-github-connect" class="button button-small" type="button">Connect GitHub</button><button id="run-github-check" class="dashboard-retry" type="button">Check access and prepare setup</button><a id="run-github-manage" class="text-link" href="https://github.com/settings/installations" target="_blank" rel="noopener noreferrer">Manage GitHub access</a><button id="run-github-disconnect" class="dashboard-retry" type="button" hidden>Disconnect</button></div>
+        <p class="dashboard-status">Import can read your selected code; it cannot push changes. It copies the repository into your cloud machine when you run it. Stopping the machine discards unsaved files; saved workspaces must be deleted separately. Disconnecting GitHub does not erase existing copies.</p>
+      </section>
       <form id="run-form" class="repo-run-form">
         <fieldset id="run-fields">
           <label id="run-repo-label" for="run-repo">1. Paste the GitHub URL</label>
           <input id="run-repo" name="repo" required maxlength="240" autocomplete="off" spellcheck="false" placeholder="https://github.com/owner/repository">
           <label id="run-prompt-preview" class="repo-prompt-label" for="run-prompt-text" hidden>Setup prompt<textarea id="run-prompt-text" rows="10" readonly spellcheck="false"></textarea></label>
           <div id="run-copy-step" class="repo-run-actions" hidden>
-            <p class="repo-step">2. Copy the prompt into ChatGPT or Claude</p>
-            <button id="run-prompt-copy" class="button button-small" type="submit" disabled aria-describedby="run-prompt-status"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V4a2 2 0 0 0-2-2H4a2 2 0 0 0 2 2v10a2 2 0 0 0 2 2h4"></path></svg><span>Copy prompt</span></button>
+            <p id="run-copy-label" class="repo-step">2. Copy the prompt into ChatGPT or Claude</p>
+            <button id="run-prompt-copy" class="button button-small" type="button" disabled aria-describedby="run-prompt-status"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V4a2 2 0 0 0-2-2H4a2 2 0 0 0 2 2v10a2 2 0 0 0 2 2h4"></path></svg><span>Copy prompt</span></button>
             <p id="run-prompt-status" class="repo-step" role="status"></p>
           </div>
           <div id="run-import-step" hidden>
@@ -75,6 +81,7 @@
       <noscript><p>Enable JavaScript to run a repository.</p></noscript>
     </main>
     <script type="module" src="/src/repo-run.ts"></script>
+    <script type="module" src="/src/github-import.ts"></script>
     <script type="module" src="/src/account-menu.ts"></script>
   </body>
 </html>

@@ -54,7 +54,8 @@ async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=nod
   property('navigator', { clipboard: { async writeText(value: string) { copied.push(value); } } });
   const storage = new Map(Object.entries(stored));
   property('sessionStorage', { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => { storage.set(key, value); } });
-  property('window', { addEventListener: (name: string, callback: unknown) => events.set(name, callback), requestAnimationFrame: (callback: () => void) => queueMicrotask(callback) });
+  property('CustomEvent', class { constructor(public type: string, public options: any) {} get detail() { return this.options?.detail; } });
+  property('window', { addEventListener: (name: string, callback: unknown) => events.set(name, callback), dispatchEvent: (event: any) => events.get(event.type)?.(event), requestAnimationFrame: (callback: () => void) => queueMicrotask(callback) });
   t.mock.method(globalThis, 'setTimeout', ((callback: () => unknown) => { timeouts.set(++timer, callback); return timer; }) as any);
   t.mock.method(globalThis, 'clearTimeout', ((id: number) => timeouts.delete(id)) as any);
   t.mock.method(globalThis, 'setInterval', ((callback: () => unknown) => { intervals.push(callback); return ++timer; }) as any);
@@ -159,7 +160,7 @@ test('definitive validation errors let users correct the launch before allocatio
   const f = await fixture(t); f.failCreate(400);
   await f.node('run-form').fire('submit'); await f.flush();
   assert.equal(f.location.hash, ''); assert.equal(f.node('run-fields').disabled, false); assert.equal(f.node('run-submit').textContent, 'Run repository');
-  assert.match(f.node('run-error').textContent, /Public repository not found/);
+  assert.match(f.node('run-error').textContent, /may be private/);
 });
 test('setup failure keeps the terminal and visible output without replaying setup', async t => {
   const f = await fixture(t, { search: '?repo=acme/demo&setupCommand=exit+1' }); f.failSetup();
@@ -482,7 +483,7 @@ test('copy remains available without paid access and uses the edited repository'
 test('copy validates the repository and offers a selected fallback when clipboard access fails', async t => {
   const f = await fixture(t, { session: false, search: '' });
   await f.node('run-form').fire('submit'); await f.flush();
-  assert.equal(f.copied.length, 0); assert.match(f.node('run-repo').validity, /public GitHub/);
+  assert.equal(f.copied.length, 0); assert.match(f.node('run-repo').validity, /GitHub URL/);
   f.node('run-repo').value = 'https://github.com/happier-dev/happier';
   await f.node('run-form').fire('input');
   t.mock.method(navigator.clipboard, 'writeText', async () => { throw new Error('denied'); });

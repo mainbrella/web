@@ -8,7 +8,7 @@ export function validateRepoRunConfig(value: unknown): RepoRunOptions {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Use a YAML mapping containing the repository configuration.');
   const config = value as Record<string, unknown>;
   if (Object.keys(config).some(key => !keys.includes(key))) throw new Error('Use only repo, ref, catalogId, size, cwd, setupCommand, startCommand and port.');
-  if (typeof config.repo !== 'string' || !validRepo(config.repo)) throw new Error('repo must be a public GitHub URL or owner/repository.');
+  if (typeof config.repo !== 'string' || !validRepo(config.repo)) throw new Error('repo must be a GitHub URL or owner/repository.');
   const result: RepoRunOptions = { repo: normalizeRepo(config.repo), size: 'small', cwd: '.' };
   if (config.ref !== undefined) {
     if (typeof config.ref !== 'string' || !config.ref || config.ref.length > 200 || /[\x00-\x20\x7f]/.test(config.ref)) throw new Error('ref must be a commit, branch or tag without spaces (up to 200 characters).');
