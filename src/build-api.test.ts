@@ -94,6 +94,25 @@ test('session expiry is reported for source reads and ZIP downloads', async t =>
   assert.equal(signedOut, 2);
 });
 
+test('repository browsing lists metadata and fetches one authenticated file with encoded path and version', async t => {
+  const calls: { url: string; options: RequestInit }[] = [], versionId = '11111111-1111-4111-8111-111111111111';
+  t.mock.method(globalThis, 'fetch', async (url: string, options: RequestInit) => {
+    calls.push({ url, options });
+    return url.includes('/files') ? Response.json({ revision: 3, version: null, files: [{ path: 'src/App.tsx', size: 5, type: 'text' }] }) : new Response('hello');
+  });
+  const client = createBuildClient(() => assert.fail('authenticated request'));
+  assert.equal((await client.files(app.id, versionId)).files[0].path, 'src/App.tsx');
+  assert.equal(await client.fileText(app.id, 'src/App.tsx', versionId), 'hello');
+  assert.equal(calls.length, 2);
+  const url = new URL(calls[1].url);
+  assert.equal(url.searchParams.get('path'), 'src/App.tsx'); assert.equal(url.searchParams.get('versionId'), versionId);
+  for (const { options } of calls) { assert.equal(options.credentials, 'include'); assert.equal(options.redirect, 'error'); }
+  let expired = 0;
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ error: 'not_authenticated' }, { status: 401 }));
+  await assert.rejects(createBuildClient(() => expired++).fileText(app.id, 'src/App.tsx'), BuildAPIError);
+  assert.equal(expired, 1);
+});
+
 test('network failure and cancellation remain distinguishable without discarding the submission', async t => {
   t.mock.method(globalThis, 'fetch', async () => { throw new TypeError('Failed to fetch'); });
   await assert.rejects(createBuildClient(() => {}).create('An app', 'retry-key'), cause =>

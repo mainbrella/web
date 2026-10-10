@@ -735,23 +735,15 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     fileBrowser.status('Loading files…'); sourceCommit.textContent = ''; sourceMessage.hidden = true;
     node<HTMLElement>('#build-code-panel').setAttribute('aria-busy', 'true');
     try {
-      const next = versionId ? await client.version(id, versionId) : await client.source(id);
+      const next = await client.files(id, versionId);
       if (disposed || selected?.id !== id || current !== sourceVersion) return;
-      const images: Record<string, string> = {};
-      if ('version' in next) {
+      if (next.version) {
         sourceCommit.textContent = next.version.commitId.slice(0, 8);
         sourceMessage.textContent = next.version.message; sourceMessage.hidden = false;
-        for (const asset of next.assets ?? []) {
-          const url = client.imageURL(id, asset.imageId); if (url) images[asset.path] = url;
-        }
       } else {
         sourceCommit.textContent = `Revision ${next.revision}`;
-        for (const turn of selected.turns ?? []) for (const image of turn.images ?? []) {
-          const url = client.imageURL(id, image.id);
-          if (url && Object.values(next.files).some(text => text.includes(image.path))) images[`public${image.path}`] = url;
-        }
       }
-      fileBrowser.setFiles(next.files, images);
+      fileBrowser.setFiles(next.files, path => client.fileText(id, path, versionId), path => client.fileURL(id, path, versionId));
     } catch (cause) {
       if (!disposed && selected?.id === id && current === sourceVersion) {
         fileBrowser.status('Could not load files.');
@@ -804,11 +796,34 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
               const fileChanges = document.createElement('details'), label = document.createElement('summary');
               label.textContent = `${change.type === 'added' ? 'Added' : change.type === 'deleted' ? 'Deleted' : 'Changed'} ${change.path}`;
               fileChanges.append(label);
-              for (const [name, text] of [['Before', change.before], ['After', change.after]] as const) if (text !== null) {
-                const heading = document.createElement('p'), content = document.createElement('pre');
-                heading.textContent = name; content.textContent = text; fileChanges.append(heading, content);
+              if (change.fileType === 'image') {
+                const note = document.createElement('p'); note.textContent = 'Image file'; fileChanges.append(note);
+              } else {
+                let reading = false, read = false;
+                const output = document.createElement('div'); fileChanges.append(output);
+                const loadChange = async () => {
+                  if (!fileChanges.open || reading || read) return;
+                  reading = true; output.textContent = 'Loading file changes…'; fileChanges.setAttribute('aria-busy', 'true');
+                  try {
+                    const versions = [change.type !== 'added' && detail.version.parentVersionId ? ['Before', detail.version.parentVersionId] : null,
+                      change.type !== 'deleted' ? ['After', saved.id] : null].filter((item): item is string[] => Boolean(item));
+                    const texts = await Promise.all(versions.map(async ([name, id]) => ({ name, text: await client.fileText(appId, change.path, id) })));
+                    if (disposed || selected?.id !== appId || current !== historyVersion) return;
+                    output.replaceChildren();
+                    for (const { name, text } of texts) {
+                      const heading = document.createElement('p'), content = document.createElement('pre');
+                      heading.textContent = name; content.textContent = text; output.append(heading, content);
+                    }
+                    read = true;
+                  } catch {
+                    if (disposed || selected?.id !== appId || current !== historyVersion) return;
+                    output.textContent = 'Could not load file changes. ';
+                    const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'dashboard-retry'; retry.textContent = 'Retry';
+                    retry.addEventListener('click', () => void loadChange()); output.append(retry);
+                  } finally { reading = false; fileChanges.setAttribute('aria-busy', 'false'); }
+                };
+                fileChanges.addEventListener('toggle', () => void loadChange());
               }
-              if (change.before === null && change.after === null) { const note = document.createElement('p'); note.textContent = 'Image file'; fileChanges.append(note); }
               changes.append(fileChanges);
             }
             loaded = true;

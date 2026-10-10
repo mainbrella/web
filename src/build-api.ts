@@ -38,7 +38,9 @@ export type BuildModel = { id: string; name: string; description?: string; effor
 export type BuildModelOptions = { model?: string; effort?: string };
 export type BuildConfig = { available: boolean; versionHistory?: boolean; model: string; models?: BuildModel[]; maxApps: number; aiBilling: 'included' | 'prepaid'; aiMarkupPercent: number; computeUnitHourlyCents: number; size: 'small' };
 export type BuildVersion = { id: string; commitId: string; parentVersionId: string | null; message: string; verified: boolean; createdAt: string };
-export type BuildVersionDetail = { version: BuildVersion; files: Record<string, string>; assets?: { path: string; imageId: string }[]; changes: { path: string; type: 'added' | 'modified' | 'deleted'; before: string | null; after: string | null }[] };
+export type BuildFileInfo = { path: string; size: number; type: 'text' | 'image' };
+export type BuildVersionDetail = { version: BuildVersion; files: BuildFileInfo[]; changes: { path: string; type: 'added' | 'modified' | 'deleted'; fileType: 'text' | 'image' }[] };
+export type BuildFiles = { revision: number; version: BuildVersion | null; files: BuildFileInfo[] };
 export type BuildSource = { revision: number; files: Record<string, string> };
 export class BuildAPIError extends Error {
   constructor(public code: string, public details?: string) { super(buildErrorMessage(code, details)); }
@@ -75,6 +77,8 @@ export function buildErrorMessage(code: string, details?: string | null): string
     source_limit: 'This app has reached the source size limit. Try a smaller change.',
     build_git_unavailable: 'Could not save the Git version. Your working source is retained; try again.',
     version_not_found: 'This saved version is unavailable. Refresh version history and try again.',
+    file_not_found: 'This file is unavailable in the selected version.',
+    build_source_unavailable: 'Could not load or save the source files. Try again shortly.',
     build_command_timeout: 'A build command took too long. Your source is saved; try again.',
     build_runtime_unavailable: 'The sandbox could not start. Check your balance and try again.',
     build_failed: 'The build could not finish. Your source is saved; try again.',
@@ -118,6 +122,10 @@ export function createBuildClient(onUnauthenticated: () => void, signal?: AbortS
     return result as T;
   }
   const appPath = (id: string) => `/apps/${encodeURIComponent(id)}`;
+  const fileURL = (id: string, path: string, versionId?: string | null) => {
+    const query = new URLSearchParams({ path }); if (versionId) query.set('versionId', versionId);
+    return `${API_ORIGIN}/build${appPath(id)}/file?${query}`;
+  };
   return {
     config: () => request<BuildConfig>('/config'),
     list: () => request<{ apps: BuildApp[] }>('/apps'),
@@ -130,6 +138,16 @@ export function createBuildClient(onUnauthenticated: () => void, signal?: AbortS
     stop: (id: string) => request<{ app: BuildApp }>(`${appPath(id)}/stop`, 'POST'),
     remove: (id: string) => request<{ deleted: true }>(appPath(id), 'DELETE'),
     source: (id: string) => request<BuildSource>(`${appPath(id)}/source`),
+    files: (id: string, versionId?: string | null) => request<BuildFiles>(`${appPath(id)}/files${versionId ? `?${new URLSearchParams({ versionId })}` : ''}`),
+    fileURL,
+    async fileText(id: string, path: string, versionId?: string | null): Promise<string> {
+      let response: Response;
+      try { response = await fetch(fileURL(id, path, versionId), { credentials: 'include', redirect: 'error', signal, headers: { Accept: 'text/plain' } }); }
+      catch (error) { if (signal?.aborted) throw error; throw new BuildAPIError('network'); }
+      if (response.status === 401) onUnauthenticated();
+      if (!response.ok) throw buildResponseError(await response.json().catch(() => null));
+      return response.text();
+    },
     versions: (id: string) => request<{ versions: BuildVersion[]; versionId: string | null; verifiedVersionId: string | null }>(`${appPath(id)}/versions`),
     version: (id: string, versionId: string) => request<BuildVersionDetail>(`${appPath(id)}/versions/${encodeURIComponent(versionId)}`),
     restore: (app: BuildApp, versionId: string, key: string) => request<{ app: BuildApp }>(`${appPath(app.id)}/restore`, 'POST', { versionId, revision: app.revision }, key),
