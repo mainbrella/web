@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0d1014" />
-    <meta name="description" content="Your Mainbrella subscription and containers." />
+    <meta name="description" content="Your Mainbrella prepaid balance and containers." />
     <meta name="robots" content="noindex" />
     <link rel="canonical" href="https://mainbrella.com/dashboard/" />
     <link rel="icon" href="/images/favicon.png" type="image/png" />
@@ -22,14 +22,14 @@
       <button id="dashboard-retry" class="dashboard-retry" type="button" hidden>Retry</button>
       <div id="dashboard-content" hidden>
         <section class="dashboard-subscription" aria-labelledby="subscription-title">
-          <h2 id="subscription-title" class="visually-hidden">Subscription</h2>
+          <h2 id="subscription-title" class="visually-hidden">Billing</h2>
           <div class="dashboard-plan-row">
             <p id="subscription-level" aria-live="polite">Loading…</p>
-            <a id="subscription-manage" class="text-link" href="/pricing/">Plans and billing</a>
+            <a id="subscription-manage" class="text-link" href="/pricing/">Balance and billing</a>
           </div>
           <p id="subscription-note" class="dashboard-status" hidden></p>
         </section>
-        <dl id="container-usage" class="container-usage" aria-label="Plan usage" hidden>
+        <dl id="container-usage" class="container-usage" aria-label="Account usage" hidden>
           <div><dt>Containers</dt><dd id="usage-containers">—</dd><dd id="usage-network-containers" class="usage-detail" hidden></dd><dd id="usage-concurrency" class="usage-detail"></dd></div>
           <div id="usage-networks-group" hidden><dt>Networks</dt><dd id="usage-networks">—</dd><dd id="usage-networks-detail" class="usage-detail"></dd></div>
           <div><dt id="usage-compute-label">Compute-unit hours available</dt><dd id="usage-compute">—</dd><dd id="usage-compute-detail" class="usage-detail"></dd></div>
@@ -182,8 +182,8 @@
               <div class="launch-footer">
                 <div class="launch-notes">
                   <p id="container-size-rate" class="dashboard-status"></p>
-                  <p id="container-limits" class="dashboard-status">Checking your plan’s container limits…</p>
-                  <a id="production-billing-link" class="text-link" href="/pricing/usage/" hidden>Manage billing and spending cap</a>
+                  <p id="container-limits" class="dashboard-status">Checking your account’s container limits…</p>
+                  <a id="production-billing-link" class="text-link" href="/pricing/" hidden>Add balance or adjust spending cap</a>
                 </div>
                 <button id="container-create" class="button button-small" type="submit" disabled aria-describedby="container-limits container-size-rate">Create container</button>
               </div>
@@ -211,7 +211,7 @@ WORKDIR /workspace</textarea>
                 <label for="image-context">Build context <span class="dashboard-status">(optional)</span></label>
                 <input id="image-context" name="context" type="file" accept=".tar.gz" aria-describedby="image-context-note" />
                 <p id="image-context-note" class="dashboard-status">A .tar.gz archive up to 512 KiB for COPY instructions. Put files at the archive root and exclude secrets.</p>
-                <p class="dashboard-status">Builder includes 10 image builds per month, up to 5 minutes each, and 3 saved images. Failed builds count toward the allowance.</p>
+                <p class="dashboard-status">Your account includes 10 image builds per month, up to 5 minutes each, and 3 saved images. Failed builds count toward the allowance.</p>
                 <button id="image-build" class="button button-small" type="submit" disabled>Build image</button>
               </form>
               <section id="image-logs" class="image-logs" aria-labelledby="image-logs-title" hidden>

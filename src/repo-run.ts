@@ -280,7 +280,10 @@ const messages: Record<string, string> = {
   repo_directory_not_found: 'The working directory was not found in this repository.',
   github_rate_limited: 'GitHub is limiting repository lookups. Wait a few minutes and try again.',
   github_unavailable: 'Could not reach GitHub. Try again.',
-  subscription_required: 'An active paid plan or trial is required to run a repository.',
+  subscription_required: 'Add prepaid balance to fund this repository run.',
+  spend_limit_reached: 'Available funding or your monthly spending cap is used or reserved. Add balance or adjust your cap in billing.',
+  insufficient_balance: 'Add prepaid balance to fund this repository run.',
+  prepaid_balance_required: 'Add prepaid balance to fund this repository run.',
   container_limit_exceeded: 'Your container limit has been reached. Stop a container in the dashboard, then resume this launch.',
   compute_capacity_exceeded: 'Your account has no capacity for this machine. Stop another container, then resume this launch.',
   container_quota_exceeded: 'Your monthly container start allowance has been reached.',
@@ -669,9 +672,10 @@ async function init() {
     element('run-access').hidden = !launchMode || active;
     element('run-sign-in').hidden = true;
     element('run-plans').hidden = active;
-    element('run-access-note').textContent = 'or activate a trial to run this repository.';
+    element('run-plans').textContent = 'Add prepaid balance';
+    element('run-access-note').textContent = 'to fund this repository run.';
     status.textContent = '';
-    if (data.active) element('run-allowance').textContent = `${Math.max(0, data.limits.maxStartsPerMonth - data.usage.starts)} starts remaining this month. Each run uses your account’s compute allowance.`;
+    if (data.active) element('run-allowance').textContent = `${Math.max(0, data.limits.maxStartsPerMonth - data.usage.starts)} starts remaining this month. Each run uses your prepaid balance and monthly spending cap.`;
     if (identity?.kind === 'launch') {
       const state = await request<RepositoryLaunch>(`/repo-launches/${identity.id}`);
       if (stopped || version !== sessionVersion) return;

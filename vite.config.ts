@@ -1,8 +1,6 @@
-import type { Plan } from './src/plans.ts';
 import { defineConfig, transformWithEsbuild } from "vite";
 import { fileURLToPath } from "node:url";
 import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
-import { plans } from "./src/plans.ts";
 import { agentDocsPlugin } from "./scripts/agent-docs-plugin.ts";
 import { siteChromePlugin } from "./scripts/site-chrome-plugin.ts";
 
@@ -15,12 +13,7 @@ const publicPages = ['docs', 'docs/containers', 'docs/execute', 'docs/files', 'd
   'compare', 'brand', 'press', 'careers', 'opensource',
   'e2b-alternative', 'daytona-alternative', 'cloudflare-sandbox'];
 
-function checkoutPage(html: string, plan: Plan) {
-  return html
-    .replaceAll("Subscribe · Mainbrella", `${plan.name} subscription · Mainbrella`)
-    .replace('<h1 id="checkout-title" tabindex="-1">Subscribe</h1>', `<h1 id="checkout-title" tabindex="-1">${plan.name} — $${plan.price}/month</h1>`)
-    .replace('id="checkout-submit" type="submit" disabled>Subscribe</button>', `id="checkout-submit" type="submit" disabled>Subscribe for $${plan.price}/month</button>`);
-}
+const legacyPricingRoutes = ['builder', 'pro', 'scale'];
 
 // Preserve the public script URL while maintaining its source in TypeScript.
 async function homepageScript() {
@@ -51,17 +44,15 @@ export default defineConfig({
     },
     {
       name: "pricing-routes",
-      transformIndexHtml: {
-        order: "pre",
-        handler(html, context) {
-          const slug = context.originalUrl?.match(/^\/pricing\/([^/?]+)\/?(?:\?|$)/)?.[1];
-          return slug && Object.hasOwn(plans, slug) ? checkoutPage(html, plans[slug]) : html;
-        },
-      },
       configureServer(server) {
         server.middlewares.use((request, response, next) => {
           const match = request.url?.match(/^\/pricing\/([^/?]+)\/?(\?.*)?$/);
-          if (match && Object.hasOwn(plans, match[1])) request.url = `/pricing/checkout.html${match[2] || ""}`;
+          if (match?.[1] === 'usage') request.url = `/pricing/checkout.html${match[2] || ""}`;
+          if (match && legacyPricingRoutes.includes(match[1])) {
+            response.writeHead(308, { Location: `/pricing/${match[2] || ''}` });
+            response.end();
+            return;
+          }
           next();
         });
       },
@@ -72,9 +63,9 @@ export default defineConfig({
       async writeBundle() {
         const output = fileURLToPath(new URL("./dist/pricing/", import.meta.url));
         const html = await readFile(`${output}checkout.html`, "utf8");
-        for (const [slug, plan] of Object.entries(plans)) {
+        for (const slug of ['usage', ...legacyPricingRoutes]) {
           await mkdir(`${output}${slug}`, { recursive: true });
-          await writeFile(`${output}${slug}/index.html`, checkoutPage(html, plan));
+          await writeFile(`${output}${slug}/index.html`, slug === 'usage' ? html : '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="refresh" content="0;url=/pricing/"><link rel="canonical" href="https://mainbrella.com/pricing/"><title>Prepaid billing · Mainbrella</title></head><body><a href="/pricing/">Continue to prepaid billing</a></body></html>');
         }
         await rm(`${output}checkout.html`);
       },

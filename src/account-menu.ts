@@ -1,5 +1,6 @@
 import type { User } from './types.ts';
-import { createAuthClient } from './auth.ts';
+import { API_ORIGIN, createAuthClient } from './auth.ts';
+import { formatBalance, readPrepaidBalance } from './prepaid-billing.ts';
 
 const auth = createAuthClient();
 const nav = document.querySelector<HTMLElement>('.site-header nav')!;
@@ -15,6 +16,7 @@ if (nav) {
     </button>
     <div class="account-panel" id="account-panel" hidden>
       <p class="account-identity"></p>
+      <a class="account-balance" href="/pricing/"><span>Current balance</span><span class="account-balance-value">Loading…</span></a>
       <a href="/dashboard/">Dashboard</a>
       <a href="/run/">Run repository</a>
       <a href="/profile/">Profile</a>
@@ -29,14 +31,39 @@ if (nav) {
   const identity = account.querySelector<HTMLElement>('.account-identity')!;
   const signOut = account.querySelector<HTMLButtonElement>('.account-sign-out')!;
   const error = account.querySelector<HTMLElement>('.account-error')!;
+  const balanceValue = account.querySelector<HTMLElement>('.account-balance-value')!;
+  let currentUser: User | null = null;
+  let balanceVersion = 0;
+
+  async function refreshBalance() {
+    if (!currentUser || panel.hidden) return;
+    const userId = currentUser.id;
+    const version = ++balanceVersion;
+    try {
+      const response = await fetch(`${API_ORIGIN}/billing/balance`, { credentials: 'include', headers: { accept: 'application/json' } });
+      if (!response.ok) throw new Error('balance_unavailable');
+      const data = await response.json();
+      const balance = readPrepaidBalance(data.balance);
+      if (version === balanceVersion && currentUser?.id === userId) balanceValue.textContent = formatBalance(balance.balanceCents);
+    } catch {
+      if (version === balanceVersion && currentUser?.id === userId) balanceValue.textContent = 'Unavailable';
+    }
+  }
 
   function setOpen(open: boolean, restoreFocus = false) {
     panel.hidden = !open;
     toggle.setAttribute('aria-expanded', String(open));
+    if (open) void refreshBalance();
     if (restoreFocus) toggle.focus();
   }
 
   function render(user?: User | null) {
+    if (currentUser?.id !== user?.id) {
+      balanceVersion++;
+      balanceValue.textContent = 'Loading…';
+      setOpen(false);
+    }
+    currentUser = user || null;
     if (user && window.location.pathname === '/') {
       document.documentElement.setAttribute('data-home-session', 'redirecting');
       window.location.replace('/dashboard/');
@@ -108,6 +135,19 @@ if (nav) {
   });
   window.addEventListener('checkout-processing', (event) => {
     signOut.disabled = event.detail.processing;
+  });
+  window.addEventListener('billing-balance-change', (event) => {
+    if (!currentUser || event.detail?.userId !== currentUser.id) return;
+    if (event.detail.balance) {
+      try {
+        const balance = readPrepaidBalance(event.detail.balance);
+        balanceVersion++;
+        balanceValue.textContent = formatBalance(balance.balanceCents);
+      } catch { /* Ignore an invalid balance update and keep the verified value. */ }
+    } else {
+      balanceValue.textContent = 'Loading…';
+      void refreshBalance();
+    }
   });
   window.addEventListener('cookie-consent-change', refresh);
   refresh();

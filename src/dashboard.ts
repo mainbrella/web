@@ -1,6 +1,7 @@
 import { API_ORIGIN, createAuthClient } from './auth.ts';
 import { dashboardView, containerLifecycle, productionCost } from './dashboard-view.ts';
-import { plans } from './plans.ts';
+import type { User, PrepaidBalance, ContainerData } from './types.ts';
+import { formatBalance, readPrepaidBalance } from './prepaid-billing.ts';
 import { createImagesDashboard } from './images-dashboard.ts';
 import { createContainersDashboard } from './containers-dashboard.ts';
 import { trackFunnel } from './acquisition-analytics.ts';
@@ -15,6 +16,9 @@ const level = document.querySelector<HTMLElement>('#subscription-level')!;
 const note = document.querySelector<HTMLElement>('#subscription-note')!;
 const billing = document.querySelector<HTMLAnchorElement>('#subscription-manage')!;
 let version = 0;
+let fundingVersion = 0;
+let currentUser: User | null = null;
+let lastContainerBilling: ContainerData['billing'] = null;
 let dashboardTracked = false;
 const view = dashboardView(location.search);
 document.querySelector<HTMLElement>('#dashboard-title')!.textContent = view === 'overview' ? 'Overview' : view === 'production' ? 'Production' : 'Ad Hoc';
@@ -40,7 +44,16 @@ const containers = createContainersDashboard({ onUnauthenticated: goToLogin,
     document.querySelector<HTMLElement>('#overview-production')!.textContent = `${production} ${production === 1 ? 'container' : 'containers'} · $${productionCost(data).toFixed(2)}/hour`;
     const cap = document.querySelector<HTMLElement>('#overview-production-cap')!;
     cap.hidden = !production || !data.billing;
-    cap.textContent = `Production stops if your $${((data.billing?.spendLimitCents ?? 500) / 100).toFixed(2)} monthly spending cap is reached. Review your cap in billing.`;
+    cap.textContent = `Production stops when its funded runtime or your ${formatBalance(data.billing?.spendLimitCents ?? 500)} monthly spending cap runs out.`;
+    if (currentUser && data.billing !== lastContainerBilling && typeof data.billing?.balanceCents === 'number') {
+      try {
+        const balance = readPrepaidBalance(data.billing);
+        lastContainerBilling = data.billing;
+        fundingVersion++;
+        renderFunding(balance);
+        window.dispatchEvent(new CustomEvent('billing-balance-change', { detail: { userId: currentUser.id, balance } }));
+      } catch { /* Keep the last verified funding status if the container response is incomplete. */ }
+    }
   },
 });
 
@@ -51,6 +64,15 @@ const images = createImagesDashboard({ onUnauthenticated: goToLogin,
 
 function goToLogin() {
   window.location.replace(`/login/?returnTo=${encodeURIComponent(location.pathname + location.search + location.hash)}`);
+}
+
+function renderFunding(balance: PrepaidBalance) {
+  level.textContent = `Prepaid balance ${formatBalance(balance.balanceCents)}`;
+  billing.href = '/pricing/';
+  billing.textContent = balance.balanceCents <= 0 ? 'Add balance' : 'Balance and billing';
+  billing.className = balance.balanceCents <= 0 ? 'button button-small' : 'text-link';
+  note.hidden = balance.balanceCents > 0;
+  if (!note.hidden) note.textContent = 'Add $5 or more to fund your next container. Unused funds carry forward.';
 }
 
 async function loadDashboard() {
@@ -64,7 +86,7 @@ async function loadDashboard() {
   level.textContent = 'Loading…';
   note.hidden = true;
   billing.href = '/pricing/';
-  billing.textContent = 'Plans and billing';
+  billing.textContent = 'Balance and billing';
   billing.className = 'text-link';
   let authenticated = false;
   try {
@@ -75,13 +97,15 @@ async function loadDashboard() {
       return;
     }
     authenticated = true;
+    currentUser = session.user;
     if (!dashboardTracked) { trackFunnel('dashboard_view'); dashboardTracked = true; }
     window.dispatchEvent(new CustomEvent('auth-change', { detail: { user: session.user } }));
     content.hidden = false;
     status.hidden = true;
     containers.load();
     images.load();
-    const response = await fetch(`${API_ORIGIN}/subscription`, {
+    const fundingReadVersion = fundingVersion;
+    const response = await fetch(`${API_ORIGIN}/billing/balance`, {
       credentials: 'include',
       headers: { accept: 'application/json' },
     });
@@ -91,47 +115,19 @@ async function loadDashboard() {
       goToLogin();
       return;
     }
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
     if (currentVersion !== version) return;
-    if (!response.ok || typeof data?.active !== 'boolean'
-      || (data.active && !Object.hasOwn(plans, data.plan))) {
-      throw new Error('subscription_unavailable');
-    }
-    level.textContent = data.active ? plans[data.plan].name : 'No active subscription';
-    if (data.subscription && Object.hasOwn(plans, data.plan)) {
-      billing.href = `/pricing/${data.plan}`;
-      billing.textContent = 'Manage subscription';
-    } else if (!data.active && !data.subscription) {
-      billing.href = '/pricing/usage';
-      billing.textContent = 'Start usage billing — $5 monthly minimum';
-      billing.className = 'button button-small';
-    } else {
-      billing.textContent = 'View plans';
-    }
-    if (!data.active && !data.subscription) {
-      note.textContent = 'Images and container creation require an active subscription. Start usage billing to choose an image and launch your first container.';
-      note.hidden = false;
-    } else if (data.subscription && !data.active) {
-      note.textContent = 'Your subscription is inactive. Manage subscription to review billing.';
-      note.hidden = false;
-    } else if (data.active && data.scheduled_plan) {
-      const date = data.scheduled_change_at
-        ? new Date(data.scheduled_change_at * 1000).toLocaleDateString()
-        : 'your next renewal';
-      note.textContent = `Your plan changes to ${plans[data.scheduled_plan]?.name || data.scheduled_plan} on ${date}.`;
-      note.hidden = false;
-    } else if (data.active && (data.subscription?.cancel_at_period_end || data.cancel_at_period_end)) {
-      note.textContent = data.valid_until
-        ? `Your subscription ends on ${new Date(data.valid_until).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}.`
-        : 'Your subscription ends after the current billing period.';
-      note.hidden = false;
-    }
+    if (fundingReadVersion !== fundingVersion) return;
+    if (!response.ok) throw new Error('balance_unavailable');
+    const balance = readPrepaidBalance(data.balance);
+    renderFunding(balance);
+    window.dispatchEvent(new CustomEvent('billing-balance-change', { detail: { userId: session.user.id, balance } }));
   } catch {
     if (currentVersion !== version) return;
     status.hidden = true;
     if (authenticated) level.textContent = 'Unavailable';
     error.textContent = authenticated
-      ? 'Could not load your subscription. Please try again.'
+      ? 'Could not load your prepaid balance. Please try again.'
       : 'Could not check your session. Check your connection and try again.';
     error.hidden = false;
     retry.hidden = false;
@@ -145,7 +141,18 @@ async function loadDashboard() {
 
 retry.addEventListener('click', loadDashboard);
 window.addEventListener('auth-change', (event) => {
-  if (event.detail?.user !== null) return;
+  if (event.detail?.user) {
+    if (currentUser && event.detail.user.id !== currentUser.id) {
+      version++;
+      currentUser = null;
+      containers.dispose();
+      images.dispose();
+      content.hidden = true;
+      window.location.reload();
+    }
+    return;
+  }
+  currentUser = null;
   version++;
   containers.dispose();
   images.dispose();

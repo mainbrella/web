@@ -38,7 +38,7 @@ export function privateNetworks(input: unknown): PrivateNetwork[] {
 
 const messages: Record<string, string> = {
   network_lifecycle_conflict: 'Choose a container with the same lifecycle as this network.',
-  production_requires_usage: 'Production networks require usage billing. Manage your subscription to switch at renewal.',
+  production_requires_usage: 'Production networks require prepaid compute funding. Add balance in billing.',
   network_name_conflict: 'This network name is already in use. Choose another name.',
   service_name_conflict: 'This service name is already in use in this network.',
   machine_already_attached: 'This machine already belongs to another network. Detach it first.',
@@ -48,7 +48,7 @@ const messages: Record<string, string> = {
   network_limit: 'Your network limit has been reached. Delete an empty network first.',
   network_member_limit: 'This network has reached its machine limit.',
   invalid_request: 'Check the name and application port, then try again.',
-  subscription_required: 'An active plan is required to use Private Services.',
+  subscription_required: 'Add prepaid balance to use Private Services.',
   private_services_unsupported: 'Private Services are unavailable in this environment.',
 };
 
@@ -107,7 +107,7 @@ function button(text: string, click: () => void, action: string) {
 }
 
 export function createPrivateServices({ onUnauthenticated, onChanged, lifecycle = 'ad_hoc' }: { onUnauthenticated: () => void; onChanged: () => void; lifecycle?: Lifecycle }) {
-  document.querySelector<HTMLElement>('#network-lifecycle-note')!.textContent = lifecycle === 'production' ? 'Attach production containers to keep the services always on. An empty network has no compute cost.' : 'Attach Ad Hoc containers. Each container keeps its session and idle limits.';
+  document.querySelector<HTMLElement>('#network-lifecycle-note')!.textContent = lifecycle === 'production' ? 'Attach production containers. Services run while their containers remain funded. An empty network has no compute cost.' : 'Attach Ad Hoc containers. Each container keeps its session and idle limits.';
   const host = document.querySelector<HTMLElement>('#private-services-feedback')!;
   const status = host.querySelector<HTMLElement>('[role="status"]')!;
   const error = host.querySelector<HTMLElement>('[role="alert"]')!;

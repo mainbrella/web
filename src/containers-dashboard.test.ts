@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 const locationDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'location');
 Object.defineProperty(globalThis, 'location', { value: { hostname: 'localhost' }, configurable: true });
-const { canCreateContainer, imageSelection } = await import('./containers-dashboard.ts');
+const { canCreateContainer, imageSelection, productionLaunchFunding } = await import('./containers-dashboard.ts');
 if (locationDescriptor) Object.defineProperty(globalThis, 'location', locationDescriptor);
 else Reflect.deleteProperty(globalThis, "location");
 
@@ -15,11 +15,28 @@ const data = <T extends object>(overrides: T = {} as T) => ({
   ...overrides,
 });
 
-test('unpaid users can attempt creation and receive the subscription-required response', () => {
+test('unfunded users can attempt creation and receive an authoritative funding response', () => {
   assert.equal(canCreateContainer(data({
     active: false,
     limits: { maxContainers: 0, maxStartsPerMonth: 0 },
   })), true);
+});
+
+test('prepaid creation is checked by the server when rounded available runtime is zero', () => {
+  const funded = data({ billing: { balanceCents: 0 }, usage: { starts: 0, availableComputeUnitHours: 0 } });
+  assert.equal(canCreateContainer(funded), true);
+  assert.equal(canCreateContainer({ ...funded, containers: Array(5).fill({}) }), false);
+});
+
+test('production funding estimate includes the desired fleet and the selected machine for 24 hours', () => {
+  const fleet = { active: true, plan: 'usage', containers: [],
+    usage: { starts: 0, computeUnitHours: 0, reservedComputeUnitHours: 0 },
+    limits: { maxContainers: 100, maxStartsPerMonth: 10000, maxSessionMs: 86400000, idleTimeoutMs: 1800000 },
+    billing: { periodStart: 1, periodEnd: 2, computeUnitHours: 0, estimatedCents: 0,
+      minimumCents: 0, spendLimitCents: 500, committedCents: 0, alert: null, overagesEnabled: false,
+      invoicingPending: false, productionHourlyCents: 108, minimumProductionRuntimeMs: 86400000 } } as const;
+  assert.equal(productionLaunchFunding({ ...fleet, containers: [] }, { computeUnits: 6 }), 2880);
+  assert.equal(productionLaunchFunding({ ...fleet, containers: [], billing: { ...fleet.billing, productionHourlyCents: 0 } }, { computeUnits: 1 }), 48);
 });
 
 test('paid users can create only while below both the concurrency and monthly-start limits', () => {

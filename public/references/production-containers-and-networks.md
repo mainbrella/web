@@ -1,10 +1,10 @@
 <!-- Generated from backend/API.md; edit the source and run docs:package. -->
 ## Production containers and networks
 
-Usage subscriptions support `lifecycle: "production"` in `POST /containers`.
+Prepaid accounts support `lifecycle: "production"` in `POST /containers`.
 Omitted lifecycle remains `ad_hoc`, with the existing session and idle limits.
 Production machines have no session or idle shutdown; five-minute compute
-reservations renew automatically while paid access and the spending cap permit.
+reservations renew automatically while confirmed funding and the spending cap permit.
 The account checks every 30 seconds, independently of dashboard visits. All
 machines share the same monthly spending cap, concurrency and start safeguards.
 
@@ -46,5 +46,7 @@ runtime before the account/API worker and web UI. Feature discovery and a
 versioned private start route reject an incompatible runtime before provisioning.
 Production cannot restore a saved workspace. There is no persistent disk,
 transactional snapshot, HTTP readiness guarantee, replica failover or uptime SLA.
-Use external durable storage. Payment renewal can interrupt compute until the
-next billing period is proven paid; recovery resumes the same logical service.
+Use external durable storage. Starting or expanding production requires 24 hours
+of funding for the resulting fleet, after existing runtime reservations. Funding
+exhaustion pauses compute and preserves service configuration; successful funding
+allows recovery of the same logical service. A pending recharge grants no runtime.

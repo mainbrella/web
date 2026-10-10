@@ -2,389 +2,323 @@ import type { TestContext } from 'node:test';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
+import type { PrepaidBalance, User } from './types.ts';
 
-const checkoutGlobal = globalThis as typeof globalThis & { checkoutOptions: { onComplete: (session: { id: string }) => Promise<void>; onReady: () => void; onError: () => void } };
-const trackingGlobal = globalThis as typeof globalThis & { funnelEvents: [string, unknown][] };
-
-// Exercise the real billing client; replace only browser and Stripe boundaries.
-const hooks = registerHooks({
-  resolve(specifier, context, next) {
-    const mocks: Record<string, string> = {
-      './payments/stripeEmbeddedCheckout.ts': 'export const mountStripeEmbeddedCheckout = options => { globalThis.checkoutOptions = options; return () => {}; };',
-      './auth.ts': "export const API_ORIGIN = 'https://api.test'; export const createAuthClient = () => ({ signOut: async () => {} });",
-      './acquisition-analytics.ts': "export const identifyAccount = () => {}; export const trackFunnel = (name, parameters) => globalThis.funnelEvents.push([name, parameters]); export const trackConfirmedPayment = (sessionId, plan) => globalThis.funnelEvents.push(['payment_confirmed', plan]);",
-    };
-    if (Object.hasOwn(mocks, specifier)) return { url: `data:text/javascript,${encodeURIComponent(mocks[specifier])}`, shortCircuit: true };
-    return next(specifier, context);
-  },
-});
+const mocks = globalThis as typeof globalThis & { billingTestSession: () => Promise<{ user: User } | null>; billingTracking: string[] };
+registerHooks({ resolve(specifier, context, next) {
+  const modules: Record<string, string> = {
+    './auth.ts': "export const API_ORIGIN='https://api.test'; export const createAuthClient=()=>({readSession:()=>globalThis.billingTestSession()});",
+    './acquisition-analytics.ts': "export const trackFunnel=()=>{}; export const trackConfirmedPayment=id=>globalThis.billingTracking.push(id);",
+  };
+  if (modules[specifier]) return { url: `data:text/javascript,${encodeURIComponent(modules[specifier])}`, shortCircuit: true };
+  return next(specifier, context);
+} });
 let sequence = 0;
-// Partial DOM double; dynamic fields are set by the billing client.
 class Element {
   [key: string]: any;
-  value = ''; checked = false; hidden = true; disabled = false; dataset: Record<string, string> = {}; textContent = ''; listeners = new Map();
-  addEventListener(type: string, handler: (event?: any) => unknown) { this.listeners.set(type, handler); }
-  async click() { if (!this.disabled) await this.listeners.get('click')?.(); }
+  constructor(public id: string) {}
+  value = ''; checked = false; hidden = false; disabled = false; dataset: Record<string, string> = {}; textContent = '';
+  listeners = new Map<string, (event: any) => unknown>();
+  addEventListener(type: string, handler: (event: any) => unknown) { this.listeners.set(type, handler); }
+  async click() { if (!this.disabled) await this.listeners.get('click')?.({}); }
+  async submit() { await this.listeners.get('submit')?.({ preventDefault() {} }); }
+  input() { this.listeners.get('input')?.({}); }
   focus() {}
-  reportValidity() { return true; }
-  async submit() { await this.listeners.get("submit")?.({ preventDefault() {}, currentTarget: this }); }
 }
-async function fixture(t: TestContext, current: string | null = 'builder', target = 'pro', extra: Record<string, any> = {}) {
+const wallet = (extra: Partial<PrepaidBalance> = {}): PrepaidBalance => ({
+  balanceCents: 1234, availableBalanceCents: 1000, reservedBalanceCents: 234, currency: 'usd',
+  spendLimitCents: 500, monthlyUsageCents: 120, productionHourlyCents: 12, fundedRuntimeMs: 300_000_000,
+  minimumProductionRuntimeMs: 86_400_000,
+  autoRecharge: { enabled: false, amountCents: 2000, monthlyLimitCents: 10000, spentCents: 0, status: 'disabled' }, ...extra,
+});
+const tick = () => new Promise(resolve => setImmediate(resolve));
+async function fixture(t: TestContext, extra: Record<string, any> = {}) {
   const nodes = new Map<string, Element>();
-  const node = (selector: string) => { if (!nodes.has(selector)) nodes.set(selector, new Element()); return nodes.get(selector)!; };
-  const button = node('[data-plan]'); button.dataset.plan = target;
-  const redirects: string[] = []; const calls: { path: string; body: any }[] = []; const confirmations: string[] = [];
-  const events = new Map();
-  let accept = true; let fail: string | null = null; let gate: Promise<void> | null = null; let failRead = Boolean(extra.failRead);
-  let state: Record<string, any> = { plan: current, active: true, valid_until: Date.UTC(2026, 10, 5),
-    subscription: { id: 'sub_owned', cancel_at_period_end: false }, ...extra };
-  const property = (name: string, value: unknown) => {
-    const descriptor = Object.getOwnPropertyDescriptor(globalThis, name);
-    Object.defineProperty(globalThis, name, { value, configurable: true, writable: true });
-    t.after(() => { if (descriptor) Object.defineProperty(globalThis, name, descriptor); else Reflect.deleteProperty(globalThis, name); });
+  const node = (id: string) => { if (!nodes.has(id)) nodes.set(id, new Element(id)); return nodes.get(id)!; };
+  const calls: { path: string; body: any; credentials: RequestCredentials | undefined }[] = [];
+  const redirects: string[] = [];
+  const events = new Map<string, (event: any) => any>();
+  const storage = extra.storage || new Map<string, string>();
+  let balance: any = extra.balance || wallet();
+  let fail: string | null = null;
+  let mutationGate: Promise<void> | null = null;
+  let readGate: Promise<void> | null = extra.readGate || null;
+  let failRead = extra.failRead || false;
+  let checkoutUrl = 'https://checkout.stripe.com/c/pay/cs_test';
+  const replace = (key: string, value: any) => {
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, key);
+    Object.defineProperty(globalThis, key, { value, configurable: true, writable: true });
+    t.after(() => { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key); });
   };
-  property('document', { querySelector: node, querySelectorAll: (selector: string) => selector === '[data-plan]' ? [button] : [] });
-  property('location', { pathname: extra.pathname || `/pricing/${target}`, search: extra.search || '', hash: '', assign: (value: string) => redirects.push(value) });
-  property('history', { replaceState() {} });
-  property('checkoutOptions', null);
-  property('funnelEvents', []);
-  property('window', { localStorage: { getItem: () => extra.cookieChoice || 'accepted' }, addEventListener: (type: string, handler: (event: any) => unknown) => events.set(type, handler),
-    dispatchEvent: (event: Event) => events.get(event.type)?.(event), confirm: (value: string) => { confirmations.push(value); return accept; } });
-  property('fetch', async (url: string, options: RequestInit) => {
-    const path = new URL(url).pathname; const body = options.body ? JSON.parse(options!.body as string) : null;
-    calls.push({ path, body });
-    if (path === '/subscription/config') return Response.json({ configured: true, usage_configured: extra.usageConfigured ?? true });
-    if (path === '/auth/me') { if (extra.sessionGate) await extra.sessionGate;
-      return extra.authFailure ? Response.json({ error: 'auth_unavailable' }, { status: 503 })
-        : Response.json({ user: { id: 'owner', email: 'owner@example.com' } }); }
-    if (path === '/subscription') { if (extra.loadGate) await extra.loadGate;
-      return failRead ? Response.json({ error: 'billing_unavailable' }, { status: 503 }) : Response.json(state); }
-    if (gate) await gate;
-    if (fail && (!extra.failPath || extra.failPath === path)) return Response.json({ error: fail }, { status: 409 });
-    if (path === '/subscription/usage') return Response.json({ billing: {
-      periodStart: Date.UTC(2026, 9, 5), periodEnd: Date.UTC(2026, 10, 5), computeUnitHours: 100,
-      estimatedCents: 500, minimumCents: 500, spendLimitCents: body?.spendLimitCents ?? 500,
-      committedCents: 500, overagesEnabled: Boolean(body?.authorizeOverages), invoicingPending: false, alert: null,
-    } });
-    if (path === '/subscription/checkout') return Response.json({ client_secret: 'cs_owned_secret', publishable_key: 'pk_mock' });
-    if (path === '/subscription/complete') {
-      state = { plan: target, active: true, valid_until: Date.UTC(2026, 10, 5), subscription: { id: 'sub_owned', cancel_at_period_end: false }, ...extra.completionState };
-      return Response.json(state);
+  node('topup-amount').value = '20.00';
+  replace('document', { getElementById: node, querySelectorAll: () => [] });
+  replace('location', { search: extra.search || '', href: `https://mainbrella.com/pricing/${extra.search || ''}`, assign: (url: string) => redirects.push(url) });
+  replace('history', { replaceState() {} });
+  replace('window', {
+    localStorage: { getItem: () => extra.consent || 'accepted' },
+    sessionStorage: { getItem: (key: string) => storage.get(key) || null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) },
+    addEventListener: (type: string, handler: (event: any) => any) => events.set(type, handler),
+    dispatchEvent: (event: Event) => events.get(event.type)?.(event),
+  });
+  mocks.billingTestSession = async () => { if (extra.authGate) await extra.authGate; return extra.signedOut ? null : { user: { id: 'owner', email: 'owner@example.com' } }; };
+  mocks.billingTracking = [];
+  replace('fetch', async (url: string, options: RequestInit) => {
+    const path = new URL(url).pathname;
+    const body = options.body ? JSON.parse(options.body as string) : null;
+    calls.push({ path, body, credentials: options.credentials });
+    if (path === '/billing/config') return Response.json({ configured: extra.configured ?? true, minTopupCents: 500, maxTopupCents: 100000 });
+    if (path === '/billing/balance') {
+      if (readGate) await readGate;
+      return failRead ? Response.json({ error: 'billing_unavailable' }, { status: 503 }) : Response.json({ balance });
     }
-    if (path === '/subscription/portal') return Response.json({ url: 'https://billing.stripe.com/p/session_owned' });
-    if (path === '/subscription/change') {
-      state = { ...state, scheduled_plan: body.plan === state.plan ? null : body.plan,
-        scheduled_change_at: Math.floor(state.valid_until / 1000) };
+    if (mutationGate) await mutationGate;
+    if (fail) return Response.json({ error: fail }, { status: fail === 'unauthorized' ? 401 : 409 });
+    if (path === '/billing/topups') return Response.json({ sessionId: 'cs_test', url: checkoutUrl });
+    if (path === '/billing/topups/complete') {
+      if (extra.completionError) return Response.json({ error: extra.completionError }, { status: 409 });
+      balance = wallet({ balanceCents: 3234, availableBalanceCents: 3000 });
+      return Response.json({ balance });
     }
-    if (path === '/subscription/cancel') state = { ...state, scheduled_plan: null,
-      subscription: { ...state.subscription, cancel_at_period_end: true } };
-    if (path === '/subscription/resume') state = { ...state, subscription: { ...state.subscription, cancel_at_period_end: false } };
-    return Response.json({ ok: true });
+    if (path === '/billing/settings') {
+      balance = { ...balance, ...body, ...(body.autoRecharge ? { autoRecharge: { ...balance.autoRecharge, ...body.autoRecharge } } : {}) };
+      return Response.json({ balance });
+    }
+    return Response.json({ error: 'unexpected_route' }, { status: 404 });
   });
   await import(`./subscription.ts?test=${++sequence}`);
-  await new Promise(resolve => setImmediate(resolve));
-  return { button, node, calls, redirects, confirmations, setAccept(value: boolean) { accept = value; },
-    setFail(value: string | null) { fail = value; }, setGate(value: Promise<void> | null) { gate = value; },
-    setReadFailure(value: boolean) { failRead = value; },
-    signOutExternally() { events.get('auth-change')?.({ detail: { user: null } }); } };
+  await tick();
+  return { node, calls, redirects, storage, events, setFail(value: string | null) { fail = value; },
+    setGate(value: Promise<void> | null) { mutationGate = value; }, setReadGate(value: Promise<void> | null) { readGate = value; },
+    setReadFailure(value: boolean) { failRead = value; }, setCheckoutUrl(value: string) { checkoutUrl = value; },
+    changeAccount(value: User | null) { events.get('auth-change')?.({ detail: { user: value } }); },
+  };
 }
 
-test('Builder upgrade sends the chosen Pro plan to Stripe hosted confirmation', async t => {
+test('prepaid page shows balance, reserved funds and usage without opening a payment on load', async t => {
   const f = await fixture(t);
-  assert.match(f.button.textContent, /Upgrade to Pro/);
-  await f.button.click();
-  assert.deepEqual(f.calls.find(call => call.path === '/subscription/portal')!.body, { plan: 'pro' });
-  assert.deepEqual(f.redirects, ['https://billing.stripe.com/p/session_owned']);
-  assert.equal(f.node('#billing-cancel').disabled, true);
+  assert.equal(f.node('billing-balance').textContent, '$12.34');
+  assert.equal(f.node('billing-available').textContent, '$10.00');
+  assert.equal(f.node('billing-reserved').textContent, '$2.34');
+  assert.equal(f.node('billing-usage').textContent, '$1.20');
+  assert.equal(f.node('topup-submit').disabled, false);
+  assert.equal(f.calls.some(call => call.body !== null), false);
+  assert.equal(f.calls.find(call => call.path === '/billing/balance')?.credentials, 'include');
 });
 
-test('downgrade requires confirmation and retains the current plan until renewal', async t => {
-  const f = await fixture(t, 'pro', 'builder');
-  f.setAccept(false); await f.button.click();
-  assert.equal(f.calls.filter(call => call.path === '/subscription/change').length, 0);
-  f.setAccept(true); await f.button.click();
-  assert.deepEqual(f.calls.find(call => call.path === '/subscription/change')!.body, { plan: 'builder', confirm: true });
-  assert.match(f.node('#pro-status').textContent, /next renewal/);
-  assert.match(f.confirmations[0], /\$180\/month.*\$5\/month/);
+test('signed-out and rejected-cookie visitors cannot add balance or fetch an account wallet', async t => {
+  const f = await fixture(t, { signedOut: true, consent: 'rejected' });
+  assert.equal(f.node('prepaid-billing').hidden, true);
+  assert.equal(f.node('billing-login').hidden, false);
+  assert.equal(f.calls.some(call => call.path === '/billing/balance'), false);
+  await f.node('topup-form').submit();
+  assert.equal(f.calls.some(call => call.path === '/billing/topups'), false);
 });
 
-test('Keep current plan withdraws an existing scheduled downgrade', async t => {
-  const f = await fixture(t, 'pro', 'pro', { scheduled_plan: 'builder', scheduled_change_at: 1793836800 });
-  assert.equal(f.button.textContent, 'Keep Pro');
-  await f.button.click();
-  assert.deepEqual(f.calls.find(call => call.path === '/subscription/change')!.body, { plan: 'pro', confirm: true });
-  assert.equal(f.button.disabled, true);
-  assert.match(f.node('#pro-status').textContent, /Scheduled plan change canceled/);
-});
-
-test('cancellation shows the paid-through date, disables concurrent actions, and can be resumed', async t => {
+test('top-up validates its minimum and decimal precision before checkout', async t => {
   const f = await fixture(t);
-  let release!: () => void; f.setGate(new Promise<void>(resolve => { release = resolve; }));
-  const pending = f.node('#billing-cancel').click();
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(f.button.disabled, true);
-  assert.equal(f.node('#billing-manage').disabled, true);
-  assert.equal(f.node('#billing-cancel').disabled, true);
-  assert.equal(f.node('#pro-logout').disabled, true);
-  release(); await pending; f.setGate(null);
-  assert.deepEqual(f.calls.find(call => call.path === '/subscription/cancel')!.body, { confirm: true });
-  assert.match(f.confirmations[0], /Nov.*2026/);
-  assert.match(f.node('#pro-status').textContent, /subscription ends on/);
-  assert.equal(f.node('#billing-cancel').hidden, true);
-  assert.equal(f.node('#billing-resume').hidden, false);
-  await f.node('#billing-resume').click();
-  assert.deepEqual(f.calls.find(call => call.path === '/subscription/resume')!.body, {});
-  assert.equal(f.node('#billing-cancel').hidden, false);
-  assert.match(f.node('#pro-status').textContent, /continue renewing/);
+  for (const value of ['4.99', '20.001', '1000.01']) {
+    f.node('topup-amount').value = value;
+    await f.node('topup-form').submit();
+  }
+  assert.equal(f.calls.some(call => call.path === '/billing/topups'), false);
+  assert.match(f.node('topup-status').textContent, /two decimal places/);
 });
 
-test('failed billing mutations restore controls and show a readable pending-operation error', async t => {
-  const f = await fixture(t, 'pro', 'builder'); f.setFail('billing_operation_pending');
-  await f.button.click();
-  assert.equal(f.button.disabled, false);
-  assert.equal(f.node('#billing-cancel').disabled, false);
-  assert.match(f.node('#pro-status').textContent, /Another billing change is in progress/);
-  assert.equal(f.node('#pro-status').dataset.state, 'error');
-});
-
-test('inactive subscriptions expose payment management and cancellation without granting a plan change', async t => {
-  const f = await fixture(t, 'pro', 'builder', { active: false });
-  assert.equal(f.button.disabled, true);
-  assert.equal(f.node('#billing-manage').hidden, false);
-  assert.equal(f.node('#billing-cancel').hidden, false);
-  await f.node('#billing-manage').click();
-  assert.deepEqual(f.calls.find(call => call.path === '/subscription/portal')!.body, {});
-});
-
-test('opening payment management disables every billing action until failure restores the controls', async t => {
+test('a lost checkout response retries the same saved request and never invents balance', async t => {
   const f = await fixture(t);
-  let release!: () => void; f.setGate(new Promise<void>(resolve => { release = resolve; }));
   f.setFail('billing_unavailable');
-  const pending = f.node('#billing-manage').click();
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(f.button.disabled, true);
-  assert.equal(f.node('#billing-cancel').disabled, true);
-  assert.equal(f.node('#billing-manage').disabled, true);
-  assert.equal(f.node('#pro-logout').disabled, true);
-  release(); await pending;
-  assert.equal(f.node('#billing-cancel').disabled, false);
-  assert.equal(f.node('#billing-manage').disabled, false);
-  assert.match(f.node('#pro-status').textContent, /Unable to open billing/);
+  await f.node('topup-form').submit();
+  assert.equal(f.node('billing-balance').textContent, '$12.34');
+  const initial = f.calls.find(call => call.path === '/billing/topups')!.body;
+  assert.match(initial.requestId, /^[a-f0-9-]{36}$/);
+  assert.equal(initial.amountCents, 2000);
+  assert.match(f.node('topup-status').textContent, /same payment/);
+  f.setFail(null);
+  await f.node('topup-form').submit();
+  assert.deepEqual(f.calls.filter(call => call.path === '/billing/topups').map(call => call.body), [initial, initial]);
+  assert.deepEqual(f.redirects, ['https://checkout.stripe.com/c/pay/cs_test']);
+  assert.equal(f.node('billing-balance').textContent, '$12.34');
 });
 
-test('an expired billing session clears the cached current plan and exposes sign-in', async t => {
-  const f = await fixture(t, 'builder', 'builder'); f.setFail('not_authenticated');
-  assert.equal(f.button.disabled, true);
-  await f.node('#billing-manage').click();
-  assert.equal(f.button.disabled, true, 'Legacy purchases stay disabled after sign-out');
-  assert.match(f.button.textContent, /Subscribe to Builder/);
-  assert.equal(f.node('#billing-manage').hidden, true);
-  assert.equal(f.node('#billing-cancel').hidden, true);
-  assert.equal(f.node('#pro-login').hidden, false);
-  assert.match(f.node('#pro-status').textContent, /sign in again/);
+test('an uncertain top-up survives page reload and cannot silently change amount', async t => {
+  const saved = { requestId: 'a4b63055-32c7-4256-a671-a11211884d18', amountCents: 5000 };
+  const storage = new Map([['mainbrella-prepaid-topup:owner', JSON.stringify(saved)]]);
+  const f = await fixture(t, { storage });
+  assert.equal(f.node('topup-amount').value, '50.00');
+  f.node('topup-amount').value = '20.00';
+  await f.node('topup-form').submit();
+  assert.equal(f.calls.some(call => call.path === '/billing/topups'), false);
+  assert.match(f.node('topup-status').textContent, /already in progress/);
+  await f.node('topup-form').submit();
+  assert.deepEqual(f.calls.find(call => call.path === '/billing/topups')!.body, saved);
 });
 
-test('billing changes stay disabled until the current subscription is loaded', async t => {
-  let release!: () => void; const loadGate = new Promise<void>(resolve => { release = resolve; });
-  const f = await fixture(t, 'builder', 'pro', { loadGate });
-  assert.equal(f.button.disabled, true);
-  assert.equal(f.node('#billing-manage').disabled, true);
-  await f.button.click();
-  assert.equal(f.calls.filter(call => call.path === '/subscription/portal').length, 0);
-  release(); await new Promise(resolve => setImmediate(resolve));
-  assert.equal(f.button.disabled, false);
-  assert.match(f.button.textContent, /Upgrade to Pro/);
-});
-
-test('inactive cancellation does not promise active access and uses the subscription item renewal date', async t => {
-  const f = await fixture(t, 'pro', 'builder', { active: false, valid_until: null,
-    subscription: { id: 'sub_owned', cancel_at_period_end: false, items: { data: [{ current_period_end: Date.UTC(2026, 10, 5) / 1000 }] } } });
-  await f.node('#billing-cancel').click();
-  assert.match(f.confirmations[0], /Nov.*2026/);
-  assert.doesNotMatch(f.confirmations[0], /stays active/);
-});
-
-test('session lookup failures show an unavailable state instead of pretending the account is signed out', async t => {
-  const f = await fixture(t, 'builder', 'pro', { authFailure: true });
-  assert.match(f.node('#pro-status').textContent, /temporarily unavailable/);
-  assert.equal(f.node('#pro-status').dataset.state, 'error');
-  assert.equal(f.calls.filter(call => call.path === '/subscription/checkout').length, 0);
-  assert.equal(f.calls.filter(call => call.path === '/subscription').length, 0);
-  assert.deepEqual(f.redirects, []);
-});
-
-test('successful payment applies the verified completion state without a second billing lookup', async t => {
-  const f = await fixture(t, null, 'usage', { active: false, subscription: null });
-  const reads = f.calls.filter(call => call.path === '/subscription').length;
-  assert.ok(checkoutGlobal.checkoutOptions);
-  f.setReadFailure(true);
-  await checkoutGlobal.checkoutOptions.onComplete({ id: 'cs_owned' });
-  assert.equal(f.calls.filter(call => call.path === '/subscription').length, reads);
-  assert.match(f.node('#pro-status').textContent, /Usage subscription is active/);
-  assert.match(f.button.textContent, /Current plan/);
-  assert.equal(f.button.disabled, true);
-  assert.equal(f.node('#billing-manage').hidden, false);
-  assert.equal(f.node('#inline-checkout').hidden, true);
-  assert.equal(f.node('#subscription-workspace').hidden, false);
-  assert.deepEqual(trackingGlobal.funnelEvents, [['checkout_started', { plan: 'usage' }], ['payment_confirmed', 'usage']]);
-});
-
-test('inactive completion does not count as confirmed payment or offer machine access', async t => {
-  const f = await fixture(t, null, 'usage', { active: false, subscription: null, completionState: { active: false } });
-  await checkoutGlobal.checkoutOptions.onComplete({ id: 'cs_pending' });
-  assert.equal(f.node('#subscription-workspace').hidden, true);
-  assert.equal(trackingGlobal.funnelEvents.filter(([name]) => name === 'payment_confirmed').length, 0);
-});
-
-test('failed payment confirmation never counts as payment or offers machine access', async t => {
-  const f = await fixture(t, null, 'usage', { active: false, subscription: null, failPath: '/subscription/complete' });
-  f.setFail('billing_unavailable');
-  await assert.rejects(checkoutGlobal.checkoutOptions.onComplete({ id: 'cs_pending' }), /couldn’t confirm/);
-  assert.equal(f.node('#subscription-workspace').hidden, true);
-  assert.equal(trackingGlobal.funnelEvents.filter(([name]) => name === 'payment_confirmed').length, 0);
-});
-
-test('checkout keeps its form visible while authentication and billing load', async t => {
+test('duplicate submit is blocked while checkout is being created', async t => {
+  const f = await fixture(t);
   let release!: () => void;
-  const sessionGate = new Promise<void>(resolve => { release = resolve; });
-  const f = await fixture(t, null, 'usage', { active: false, subscription: null, sessionGate });
-  assert.equal(f.node('#pricing-plans').hidden, true);
-  assert.equal(f.node('#inline-checkout').hidden, false);
-  assert.equal(f.node('#checkout-form').hidden, false);
-  assert.equal(f.node('#checkout-email').disabled, true);
-  assert.equal(f.node('#checkout-submit').disabled, true);
-  assert.equal(f.node('#checkout-payment-slot').dataset.loading, 'true');
-  assert.equal(f.node('#checkout-title').textContent, 'Usage — $5/month minimum');
-  assert.equal(checkoutGlobal.checkoutOptions, null);
-  release();
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(f.node('#checkout-form').hidden, false);
-  assert.equal(f.node('#checkout-payment-slot').dataset.loading, 'true');
-  assert.ok(checkoutGlobal.checkoutOptions);
+  f.setGate(new Promise(resolve => { release = resolve; }));
+  const first = f.node('topup-form').submit();
+  await tick();
+  await f.node('topup-form').submit();
+  assert.equal(f.calls.filter(call => call.path === '/billing/topups').length, 1);
+  assert.equal(f.node('usage-save').disabled, true);
+  release(); await first;
 });
 
-test('the payment placeholder stays until ready and ignores callbacks from closed checkout', async t => {
-  const f = await fixture(t, null, 'usage', { active: false, subscription: null });
-  const options = checkoutGlobal.checkoutOptions;
-  const slot = f.node('#checkout-payment-slot');
-  assert.equal(slot.dataset.loading, 'true');
-  options.onReady();
-  assert.equal(slot.dataset.loading, 'false');
-  assert.equal(slot.ariaBusy, 'false');
-  f.signOutExternally();
-  assert.equal(slot.dataset.loading, 'true');
-  options.onReady();
-  options.onError();
-  assert.equal(slot.dataset.loading, 'true');
-  assert.equal(f.node('#inline-checkout').hidden, true);
-});
-
-test('returning from payment applies completion state even when subscription lookup is unavailable', async t => {
-  const f = await fixture(t, null, 'usage', { active: false, subscription: null, failRead: true,
-    search: '?subscription_return=1&session_id=cs_owned' });
-  assert.equal(f.calls.filter(call => call.path === '/subscription/complete').length, 1);
-  assert.equal(f.calls.filter(call => call.path === '/subscription').length, 0);
-  assert.equal(f.calls.filter(call => call.path === '/subscription/checkout').length, 0);
-  assert.match(f.node('#pro-status').textContent, /Usage subscription is active/);
-  assert.match(f.button.textContent, /Current plan/);
-  assert.equal(f.button.disabled, true);
-});
-
-for (const gate of ['sessionGate', 'loadGate']) {
-  test(`signing out during ${gate === 'sessionGate' ? 'account' : 'subscription'} loading cannot restore stale billing state`, async t => {
-    let release!: () => void; const pending = new Promise<void>(resolve => { release = resolve; });
-    const f = await fixture(t, 'builder', 'usage', { [gate]: pending });
-    f.signOutExternally(); release(); await new Promise(resolve => setImmediate(resolve));
-    assert.equal(f.node('#pro-account').textContent, '');
-    assert.equal(f.node('#billing-manage').hidden, true);
-    assert.equal(f.node('#billing-cancel').hidden, true);
-    assert.equal(f.node('#pro-login').hidden, false);
-    assert.equal(f.button.disabled, false);
-    assert.match(f.button.textContent, /\$5 monthly minimum/);
-    assert.equal(f.node('#pro-status').textContent, 'Signed out.');
-    assert.deepEqual(f.redirects, []);
-  });
-}
-
-for (const action of ['upgrade', 'manage', 'downgrade', 'cancel', 'resume']) {
-  test(`signing out while ${action} is pending ignores its response and never redirects or restores the account`, async t => {
-    const f = await fixture(t, action === 'downgrade' ? 'pro' : 'builder', action === 'downgrade' ? 'builder' : 'pro',
-      action === 'resume' ? { subscription: { id: 'sub_owned', cancel_at_period_end: true } } : {});
-    let release!: () => void; f.setGate(new Promise<void>(resolve => { release = resolve; }));
-    const control = action === 'upgrade' || action === 'downgrade' ? f.button
-      : f.node(`#billing-${action}`);
-    const pending = control.click(); await new Promise(resolve => setImmediate(resolve));
-    f.signOutExternally(); release(); await pending;
-    assert.equal(f.node('#pro-account').textContent, '');
-    assert.equal(f.node('#billing-manage').hidden, true);
-    assert.equal(f.node('#billing-cancel').hidden, true);
-    assert.equal(f.node('#billing-resume').hidden, true);
-    assert.equal(f.node('#pro-login').hidden, false);
-    assert.equal(f.node('#pro-status').textContent, 'Signed out.');
-    assert.deepEqual(f.redirects, []);
-  });
-}
-
-test('pricing overview shows billing controls and navigates to checkout without mounting Stripe', async t => {
-  const f = await fixture(t, 'builder', 'pro', { pathname: '/pricing/' });
-  assert.equal(f.node('#billing-manage').hidden, false);
-  assert.equal(f.node('#billing-cancel').hidden, false);
-  assert.equal(checkoutGlobal.checkoutOptions, null);
-  await f.button.click();
-  assert.deepEqual(f.redirects, ['/pricing/pro']);
-  assert.equal(f.calls.filter(call => call.path === '/subscription/checkout').length, 0);
-});
-
-test('checkout Back to plans returns to pricing', async t => {
+test('checkout navigation requires Stripe HTTPS and rejects lookalike hosts', async t => {
   const f = await fixture(t);
-  await f.node('#checkout-back').click();
-  assert.deepEqual(f.redirects, ['/pricing/']);
+  for (const url of ['https://checkout.stripe.com.evil.test/pay', 'http://checkout.stripe.com/pay', 'https://user@checkout.stripe.com/pay']) {
+    f.setCheckoutUrl(url);
+    await f.node('topup-form').submit();
+  }
+  assert.deepEqual(f.redirects, []);
+  assert.equal(f.node('topup-submit').disabled, false);
 });
 
-
-test('rejected visitors can browse pricing without authentication cookies or checkout', async t => {
-  const f = await fixture(t, null, 'usage', { pathname: '/pricing/', cookieChoice: 'rejected' });
-  assert.equal(f.calls.some(call => call.path === '/auth/me'), false);
-  assert.equal(f.calls.some(call => call.path === '/subscription'), false);
-  assert.equal(checkoutGlobal.checkoutOptions, null);
-  assert.match(f.node('#pro-status').textContent, /Change your cookie choice/);
-  await f.button.click();
-  assert.deepEqual(f.redirects, ['/pricing/usage']);
+test('return confirms server-paid funds without starting a new checkout', async t => {
+  const f = await fixture(t, { search: '?topup_session=cs_paid' });
+  assert.equal(f.node('billing-balance').textContent, '$32.34');
+  assert.match(f.node('billing-status').textContent, /Payment confirmed/);
+  assert.deepEqual(f.calls.find(call => call.path === '/billing/topups/complete')!.body, { sessionId: 'cs_paid' });
+  assert.equal(f.calls.some(call => call.path === '/billing/topups'), false);
+  assert.deepEqual(mocks.billingTracking, ['cs_paid']);
 });
 
-test('rejected visitors opening a checkout route go to login before Stripe mounts', async t => {
-  const f = await fixture(t, null, 'usage', { cookieChoice: 'rejected' });
-  assert.equal(f.calls.some(call => call.path === '/auth/me'), false);
-  assert.equal(checkoutGlobal.checkoutOptions, null);
-  assert.deepEqual(f.redirects, ['/login?returnTo=%2Fpricing%2Fusage']);
+test('a pending payment never adds available funds or emits a confirmed payment', async t => {
+  const f = await fixture(t, { search: '?topup_session=cs_pending', completionError: 'payment_pending' });
+  assert.equal(f.node('billing-balance').textContent, '$12.34');
+  assert.equal(f.node('billing-available').textContent, '$10.00');
+  assert.match(f.node('billing-status').textContent, /No funds have been added/);
+  assert.deepEqual(mocks.billingTracking, []);
 });
 
-test('legacy subscribe routes redirect new customers to the usage subscription', async t => {
-  const f = await fixture(t, null, 'builder', { active: false, subscription: null });
-  assert.deepEqual(f.redirects, ['/pricing/usage']);
-  assert.equal(f.calls.some(call => call.path === '/subscription/checkout'), false);
+test('a billing read failure shows unavailable balance and refresh can recover it', async t => {
+  const f = await fixture(t, { failRead: true });
+  assert.equal(f.node('billing-balance').textContent, '—');
+  assert.equal(f.node('topup-submit').disabled, true);
+  assert.match(f.node('billing-status').textContent, /Could not load your balance/);
+  f.setReadFailure(false);
+  await f.node('billing-refresh').click();
+  assert.equal(f.node('billing-balance').textContent, '$12.34');
+  assert.equal(f.node('topup-submit').disabled, false);
 });
 
-test('a higher spending cap requires explicit authorization and preserves unsubmitted input', async t => {
-  const f = await fixture(t, 'usage', 'usage');
-  const cap = f.node('#usage-spend-limit'); cap.value = '50';
-  cap.listeners.get('input')?.();
-  await f.node('#usage-limit-form').submit();
-  assert.match(f.node('#usage-status').textContent, /Authorize usage charges/);
-  assert.equal(cap.value, '50');
-  assert.equal(f.calls.filter(call => call.path === '/subscription/usage' && call.body).length, 0);
-  const authorize = f.node('#usage-authorize'); authorize.checked = true;
-  authorize.listeners.get('change')?.();
-  await f.node('#usage-limit-form').submit();
-  assert.deepEqual(f.calls.find(call => call.path === '/subscription/usage' && call.body)!.body,
-    { spendLimitCents: 5000, authorizeOverages: true });
-  assert.match(f.node('#usage-status').textContent, /cap saved/);
+test('unconfigured billing explicitly blocks payments', async t => {
+  const f = await fixture(t, { configured: false });
+  assert.equal(f.node('billing-balance').textContent, '$12.34');
+  assert.match(f.node('billing-status').textContent, /Payments are unavailable/);
+  assert.equal(f.node('topup-submit').disabled, true);
+  await f.node('topup-form').submit();
+  assert.equal(f.calls.some(call => call.path === '/billing/topups'), false);
 });
 
-test('usage checkout stays disabled until its recurring price is configured', async t => {
-  const f = await fixture(t, null, 'usage', { active: false, subscription: null, usageConfigured: false });
-  assert.equal(f.button.disabled, true);
-  assert.equal(f.calls.some(call => call.path === '/subscription/checkout'), false);
+test('monthly cap saves without authorization to charge and preserves inputs on failure', async t => {
+  const f = await fixture(t);
+  f.node('usage-spend-limit').value = '180.00';
+  f.node('usage-spend-limit').input();
+  f.setFail('spend_limit_below_usage');
+  await f.node('usage-limit-form').submit();
+  assert.equal(f.node('usage-spend-limit').value, '180.00');
+  assert.match(f.node('usage-status').textContent, /already used or reserved/);
+  f.setFail(null);
+  await f.node('usage-limit-form').submit();
+  assert.deepEqual(f.calls.filter(call => call.path === '/billing/settings').at(-1)?.body, { spendLimitCents: 18000 });
+  assert.equal(f.calls.some(call => call.path === '/billing/topups'), false);
 });
 
-test.after(() => hooks.deregister());
+test('automatic recharge needs explicit enablement, amount and a sufficient monthly maximum', async t => {
+  const f = await fixture(t);
+  assert.equal(f.node('recharge-enabled').checked, false);
+  assert.equal(f.node('recharge-options').hidden, true);
+  f.node('recharge-enabled').checked = true; f.node('recharge-enabled').input();
+  f.node('recharge-amount').value = '50.00'; f.node('recharge-amount').input();
+  f.node('recharge-maximum').value = '20.00'; f.node('recharge-maximum').input();
+  await f.node('recharge-form').submit();
+  assert.equal(f.calls.some(call => call.path === '/billing/settings'), false);
+  f.node('recharge-maximum').value = '100.00'; f.node('recharge-maximum').input();
+  await f.node('recharge-form').submit();
+  assert.deepEqual(f.calls.find(call => call.path === '/billing/settings')!.body, { autoRecharge: { enabled: true, amountCents: 5000, monthlyLimitCents: 10000 } });
+});
+
+test('recharge requiring authentication directs customers to manual payment without crediting pending funds', async t => {
+  const f = await fixture(t, { balance: wallet({ autoRecharge: { enabled: true, amountCents: 2000, monthlyLimitCents: 10000, spentCents: 0, status: 'requires_action' } }) });
+  assert.match(f.node('recharge-payment-status').textContent, /Add balance manually/);
+  assert.equal(f.node('billing-balance').textContent, '$12.34');
+});
+
+test('signing out while wallet loads cannot restore account data', async t => {
+  let release!: () => void;
+  const f = await fixture(t, { readGate: new Promise<void>(resolve => { release = resolve; }) });
+  f.changeAccount(null);
+  release(); await tick();
+  assert.equal(f.node('prepaid-billing').hidden, true);
+  assert.equal(f.node('billing-balance').textContent, '—');
+  assert.equal(f.node('billing-login').hidden, false);
+});
+
+test('switching accounts during top-up creation prevents stale checkout navigation', async t => {
+  const f = await fixture(t);
+  let release!: () => void;
+  f.setGate(new Promise(resolve => { release = resolve; }));
+  const payment = f.node('topup-form').submit();
+  await tick();
+  f.changeAccount({ id: 'next-owner' });
+  release(); await payment; await tick();
+  assert.deepEqual(f.redirects, []);
+  assert.equal(f.node('topup-amount').value, '20.00');
+});
+
+test('a late shared balance event from another account is ignored', async t => {
+  const f = await fixture(t);
+  f.events.get('billing-balance-change')?.({ detail: { userId: 'other', balance: wallet({ balanceCents: 99000 }) } });
+  assert.equal(f.node('billing-balance').textContent, '$12.34');
+  f.events.get('billing-balance-change')?.({ detail: { userId: 'owner', balance: wallet({ balanceCents: 3456 }) } });
+  assert.equal(f.node('billing-balance').textContent, '$34.56');
+});
+
+test('the hosted Stripe return URL verifies its session ID', async t => {
+  const f = await fixture(t, { search: '?topup_return=1&session_id=cs_hosted' });
+  assert.equal(f.node('billing-balance').textContent, '$32.34');
+  assert.deepEqual(f.calls.find(call => call.path === '/billing/topups/complete')!.body, { sessionId: 'cs_hosted' });
+});
+
+test('disabling recharge uses saved valid amounts even after an invalid edit', async t => {
+  const f = await fixture(t);
+  f.node('recharge-enabled').checked = true; f.node('recharge-enabled').input();
+  f.node('recharge-amount').value = '1.00'; f.node('recharge-amount').input();
+  f.node('recharge-enabled').checked = false; f.node('recharge-enabled').input();
+  await f.node('recharge-form').submit();
+  assert.deepEqual(f.calls.find(call => call.path === '/billing/settings')!.body,
+    { autoRecharge: { enabled: false, amountCents: 2000, monthlyLimitCents: 10000 } });
+});
+
+test('a malformed wallet never displays a false zero or enables compute payments', async t => {
+  const f = await fixture(t, { balance: { balanceCents: '0' } });
+  assert.equal(f.node('billing-balance').textContent, '—');
+  assert.equal(f.node('topup-submit').disabled, true);
+  assert.match(f.node('billing-status').textContent, /Could not load your balance/);
+});
+
+test('negative balance after a refund remains visible with zero spendable funds', async t => {
+  const f = await fixture(t, { balance: wallet({ balanceCents: -123, availableBalanceCents: 0, reservedBalanceCents: 0 }) });
+  assert.equal(f.node('billing-balance').textContent, '-$1.23');
+  assert.equal(f.node('billing-available').textContent, '$0.00');
+  assert.equal(f.node('topup-submit').disabled, false);
+});
+
+test('an expired session clears cached balance after a billing mutation', async t => {
+  const f = await fixture(t);
+  f.setFail('unauthorized');
+  await f.node('topup-form').submit(); await tick();
+  assert.equal(f.node('prepaid-billing').hidden, true);
+  assert.equal(f.node('billing-balance').textContent, '—');
+  assert.equal(f.node('billing-login').hidden, false);
+});
+
+for (const [status, message] of [['monthly_limit_reached', /monthly maximum/], ['reconciliation_required', /Pending funds are unavailable/]] as const) {
+  test(`automatic recharge ${status} is shown as blocked, with a recovery action`, async t => {
+    const f = await fixture(t, { balance: wallet({ autoRecharge: { enabled: true, amountCents: 2000, monthlyLimitCents: 10000, spentCents: 0, status } }) });
+    assert.match(f.node('recharge-payment-status').textContent, message);
+    assert.equal(f.node('recharge-payment-status').dataset.state, 'error');
+  });
+}

@@ -3,96 +3,98 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Prepaid compute from $0.02 per compute-unit hour. Add balance from $5, with no monthly subscription. Unused funds carry forward." />
     <meta name="theme-color" content="#0d1014" />
     <meta name="robots" content="noindex" />
+    <link rel="canonical" href="https://mainbrella.com/pricing/" />
+    <meta property="og:title" content="Pricing · Mainbrella" />
+    <meta property="og:description" content="Prepaid compute from $0.02/hour. Add $5 or more. No monthly subscription." />
+    <meta property="og:url" content="https://mainbrella.com/pricing/" />
+    <meta property="og:type" content="website" />
     <link rel="icon" href="/images/favicon.png" type="image/png" />
     <link rel="stylesheet" href="/mainbrella.css" />
-    <title>Subscribe · Mainbrella</title>
+    <title>Prepaid billing · Mainbrella</title>
   </head>
-  <body class="info-body sandbox-home checkout-page">
+  <body class="info-body sandbox-home">
     <a class="skip-link" href="#main">Skip to content</a>
     <!-- site-header -->
-    <main id="main" class="subscription-main wrap">
-      <div class="checkout-stage" id="checkout-stage" data-reserve="true" data-checkout="true">
-        <div id="pricing-plans" hidden>
-          <h1 id="plan-title">Subscribe</h1>
-          <p class="pricing-note">Usage billing offers five machine sizes, from 256 MiB to 12 GiB RAM. A $5 monthly minimum includes $5 of compute; additional usage costs $0.02 per compute-unit hour.</p>
-          <p id="selected-plan-limits" class="pricing-note" hidden></p>
-          <button class="button" data-plan="" type="button" disabled>Continue to checkout</button>
-          <details class="plan-rules">
-            <summary>Plan rules and included access</summary>
-            <p>Compute costs $0.02 per unit-hour. Small uses 6 units ($0.12/hour); XL uses 28 ($0.56/hour). Provisioning and idle time are metered. A $5 spending cap applies by default; change it in billing. Starting reserves runtime against the cap; only elapsed runtime is charged.</p>
-            <p>All plans offer five machine sizes, from Lite (256 MiB RAM) to XL (4 vCPU, 12 GiB RAM, 20 GB ephemeral disk), with bash, tmux, outbound internet, SSH and browser terminals. The default image includes Node 24; other runtimes depend on the selected image. Each container allows four terminal connections; each account allows ten live SSH commands, valid for up to 15 minutes.</p>
-            <p>Starts are shared across your account and reset at the start of each UTC month. Failed starts count. Stopping a container or changing plans does not reset usage. Sessions end at their hard limit or the end of the paid period at creation, whichever comes first. Ordinary stop discards unsaved files; save a workspace or export outputs first.</p>
-            <p>Existing fixed-price subscriptions retain their terms until you explicitly switch at renewal. Cancellation takes effect at the end of the paid period; outstanding usage remains payable. <a href="/docs/limits/">Read all platform limits</a>.</p>
-          </details>
-        </div>
-        <section class="inline-checkout" id="inline-checkout" aria-labelledby="checkout-title">
-          <button class="text-link billing-link" id="checkout-back" type="button">← Back to plans</button>
-          <h1 id="checkout-title" tabindex="-1">Subscribe</h1>
-          <p class="pricing-note" id="checkout-summary">Pay $5 at the start of each billing month, including $5 of compute. Additional compute is billed at renewal at $0.02 per compute-unit hour. A payment method is required.</p>
-          <form id="checkout-form">
-            <label for="checkout-email">Email for receipts and billing</label>
-            <input id="checkout-email" name="email" type="email" autocomplete="email" required disabled />
-            <div class="checkout-payment-slot" id="checkout-payment-slot" data-loading="true" aria-busy="true">
-              <div id="checkout-payment" aria-label="Payment details"></div>
-              <div class="checkout-payment-placeholder" aria-hidden="true">
-                <span class="checkout-placeholder-method"></span>
-                <span class="checkout-placeholder-label"></span>
-                <span class="checkout-placeholder-input"></span>
-                <div class="checkout-placeholder-row">
-                  <div><span class="checkout-placeholder-label"></span><span class="checkout-placeholder-input"></span></div>
-                  <div><span class="checkout-placeholder-label"></span><span class="checkout-placeholder-input"></span></div>
-                </div>
-                <div class="checkout-placeholder-row">
-                  <div><span class="checkout-placeholder-label"></span><span class="checkout-placeholder-input"></span></div>
-                  <div><span class="checkout-placeholder-label"></span><span class="checkout-placeholder-input"></span></div>
-                </div>
-              </div>
-            </div>
-            <p class="pricing-note" id="checkout-total" aria-live="polite"></p>
-            <details class="checkout-promotion">
-              <summary>Promotion code</summary>
-              <label for="checkout-promotion-code">Promotion code</label>
-              <div class="checkout-promotion-controls">
-                <input id="checkout-promotion-code" name="promotion_code" type="text" autocomplete="off" aria-describedby="checkout-promotion-status" disabled />
-                <button class="button" id="checkout-promotion-apply" type="button" disabled>Apply</button>
-                <button class="text-link" id="checkout-promotion-remove" type="button" hidden>Remove</button>
-              </div>
-              <p class="pricing-note" id="checkout-promotion-status" role="status" aria-live="polite"></p>
-            </details>
-            <p class="pricing-note">By subscribing, you authorize the monthly minimum and additional compute charges at the published rates until you cancel and agree to the <a href="/terms/">Terms of Service</a>.</p>
-            <p class="pricing-note" id="checkout-status" role="status" aria-live="polite" data-state="pending">Preparing secure payment…</p>
-            <button class="button" id="checkout-submit" type="submit" disabled>Subscribe</button>
-          </form>
-        </section>
-      </div>
-      <section class="usage-billing" id="usage-billing" aria-labelledby="usage-title" hidden>
-        <h2 id="usage-title">Compute usage</h2>
-        <p id="usage-summary" class="pricing-note" aria-live="polite">Loading compute usage…</p>
-        <form id="usage-limit-form">
-          <div><label for="usage-spend-limit">Monthly spending cap (USD)</label>
-          <input id="usage-spend-limit" type="number" min="5" max="1000" step="0.01" required disabled aria-describedby="usage-cap-note" /></div>
-          <label class="usage-overages"><input id="usage-authorize" type="checkbox" /> I authorize usage charges above $5, up to my selected cap.</label>
-          <button class="button button-small" id="usage-save" type="submit" disabled>Save cap</button>
+    <main id="main" class="pricing-page prepaid-page wrap">
+      <h1>Pricing &amp; billing</h1>
+      <p class="pricing-intro">Prepay for compute at $0.02 per compute-unit hour. Add $5 or more; unused funds carry forward. No monthly subscription.</p>
+      <p id="billing-status" class="pricing-note" role="status" aria-live="polite">Checking billing…</p>
+      <a id="billing-login" class="text-link" href="/login/?returnTo=%2Fpricing%2F" hidden>Sign in to add balance</a>
+      <section id="prepaid-billing" class="prepaid-billing" aria-labelledby="balance-title" hidden>
+        <div class="billing-heading"><h2 id="balance-title">Prepaid balance</h2><button id="billing-refresh" class="text-link billing-link" type="button" disabled>Refresh</button></div>
+        <dl class="balance-list">
+          <div><dt>Current balance</dt><dd id="billing-balance">—</dd></div>
+          <div><dt>Available for new runtime</dt><dd id="billing-available">—</dd></div>
+          <div><dt>Reserved for running machines</dt><dd id="billing-reserved">—</dd></div>
+          <div><dt>Compute used this UTC month</dt><dd id="billing-usage">—</dd></div>
+        </dl>
+        <p class="pricing-note" id="billing-runtime" hidden></p>
+        <form id="topup-form" class="billing-form">
+          <div><label for="topup-amount">Add balance (USD)</label><input id="topup-amount" type="number" inputmode="decimal" min="5" max="1000" step="0.01" value="20.00" required disabled aria-describedby="topup-note topup-status" /></div>
+          <button id="topup-submit" class="button button-small" type="submit" disabled>Continue to payment</button>
+          <div class="topup-presets" aria-label="Top-up amounts"><button class="text-link billing-link" type="button" data-topup-cents="2000" disabled>$20</button><button class="text-link billing-link" type="button" data-topup-cents="5000" disabled>$50</button><button class="text-link billing-link" type="button" data-topup-cents="10000" disabled>$100</button></div>
         </form>
-        <p class="pricing-note" id="usage-cap-note">Before taxes. Runtime is reserved before launch; only elapsed time is billed. A cap can shorten or block new sessions. Raise the cap and authorize overages before running workloads that need more than $5 of compute.</p>
-        <p class="pricing-note" id="usage-status" role="status" aria-live="polite"></p>
+        <p id="topup-note" class="pricing-note">Minimum $5. Your balance carries forward. Checkout shows any applicable taxes before you pay.</p>
+        <p class="pricing-note">Payment is collected by Stripe. Funds become available after payment succeeds. By paying, you agree to the <a href="/terms/">Terms of Service</a>.</p>
+        <p id="topup-status" class="pricing-note" role="status" aria-live="polite"></p>
+        <section class="billing-settings" aria-labelledby="cap-title">
+          <h2 id="cap-title">Monthly spending cap</h2>
+          <form id="usage-limit-form" class="billing-form">
+            <div><label for="usage-spend-limit">Compute cap (USD)</label><input id="usage-spend-limit" type="number" inputmode="decimal" min="5" max="1000" step="0.01" required disabled aria-describedby="usage-cap-note usage-status" /></div>
+            <button id="usage-save" class="button button-small" type="submit" disabled>Save cap</button>
+          </form>
+          <p id="usage-cap-note" class="pricing-note">Limits compute used each UTC month, from $5 to $1,000. Raising the cap does not add funds. Compute stops when funded runtime or the cap runs out.</p>
+          <p id="usage-status" class="pricing-note" role="status" aria-live="polite"></p>
+        </section>
+        <section class="billing-settings" aria-labelledby="recharge-title">
+          <h2 id="recharge-title">Automatic recharge</h2>
+          <form id="recharge-form" class="billing-form recharge-form">
+            <label class="recharge-toggle" for="recharge-enabled"><input id="recharge-enabled" type="checkbox" disabled aria-describedby="recharge-consent" /> Enable automatic recharge</label>
+            <div id="recharge-options" class="recharge-options" hidden>
+              <div><label for="recharge-amount">Recharge amount (USD)</label><input id="recharge-amount" type="number" inputmode="decimal" min="5" max="1000" step="0.01" value="20.00" disabled /></div>
+              <div><label for="recharge-maximum">Monthly recharge maximum (USD)</label><input id="recharge-maximum" type="number" inputmode="decimal" min="5" max="1000" step="0.01" value="100.00" disabled /></div>
+            </div>
+            <p id="recharge-consent" class="pricing-note">By saving with recharge enabled, you authorize future charges to your saved card for the recharge amount when funding runs low, up to your recharge maximum each UTC month. You can disable recharge at any time. The compute spending cap applies separately.</p>
+            <button id="recharge-save" class="button button-small" type="submit" disabled>Save recharge</button>
+          </form>
+          <p id="recharge-payment-status" class="pricing-note" role="status" hidden></p>
+          <p id="recharge-status" class="pricing-note" role="status" aria-live="polite"></p>
+        </section>
       </section>
-      <div class="billing-controls">
-        <p class="pricing-note" id="pro-status" role="status" aria-live="polite">Checking subscription…</p>
-        <p class="pricing-note" id="subscription-workspace" hidden><a class="button" href="/dashboard/">Open your machines</a></p>
-        <p class="pricing-note" id="pro-account" hidden></p>
-        <a class="text-link billing-link" id="usage-switch" href="/pricing/usage" hidden>Switch to usage billing</a>
-        <button class="text-link billing-link" id="billing-manage" type="button" hidden>Manage subscription</button>
-        <button class="text-link billing-link" id="billing-cancel" type="button" hidden>Cancel subscription</button>
-        <button class="text-link billing-link" id="billing-resume" type="button" hidden>Resume subscription</button>
-        <a class="text-link billing-link" id="pro-login" href="/login" hidden>Sign in to subscribe</a>
-        <button class="text-link billing-link" id="pro-logout" type="button" hidden>Sign out</button>
-        <p class="pricing-note">Billed monthly. Usage billing starts at a $5 minimum, including $5 of compute. Additional usage is billed at renewal. Applicable taxes and the total are shown at checkout. Container access is available with an active subscription. Read our <a href="/terms/">Terms of Service</a> and <a href="/privacy/">Privacy Policy</a>.</p>
-        <noscript><p class="pricing-note">Enable JavaScript to subscribe.</p></noscript>
-      </div>
+      <noscript><p class="pricing-note">Enable JavaScript to view billing and add balance.</p></noscript>
+      <section class="pricing-explanation" aria-labelledby="compute-title">
+        <h2 id="compute-title">Machine rates</h2>
+        <p>Running and provisioning time, including idle time, is metered. Stopped machines incur no compute charges. All five sizes include the HTTP API, SSH, browser terminals, outbound internet, and ephemeral disk.</p>
+        <div class="docs-table-scroll" role="region" aria-label="Machine resources and compute cost" tabindex="0">
+          <table class="docs-table">
+            <thead><tr><th scope="col">Machine</th><th scope="col">vCPU</th><th scope="col">RAM</th><th scope="col">Compute units</th><th scope="col">USD/hour</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Lite</th><td>1/16</td><td>256 MiB</td><td>1</td><td>$0.02</td></tr>
+              <tr><th scope="row">Small</th><td>½</td><td>4 GiB</td><td>6</td><td>$0.12</td></tr>
+              <tr><th scope="row">Medium</th><td>1</td><td>6 GiB</td><td>10</td><td>$0.20</td></tr>
+              <tr><th scope="row">Large</th><td>2</td><td>8 GiB</td><td>16</td><td>$0.32</td></tr>
+              <tr><th scope="row">XL</th><td>4</td><td>12 GiB</td><td>28</td><td>$0.56</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><strong>Example:</strong> $5 funds 250 Lite hours or approximately 41.7 Small hours. A Small machine running for 720 hours costs $86.40. Usage across all machines comes out of the same balance.</p>
+        <p>Runtime is reserved before machines run; stopping releases unused funding. Production launches require at least 24 hours of funding for the resulting fleet. Existing production machines stop when their funded runtime ends and can resume after funding is restored.</p>
+        <a class="text-link" href="/docs/limits/">Full machine and platform limits →</a>
+      </section>
+      <section class="pricing-explanation" aria-labelledby="billing-questions-title">
+        <h2 id="billing-questions-title">Billing questions</h2>
+        <div class="purchase-questions">
+          <details><summary>Does my balance expire each month?</summary><p>No. Unused prepaid funds carry forward. There is no monthly subscription or charge unless you explicitly enable automatic recharge.</p></details>
+          <details><summary>How do reservations and the spending cap work?</summary><p>Your current balance includes funding reserved for running machines. Available funding excludes those reservations. Only elapsed runtime is charged; stopping releases unused funds. Your monthly compute cap is an additional limit, independent of your balance and automatic recharge maximum.</p></details>
+          <details><summary>Do files persist when a workspace stops?</summary><p>Save a workspace before stopping to restore its filesystem into a fresh container. Ordinary stop discards unsaved changes. Keep independent backups; see <a href="/docs/containers/#workspaces">saved workspaces</a> and <a href="/docs/files/">file transfer</a>.</p></details>
+          <details><summary>Is there an SLA or priority support?</summary><p>Self-service compute includes no uptime SLA, guaranteed support response time, or automatic service credits. Review the <a href="/trust/">trust center</a> and <a href="/status/">service status</a>, or <a href="/contact/">contact Andrew</a> about your requirements.</p></details>
+        </div>
+      </section>
     </main>
+    <!-- site-footer -->
     <script type="module" src="/src/subscription.ts"></script>
     <script type="module" src="/src/account-menu.ts"></script>
   </body>

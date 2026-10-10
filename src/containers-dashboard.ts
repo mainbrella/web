@@ -6,21 +6,32 @@ import { createContainerPreviews } from './container-previews.ts';
 import { createContainerObservations } from './container-observations.ts';
 import { createWorkspacesDashboard } from './workspaces-dashboard.ts';
 import { createPrivateServices } from './private-services.ts';
+import { formatBalance } from './prepaid-billing.ts';
 
 type CreationState = {
   active: boolean; containers: unknown[];
   limits: Pick<ContainerLimits, 'maxContainers' | 'maxStartsPerMonth' | 'maxConcurrentComputeUnits'>;
   usage: Pick<ContainerData['usage'], 'starts' | 'availableComputeUnitHours' | 'concurrentComputeUnits'>;
   sizes?: Pick<MachineSize, 'id' | 'computeUnits'>[];
+  billing?: Pick<NonNullable<ContainerData['billing']>, 'balanceCents'> | null;
 };
 
 export function canCreateContainer(data: CreationState | null, size = 'lite') {
   return Boolean(data && (!data.active || (
     data.containers.length < data.limits.maxContainers
       && data.usage.starts < data.limits.maxStartsPerMonth
-      && (data.usage.availableComputeUnitHours === undefined || data.usage.availableComputeUnitHours > 0)
+      // Wallet and cap figures are rounded snapshots. The server reserves exact
+      // runtime and can have newer funding, so don't block prepaid attempts here.
+      && (typeof data.billing?.balanceCents === 'number' || data.usage.availableComputeUnitHours === undefined || data.usage.availableComputeUnitHours > 0)
       && (data.limits.maxConcurrentComputeUnits === undefined || (data.usage.concurrentComputeUnits ?? 0) + (data.sizes?.find(item => item.id === size)?.computeUnits ?? 1) <= data.limits.maxConcurrentComputeUnits)
   )));
+}
+
+export function productionLaunchFunding(data: ContainerData, size: Pick<MachineSize, 'computeUnits'>) {
+  const existingHourlyCents = data.billing?.productionHourlyCents ?? data.containers
+    .filter(container => containerLifecycle(container) === 'production')
+    .reduce((sum, container) => sum + (data.sizes?.find(item => item.id === container.size)?.computeUnits ?? 1) * 2, 0);
+  return Math.ceil((existingHourlyCents + size.computeUnits * 2) * (data.billing?.minimumProductionRuntimeMs ?? 86_400_000) / 3_600_000);
 }
 
 export function imageSelection(value: string) {
@@ -144,12 +155,12 @@ export function createContainersDashboard({ onUnauthenticated, lifecycle = 'ad_h
   }
 
   function controls() {
-    create.disabled = busy || disposed || (production && data?.plan !== 'usage') || !canCreateContainer(data, selectedSize()) || !(imageTab === 'stock' ? catalog.length : customImages.length);
+    create.disabled = busy || disposed || !canCreateContainer(data, selectedSize()) || !(imageTab === 'stock' ? catalog.length : customImages.length);
     openLaunch.disabled = busy || disposed || !data;
     startupCommand.disabled = busy || disposed;
     startupCommand.required = production;
     const billingLink = document.querySelector<HTMLAnchorElement>('#production-billing-link')!;
-    billingLink.href = document.querySelector<HTMLAnchorElement>('#subscription-manage')!.href;
+    billingLink.href = '/pricing/';
     billingLink.hidden = !production;
     refresh.disabled = busy || disposed;
     imageSelect.disabled = busy || disposed;
@@ -157,8 +168,7 @@ export function createContainersDashboard({ onUnauthenticated, lifecycle = 'ad_h
     sizePicker.disabled = busy || disposed || !data?.sizes?.length;
     if (sizeRate) {
       const size = data?.sizes?.find(item => item.id === selectedSize());
-      sizeRate.textContent = size ? production ? `$${hourlyCost(size).toFixed(2)}/hour · about $${monthlyCost(size).toFixed(2)}/30-day month. Billed for actual runtime.${data?.billing && monthlyCost(size) > data.billing.spendLimitCents / 100 ? ' Your current spending cap does not cover a full month of this size.' : ''}` : `${size.name} costs $${hourlyCost(size).toFixed(2)}/hour.` : '';
-      if (production && data?.active && data.plan !== 'usage') sizeRate.textContent = 'Production requires usage billing. Manage your subscription to switch at renewal.';
+      sizeRate.textContent = size ? production ? `${formatBalance(hourlyCost(size) * 100)}/hour · about ${formatBalance(monthlyCost(size) * 100)}/30-day month. Launch requires at least ${formatBalance(productionLaunchFunding(data!, size))} of funding for 24 hours across the resulting production fleet. Your remaining monthly cap must also cover that runtime.` : `${size.name} costs ${formatBalance(hourlyCost(size) * 100)}/hour.` : '';
       if (data?.active && !canCreateContainer(data, selectedSize())) {
         sizeRate.textContent = data.containers.length >= data.limits.maxContainers
           ? 'All container slots are in use. Stop a container to free a slot.'
@@ -250,14 +260,16 @@ export function createContainersDashboard({ onUnauthenticated, lifecycle = 'ad_h
     pagination.hidden = activeTab !== 'containers' || filtered.length <= pageSize;
     range.textContent = `${filtered.length ? page * pageSize + 1 : 0}–${Math.min((page + 1) * pageSize, filtered.length)} of ${filtered.length}`;
     const remaining = Math.max(0, data.limits.maxStartsPerMonth - data.usage.starts);
-    usage.hidden = !data.active || !overview;
+    usage.hidden = (!data.active && !data.billing) || !overview;
     usageContainers.textContent = `${data.containers.length} / ${data.limits.maxContainers.toLocaleString()}`;
     usageConcurrency.textContent = data.limits.maxConcurrentComputeUnits !== undefined
       ? `${data.usage.concurrentComputeUnits ?? 0} / ${data.limits.maxConcurrentComputeUnits.toLocaleString()} concurrent compute units` : 'Active container slots';
-    document.querySelector<HTMLElement>('#usage-compute-label')!.textContent = data.billing ? 'Monthly spend / cap' : 'Compute-unit hours available';
+    document.querySelector<HTMLElement>('#usage-compute-label')!.textContent = data.billing ? 'Compute used / monthly cap' : 'Compute-unit hours available';
     usageCompute.textContent = data.billing ? `$${(data.billing.estimatedCents / 100).toFixed(2)} / $${(data.billing.spendLimitCents / 100).toFixed(2)}` : data.usage.availableComputeUnitHours !== undefined
       ? `${data.usage.availableComputeUnitHours.toLocaleString(undefined, { maximumFractionDigits: 1 })}${data.limits.maxComputeUnitHours != null ? ` / ${data.limits.maxComputeUnitHours.toLocaleString()}` : ''}` : '—';
-    usageComputeDetail.textContent = data.billing ? `${data.billing.computeUnitHours.toFixed(1)} unit-hours · Monthly spend / cap, before taxes` : data.usage.availableComputeUnitHours !== undefined
+    usageComputeDetail.textContent = data.billing ? typeof data.billing.availableBalanceCents === 'number'
+      ? `${formatBalance(data.billing.availableBalanceCents)} available funding · ${formatBalance(data.billing.reservedBalanceCents ?? 0)} reserved`
+      : `${data.billing.computeUnitHours.toFixed(1)} unit-hours · Before taxes` : data.usage.availableComputeUnitHours !== undefined
       ? `${data.usage.computeUnitHours.toFixed(1)} used · ${data.usage.reservedComputeUnitHours.toFixed(1)} reserved` : 'Compute usage unavailable';
     usageStarts.textContent = `${remaining.toLocaleString()} / ${data.limits.maxStartsPerMonth.toLocaleString()}`;
     usageStartsDetail.textContent = `${data.usage.starts.toLocaleString()} starts used · Resets monthly (UTC)`;
@@ -267,8 +279,8 @@ export function createContainersDashboard({ onUnauthenticated, lifecycle = 'ad_h
     const hours = Math.round(data.limits.maxSessionMs / 3600000);
     const idleMinutes = Math.round(data.limits.idleTimeoutMs / 60000);
     document.querySelector<HTMLElement>('#container-limits')!.textContent = data.active
-      ? production ? `Always on · No session or idle shutdown. Stops at your spending cap or if paid access ends. Current cap: $${((data.billing?.spendLimitCents ?? 500) / 100).toFixed(2)}. Manage your cap in billing.` : `Sessions last up to ${hours} ${hours === 1 ? 'hour' : 'hours'} · Auto-stop after ${idleMinutes} idle minutes.`
-      : 'An active subscription is required to create containers.';
+      ? production ? `No session or idle shutdown. Stops when funded runtime or your monthly spending cap runs out. Current cap: ${formatBalance(data.billing?.spendLimitCents ?? 500)}.` : `Sessions last up to ${hours} ${hours === 1 ? 'hour' : 'hours'} · Auto-stop after ${idleMinutes} idle minutes.`
+      : 'Add prepaid balance to fund container runtime. Your monthly spending cap also applies.';
     if (access && (!data.containers.some(c => c.id === access?.id && c.createdAt === access?.createdAt) || access.expiresAt <= Date.now())) access = null;
     const rows = activeTab === 'networks' ? data.containers.filter(container => containerLifecycle(container) === lifecycle) : filtered.slice(page * pageSize, (page + 1) * pageSize);
     const rowVersion = JSON.stringify({ activeTab, page, rows, access, previewsSupported, observability, persistence, privateServices: privateServices.stateKey, today: new Date().toDateString() });
@@ -310,7 +322,7 @@ export function createContainersDashboard({ onUnauthenticated, lifecycle = 'ad_h
           state.append(size);
         }
         const expires = document.createElement('span');
-        expires.textContent = container.lifecycle === 'production' ? container.status === 'stopped' ? container.stopReason === 'spend_limit_reached' ? 'Spending cap reached' : container.stopReason === 'subscription_required' ? 'Paid access required' : 'Recovery pending' : 'Always on' : `Stops by ${expiry.toLocaleString([], expiryOptions)}`;
+        expires.textContent = container.lifecycle === 'production' ? container.status === 'stopped' ? container.stopReason === 'spend_limit_reached' ? 'Funding or spending cap reached' : ['subscription_required', 'insufficient_balance', 'prepaid_balance_required'].includes(container.stopReason ?? '') ? 'Add prepaid balance' : 'Recovery pending' : 'Runs while funded' : `Stops by ${expiry.toLocaleString([], expiryOptions)}`;
         state.append(expires);
         const stop = document.createElement('button');
         stop.type = 'button';
@@ -533,7 +545,8 @@ export function createContainersDashboard({ onUnauthenticated, lifecycle = 'ad_h
       if (!launch.open) mutationError = error;
       const message = cause.message === 'invalid_container_name'
         ? 'Enter a container name of up to 80 characters without control characters.'
-        : cause.message === 'production_requires_usage' ? 'Production requires usage billing. Manage your subscription to switch at renewal.'
+        : cause.message === 'production_requires_usage' ? 'Production requires prepaid compute funding. Add balance in billing.'
+        : cause.message === 'insufficient_production_balance' ? 'Fund at least 24 hours of runtime for the resulting production fleet, and ensure your remaining monthly spending cap covers those 24 hours.'
         : cause.message === 'production_unavailable' ? 'The production runtime is unavailable. Refresh and try again.'
         : cause.message === 'invalid_startup_command' ? 'Enter a startup command of up to 4,096 characters.'
         : cause.message === 'compute_allowance_exhausted'
@@ -549,11 +562,11 @@ export function createContainersDashboard({ onUnauthenticated, lifecycle = 'ad_h
         : cause.message === 'image_not_found'
           ? 'This image is no longer available. Choose another image.'
         : cause.message === 'container_limit_exceeded'
-          ? `Your plan allows ${data?.limits?.maxContainers ?? 'the current maximum'} running containers. Stop one or change plans to create another.`
-          : cause.message === 'spend_limit_reached' ? 'Your monthly spending cap is used or reserved. Stop a machine or increase your cap in billing.'
-          : cause.message === 'billing_reconciliation_required' ? 'Usage billing needs reconciliation. Contact support before starting more machines.'
+          ? `Your account allows ${data?.limits?.maxContainers ?? 'the current maximum'} running containers. Stop one to create another.`
+          : cause.message === 'spend_limit_reached' ? 'Available funding or your monthly spending cap is used or reserved. Stop a machine, add balance, or increase the cap in billing.'
+          : cause.message === 'billing_reconciliation_required' ? 'Billing needs payment verification. Contact support before starting more machines.'
           : cause.message === 'subscription_required'
-            ? 'Choose a plan to create containers.'
+            ? 'Add prepaid balance to fund container runtime.'
             : cause.message === 'container_not_running'
               ? 'This container has already stopped or been replaced. Refresh to see the current containers.'
             : cause.message === 'billing_unavailable'
@@ -561,10 +574,10 @@ export function createContainersDashboard({ onUnauthenticated, lifecycle = 'ad_h
           : `Could not ${method === 'POST' ? 'create' : 'stop'} your container. Refresh to check its status.`;
       mutationError.replaceChildren();
       mutationError.append(document.createTextNode(message));
-      if (cause.message === 'subscription_required') {
+      if (['subscription_required', 'production_requires_usage', 'insufficient_production_balance', 'spend_limit_reached'].includes(cause.message)) {
         const link = document.createElement('a');
         link.href = '/pricing/';
-        link.textContent = ' View plans';
+        link.textContent = ' Add balance or adjust cap';
         mutationError.append(link);
       }
       mutationError.hidden = false;

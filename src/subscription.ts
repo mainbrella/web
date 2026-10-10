@@ -1,651 +1,348 @@
-import { identifyAccount, trackConfirmedPayment, trackFunnel } from './acquisition-analytics.ts';
-import type { User, BillingConfig, Subscription, SubscriptionState, UsageBilling } from './types.ts';
+import type { User, PrepaidBalance, PrepaidBillingConfig } from './types.ts';
+import { API_ORIGIN, createAuthClient } from './auth.ts';
 import { needsSignInCookies, signInCookieMessage } from './cookie-preferences.ts';
-import { mountStripeEmbeddedCheckout } from "./payments/stripeEmbeddedCheckout.ts";
-import { API_ORIGIN, createAuthClient } from "./auth.ts";
-import { plans } from "./plans.ts";
-const apiOrigin = API_ORIGIN;
-const planButtons = [...document.querySelectorAll<HTMLButtonElement>("[data-plan]")];
-const manage = document.querySelector<HTMLButtonElement>("#billing-manage")!;
-const cancelButton = document.querySelector<HTMLButtonElement>("#billing-cancel")!;
-const resumeButton = document.querySelector<HTMLButtonElement>("#billing-resume")!;
-const routeSlug = location.pathname.match(/^\/pricing\/([^/]+)\/?$/)?.[1];
-const selectedPlan = routeSlug && Object.hasOwn(plans, routeSlug) ? routeSlug : null;
-const planPath = (plan: string) => `/pricing/${plan}`;
-const priceFor = (plan: string) => config?.plans?.[plan]?.price ?? plans[plan].price;
-if (selectedPlan) {
-  document.title = `${plans[selectedPlan].name} subscription · Mainbrella`;
-  document.querySelector<HTMLElement>("#plan-title")!.textContent = `${plans[selectedPlan].name} — $${plans[selectedPlan].price}/month${selectedPlan === 'usage' ? ' minimum' : ''}`;
-  planButtons.forEach((button) => { button.dataset.plan = selectedPlan; });
-}
-const checkoutView = document.querySelector<HTMLElement>("#inline-checkout")!;
-const checkoutForm = document.querySelector<HTMLFormElement>("#checkout-form")!;
-const checkoutEmail = document.querySelector<HTMLInputElement>("#checkout-email")!;
-const checkoutBack = document.querySelector<HTMLButtonElement>("#checkout-back")!;
-const checkoutPaymentSlot = document.querySelector<HTMLElement>("#checkout-payment-slot")!;
-let checkoutProcessing = false;
-let cleanupCheckout: (() => void) | null | undefined;
-let checkoutVersion = 0;
-let busy = false;
-function setPaymentLoading(loading: boolean) {
-  if (!checkoutPaymentSlot) return;
-  checkoutPaymentSlot.dataset.loading = String(loading);
-  checkoutPaymentSlot.ariaBusy = String(loading);
-}
-function showCheckoutShell(plan: string) {
-  checkoutView.hidden = false;
-  document.querySelector<HTMLElement>("#pricing-plans")!.hidden = true;
-  document.querySelector<HTMLElement>("#checkout-title")!.textContent = `${plans[plan].name} — $${priceFor(plan)}/month${plan === 'usage' ? ' minimum' : ''}`;
-  checkoutEmail.value = user?.email || "";
-  checkoutEmail.readOnly = false;
-  checkoutEmail.disabled = true;
-  checkoutForm.hidden = false;
-  const submit = document.querySelector<HTMLButtonElement>("#checkout-submit")!;
-  submit.disabled = true;
-  submit.textContent = plan === 'usage' ? 'Start usage billing — $5 minimum' : `Subscribe for $${priceFor(plan)}/month`;
-  const summary = document.querySelector<HTMLElement>('#checkout-summary');
-  if (summary) summary.textContent = plan === 'usage'
-    ? 'Pay $5 at the start of each billing month, including $5 of compute. Additional compute is billed at renewal at $0.02 per compute-unit hour. A $5 spending cap applies by default. A payment method is required.'
-    : `Your existing ${plans[plan].name} plan costs $${priceFor(plan)}/month with a fixed compute allowance.`;
-  const checkoutStatus = document.querySelector<HTMLElement>("#checkout-status")!;
-  checkoutStatus.textContent = "Preparing secure payment…";
-  checkoutStatus.dataset.state = "pending";
-  setPaymentLoading(true);
-}
-function closeCheckout() {
-  checkoutVersion++;
-  busy = false;
-  checkoutProcessing = false;
-  cleanupCheckout?.();
-  cleanupCheckout = null;
-  setPaymentLoading(true);
-  checkoutView.hidden = true;
-  checkoutForm.hidden = true;
-  document.querySelector<HTMLElement>("#checkout-total")!.textContent = "";
-  document.querySelector<HTMLElement>("#pricing-plans")!.hidden = false;
-}
-function disablePlans(disabled: boolean) {
-  planButtons.forEach((button) => { button.disabled = disabled; });
-}
-function renderPolicy() {
-  if (!config?.plans) return;
-  document.querySelectorAll<HTMLElement>(".plan").forEach((card) => {
-    const button = card.querySelector<HTMLButtonElement>("[data-plan]")!;
-    const plan = config?.plans?.[button?.dataset.plan ?? ""];
-    if (!plan) return;
-    const key = button.dataset.plan!;
-    const limits = plan.limits;
-    card.querySelector<HTMLElement>("h3")!.textContent = plan.name;
-    const price = card.querySelector<HTMLElement>(".plan-price")!;
-    if (price?.firstChild) price.firstChild.textContent = `$${plan.price}`;
-    const hours = limits.maxSessionMs / 3600000;
-    const idle = limits.idleTimeoutMs / 60000;
-    const rules = key === 'usage' ? [
-      '$5 of compute included; $0.02 per additional compute-unit hour',
-      'Set a monthly spending cap — $5 by default — overages disabled',
-      `${limits.maxContainers} containers within ${limits.maxConcurrentComputeUnits} concurrent units`,
-      `${limits.maxStartsPerMonth.toLocaleString()} starts per UTC month`,
-      `Sandbox sessions up to ${hours} hours · ${idle}-minute idle timeout`,
-    ] : [
-      limits.maxComputeUnitHours ? `${limits.maxComputeUnitHours.toLocaleString()} compute-unit hours/month` : `${limits.maxContainers} concurrent containers`,
-      `${limits.maxStartsPerMonth.toLocaleString()} starts per month`,
-      `Up to ${hours}-hour sessions · ${idle}-minute idle timeout`,
-      `All five sizes · Up to 4 vCPU / 12 GiB RAM`,
-      limits.maxConcurrentComputeUnits ? `${limits.maxContainers} containers within ${limits.maxConcurrentComputeUnits} concurrent units` : "SSH, browser terminal, internet access",
-    ];
-    card.querySelectorAll<HTMLElement>(".plan-features li").forEach((item, index) => {
-      if (!rules[index]) return;
-      if (index === 0) {
-        const emphasized = document.createElement("strong");
-        emphasized.textContent = rules[index];
-        item.replaceChildren(emphasized);
-      } else item.textContent = rules[index];
-    });
-    if (!selectedPlan) button.textContent = key === "builder"
-      ? `Start building — $${plan.price}/month`
-      : `Choose ${plan.name} — $${plan.price}/month`;
-  });
-  if (selectedPlan) {
-    const details = config.plans[selectedPlan];
-    document.querySelector<HTMLElement>("#plan-title")!.textContent = `${details.name} — $${details.price}/month${selectedPlan === 'usage' ? ' minimum' : ''}`;
-    const limits = details.limits;
-    const compute = selectedPlan === 'usage' ? '$5 included · $0.02/compute-unit hour · '
-      : limits.maxComputeUnitHours ? `${limits.maxComputeUnitHours.toLocaleString()} compute-unit hours/month · All five sizes · ` : "";
-    const capacity = limits.maxConcurrentComputeUnits ? ` within ${limits.maxConcurrentComputeUnits} compute units` : "";
-    const summary = document.querySelector<HTMLElement>("#selected-plan-limits")!;
-    summary.textContent = `${compute}${limits.maxContainers} concurrent containers${capacity} · ${limits.maxStartsPerMonth.toLocaleString()} starts per UTC month · Up to ${limits.maxSessionMs / 3600000}-hour sessions · ${limits.idleTimeoutMs / 60000}-minute idle timeout.`;
-    summary.hidden = false;
-  }
-}
-const status = document.querySelector<HTMLElement>("#pro-status")!;
-const account = document.querySelector<HTMLElement>("#pro-account")!;
-const logout = document.querySelector<HTMLButtonElement>("#pro-logout")!;
-const login = document.querySelector<HTMLAnchorElement>("#pro-login")!;
-if (selectedPlan) login.href = `/login?returnTo=${encodeURIComponent(planPath(selectedPlan))}`;
-let user: User | null = null;
-let config: BillingConfig | null = null;
-let subscription: Subscription | null = null;
-let subscriptionState: SubscriptionState | null = null;
-let ready = false;
-let authVersion = 0;
+import { trackConfirmedPayment, trackFunnel } from './acquisition-analytics.ts';
+import { dollarsToCents, formatBalance, readPrepaidBalance, stripeCheckoutUrl } from './prepaid-billing.ts';
 
+const auth = createAuthClient();
+const element = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+const walletView = element('prepaid-billing');
+const status = element('billing-status');
+const login = element<HTMLAnchorElement>('billing-login');
+const amount = element<HTMLInputElement>('topup-amount');
+const topup = element<HTMLButtonElement>('topup-submit');
+const cap = element<HTMLInputElement>('usage-spend-limit');
+const capSave = element<HTMLButtonElement>('usage-save');
+const rechargeEnabled = element<HTMLInputElement>('recharge-enabled');
+const rechargeAmount = element<HTMLInputElement>('recharge-amount');
+const rechargeMaximum = element<HTMLInputElement>('recharge-maximum');
+const rechargeSave = element<HTMLButtonElement>('recharge-save');
+const refresh = element<HTMLButtonElement>('billing-refresh');
+const presets = [...document.querySelectorAll<HTMLButtonElement>('[data-topup-cents]')];
+let user: User | null = null;
+let config: PrepaidBillingConfig | null = null;
+let balance: PrepaidBalance | null = null;
+let version = 0;
+let busy = false;
+let loading = true;
+let capDirty = false;
+let rechargeDirty = false;
+const returnParams = new URLSearchParams(location.search);
+let completionSession = returnParams.get('topup_session') || (returnParams.get('topup_return') === '1' ? returnParams.get('session_id') : null);
+let balanceReadVersion = 0;
+
+type PendingTopup = { requestId: string; amountCents: number; sessionId?: string };
+let pendingTopup: PendingTopup | null = null;
+function storageKey() { return `mainbrella-prepaid-topup:${user?.id}`; }
+function restorePending() {
+  pendingTopup = null;
+  try {
+    const saved = JSON.parse(window.sessionStorage.getItem(storageKey()) || 'null');
+    if (saved && typeof saved.requestId === 'string' && /^[a-f0-9-]{36}$/i.test(saved.requestId)
+      && Number.isSafeInteger(saved.amountCents) && saved.amountCents >= 500
+      && (!saved.sessionId || typeof saved.sessionId === 'string')) pendingTopup = saved;
+  } catch { /* Blocked storage still allows retries within this page. */ }
+  if (pendingTopup) amount.value = (pendingTopup.amountCents / 100).toFixed(2);
+}
+function rememberPending(value: PendingTopup | null) {
+  pendingTopup = value;
+  try {
+    if (value) window.sessionStorage.setItem(storageKey(), JSON.stringify(value));
+    else window.sessionStorage.removeItem(storageKey());
+  } catch { /* Keep the same request ID in memory when storage is blocked. */ }
+}
+class BillingError extends Error {
+  constructor(readonly code: string, readonly status: number) { super(code); }
+}
+function readConfig(value: unknown): PrepaidBillingConfig | null {
+  if (!value || typeof value !== 'object') return null;
+  const data = value as PrepaidBillingConfig;
+  return typeof data.configured === 'boolean'
+    && Number.isSafeInteger(data.minTopupCents) && data.minTopupCents >= 500
+    && Number.isSafeInteger(data.maxTopupCents) && data.maxTopupCents >= data.minTopupCents ? data : null;
+}
 async function api(path: string, body?: unknown) {
-  if (needsSignInCookies()) {
-    if (path === '/auth/me') return { user: null };
-    if (path !== '/subscription/config') throw new Error(signInCookieMessage);
-  }
-  const response = await fetch(apiOrigin + path, {
-    credentials: path === "/subscription/config" ? "omit" : "include",
-    method: body === undefined ? "GET" : "POST",
-    headers: body === undefined ? {} : { "content-type": "application/json" },
+  if (path !== '/billing/config' && needsSignInCookies()) throw new Error(signInCookieMessage);
+  const response = await fetch(API_ORIGIN + path, {
+    credentials: needsSignInCookies() ? 'omit' : 'include',
+    method: body === undefined ? 'GET' : 'POST',
+    headers: { accept: 'application/json', ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "request_failed");
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new BillingError(data?.error || 'billing_unavailable', response.status);
+  if (!data) throw new Error('billing_unavailable');
   return data;
 }
-function message(text: string, error = false) {
-  status.textContent = text;
-  status.dataset.state = error ? "error" : "";
+function feedback(target: HTMLElement, text: string, error = false) {
+  target.textContent = text;
+  target.dataset.state = error ? 'error' : '';
 }
-function billingError(error: unknown, fallback: string) {
-  return ({
-    billing_operation_pending: "Another billing change is in progress. Refresh your subscription before trying again.",
-    scheduled_change_exists: "Cancel the scheduled change with Keep current plan before upgrading.",
-    cancellation_pending: "Resume your subscription before changing plans.",
-  } as Record<string, string>)[error instanceof Error ? error.message : ""] || fallback;
+function expired(error: unknown) {
+  if (!(error instanceof BillingError) || error.status !== 401) return false;
+  window.dispatchEvent(new CustomEvent('auth-change', { detail: { user: null } }));
+  feedback(status, 'Your session expired. Sign in to continue.', true);
+  return true;
 }
-function periodEnd() {
-  const end = subscriptionState?.valid_until
-    || (subscription?.cancel_at || subscription?.items?.data[0]?.current_period_end || subscription?.current_period_end || 0) * 1000;
-  return Number.isFinite(end) && end > 0
-    ? `on ${new Date(end).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}`
-    : 'at the end of the current billing period';
-}
-let usageBilling: UsageBilling | null = null;
-let usageError = '';
-let capDirty = false;
-const money = (cents: number) => (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-async function loadUsage() {
-  const version = authVersion;
-  try {
-    const data = await api('/subscription/usage');
-    if (version !== authVersion) return;
-    if (!data.billing) throw new Error('billing_unavailable');
-    usageBilling = data.billing;
-    capDirty = false;
-    usageError = '';
-  } catch {
-    if (version !== authVersion) return;
-    usageError = 'Could not load compute usage. Refresh to try again.';
-  }
-  render();
+function applyBalance(value: unknown) {
+  balance = readPrepaidBalance(value);
+  window.dispatchEvent(new CustomEvent('billing-balance-change', { detail: { userId: user!.id, balance } }));
 }
 function render() {
-  const usageView = document.querySelector<HTMLElement>('#usage-billing');
-  if (usageView) {
-    const visible = Boolean(user && subscriptionState?.active && subscriptionState.plan === 'usage');
-    usageView.hidden = !visible;
-    const summary = document.querySelector<HTMLElement>('#usage-summary');
-    const cap = document.querySelector<HTMLInputElement>('#usage-spend-limit');
-    const save = document.querySelector<HTMLButtonElement>('#usage-save');
-    const feedback = document.querySelector<HTMLElement>('#usage-status');
-    if (summary) summary.textContent = usageBilling
-      ? `${money(usageBilling.estimatedCents)} this billing month · ${usageBilling.computeUnitHours.toFixed(2)} compute-unit hours · Renews ${new Date(usageBilling.periodEnd).toLocaleDateString()}`
-      : 'Loading compute usage…';
-    if (cap) { cap.disabled = busy || !usageBilling || !visible; if (usageBilling && !capDirty) cap.value = String(usageBilling.spendLimitCents / 100); }
-    const authorize = document.querySelector<HTMLInputElement>('#usage-authorize');
-    if (authorize) { authorize.disabled = busy || !usageBilling || !visible; if (usageBilling && !capDirty) authorize.checked = usageBilling.overagesEnabled; }
-    if (save) save.disabled = busy || !usageBilling || !visible;
-    if (feedback) feedback.textContent = usageError || (usageBilling?.alert
-      ? `You have reached ${usageBilling.alert}% of your spending cap. New sessions may be shortened or blocked when the cap is committed.` : '');
+  walletView.hidden = !user;
+  login.hidden = Boolean(user) || loading;
+  const ready = Boolean(user && balance && config?.configured && !loading && !busy);
+  topup.disabled = !ready;
+  cap.disabled = !ready;
+  capSave.disabled = !ready;
+  rechargeEnabled.disabled = !ready;
+  rechargeAmount.disabled = !ready || !rechargeEnabled.checked;
+  rechargeMaximum.disabled = !ready || !rechargeEnabled.checked;
+  rechargeSave.disabled = !ready;
+  refresh.disabled = !user || loading || busy;
+  presets.forEach(button => { button.disabled = !ready; });
+  amount.disabled = !ready;
+  element('billing-balance').textContent = balance ? formatBalance(balance.balanceCents) : '—';
+  element('billing-available').textContent = balance ? formatBalance(balance.availableBalanceCents) : '—';
+  element('billing-reserved').textContent = balance ? formatBalance(balance.reservedBalanceCents) : '—';
+  element('billing-usage').textContent = balance ? formatBalance(balance.monthlyUsageCents) : '—';
+  const runtime = element('billing-runtime');
+  runtime.hidden = !balance?.productionHourlyCents;
+  if (balance?.productionHourlyCents) {
+    const hours = (balance.fundedRuntimeMs || 0) / 3_600_000;
+    runtime.textContent = `Your balance funds the current production fleet for approximately ${hours >= 24 ? `${(hours / 24).toFixed(1)} days` : `${hours.toFixed(1)} hours`}. Your monthly cap may stop compute sooner.`;
   }
-  const usageSwitch = document.querySelector<HTMLElement>('#usage-switch');
-  if (usageSwitch) usageSwitch.hidden = !user || !subscriptionState?.active || !subscription || subscriptionState.plan === 'usage';
-  const workspace = document.querySelector<HTMLElement>('#subscription-workspace');
-  if (workspace) workspace.hidden = !user || !subscriptionState?.active || !ready || !checkoutView.hidden;
-  const checkoutStage = document.querySelector<HTMLElement>("#checkout-stage")!;
-  if (checkoutStage) {
-    checkoutStage.dataset.reserve = String(!ready || !checkoutView.hidden);
-    checkoutStage.dataset.checkout = String(!checkoutView.hidden);
+  if (balance && !capDirty) cap.value = (balance.spendLimitCents / 100).toFixed(2);
+  if (balance && !rechargeDirty) {
+    rechargeEnabled.checked = balance.autoRecharge.enabled;
+    rechargeAmount.value = (balance.autoRecharge.amountCents / 100).toFixed(2);
+    rechargeMaximum.value = (balance.autoRecharge.monthlyLimitCents / 100).toFixed(2);
+    rechargeAmount.disabled = !ready || !rechargeEnabled.checked;
+    rechargeMaximum.disabled = !ready || !rechargeEnabled.checked;
   }
-  account.hidden = !user;
-  account.textContent = user ? `Signed in as ${user.email || user.name}` : "";
-  logout.hidden = !user;
-  login.hidden = Boolean(user) || !checkoutView.hidden;
-  manage.hidden = !subscription;
-  manage.disabled = busy || !ready;
-  if (cancelButton) cancelButton.disabled = busy || !ready;
-  if (resumeButton) resumeButton.disabled = busy || !ready;
-  logout.disabled = busy || checkoutProcessing;
-  if (cancelButton) cancelButton.hidden = !subscription
-    || Boolean(subscription.cancel_at_period_end || subscriptionState?.cancel_at_period_end);
-  if (resumeButton) resumeButton.hidden = !subscription
-    || !(subscription.cancel_at_period_end || subscriptionState?.cancel_at_period_end);
-  planButtons.forEach((button) => {
-    const targetPlan = selectedPlan || button.dataset.plan!;
-    const currentPlan = subscriptionState?.plan;
-    const scheduledPlan = subscriptionState?.scheduled_plan;
-    const keepCurrent = currentPlan === targetPlan && Boolean(scheduledPlan);
-    const isCurrent = currentPlan === targetPlan && !scheduledPlan && !subscriptionState?.trial;
-    const needsPayment = user && subscription && !subscriptionState?.active;
-    const legacyUnavailable = targetPlan !== 'usage' && (!subscription || subscriptionState?.plan === 'usage');
-    button.disabled = busy || !ready || isCurrent || Boolean(needsPayment) || legacyUnavailable || (targetPlan === 'usage' && config?.usage_configured !== true);
-    if (user && subscriptionState?.active && !subscriptionState?.trial) {
-      const rank: Record<string, number> = { usage: -1, builder: 0, pro: 1, scale: 2 };
-      button.textContent = keepCurrent
-        ? `Keep ${plans[targetPlan].name}`
-        : isCurrent
-          ? `${plans[targetPlan].name} · Current plan`
-          : rank[targetPlan] > rank[currentPlan!]
-            ? `Upgrade to ${plans[targetPlan].name} — $${priceFor(targetPlan)}/month`
-            : `Change to ${plans[targetPlan].name} — $${priceFor(targetPlan)}/month`;
-      if (targetPlan === 'usage' && !isCurrent) button.textContent = 'Switch to usage billing at renewal';
-    } else if (needsPayment) {
-      button.textContent = 'Payment needed · Manage billing';
-    } else if (targetPlan === 'usage') {
-      button.textContent = 'Start building — $5 monthly minimum';
-    } else {
-      button.textContent = selectedPlan
-        ? `Subscribe to ${plans[targetPlan].name} — $${priceFor(targetPlan)}/month`
-        : targetPlan === 'builder'
-          ? `Start building — $${priceFor(targetPlan)}/month`
-          : `Choose ${plans[targetPlan].name} — $${priceFor(targetPlan)}/month`;
-    }
-  });
-}
-function applySubscription(data: SubscriptionState) {
-  const validTrial = data.trial?.plan === data.plan && Number.isFinite(data.trial?.expires_at)
-    && data.trial.expires_at > Date.now() && data.valid_until === data.trial.expires_at;
-  if (typeof data.active !== 'boolean' || (data.active && (!Object.hasOwn(plans, data.plan) || (!data.subscription && !validTrial)))) {
-    throw new Error('billing_unavailable');
+  element('recharge-options').hidden = !rechargeEnabled.checked;
+  const rechargeStatus = element('recharge-payment-status');
+  const recharge = balance?.autoRecharge;
+  rechargeStatus.hidden = !recharge?.enabled;
+  if (recharge?.enabled) {
+    rechargeStatus.textContent = recharge.status === 'requires_action'
+      ? 'Your last recharge needs payment authentication. Add balance manually, then save recharge to reenable future charges.'
+      : recharge.status === 'failed'
+      ? 'Your last recharge failed. Add balance manually, then save recharge to reenable future charges.'
+      : recharge.status === 'processing'
+      ? 'A recharge is processing. Funds become available after payment succeeds.'
+      : recharge.status === 'monthly_limit_reached'
+      ? 'Automatic recharge reached its monthly maximum. Add balance manually or raise the recharge maximum to keep compute funded.'
+      : recharge.status === 'reconciliation_required'
+      ? 'A recharge needs payment verification. Pending funds are unavailable; add balance manually if needed.'
+      : `${formatBalance(recharge.spentCents)} recharged this UTC month, up to ${formatBalance(recharge.monthlyLimitCents)}.`;
+    rechargeStatus.dataset.state = ['requires_action', 'failed', 'monthly_limit_reached', 'reconciliation_required'].includes(recharge.status) ? 'error' : '';
   }
-  subscription = data.subscription;
-  subscriptionState = data;
-  if (data.plan !== 'usage') usageBilling = null;
-  if (data.active) {
-    const name = plans[data.plan]?.name || "Your plan";
-    if (data.trial) {
-      message(`Your ${name} free trial ends ${periodEnd()}. No automatic charges. Subscribe to continue after your trial.`);
-    } else if (data.scheduled_plan) {
-      const date = data.scheduled_change_at ? new Date(data.scheduled_change_at * 1000).toLocaleDateString() : "renewal";
-      message(`${name} is active. Your plan changes to ${plans[data.scheduled_plan]?.name || data.scheduled_plan} on ${date}.`);
-    } else if (subscription?.cancel_at_period_end || data.cancel_at_period_end) {
-      message(`${name} is active. Your subscription ends ${periodEnd()}.`);
-    } else message(`Your ${name} subscription is active.`);
-  } else if (subscription) {
-    message("Your subscription needs attention. Manage billing to update payment details or cancel.");
-  } else {
-    message("Start usage billing with a $5 monthly minimum.");
+  if (config) {
+    amount.min = String(config.minTopupCents / 100);
+    amount.max = String(config.maxTopupCents / 100);
+    element('topup-note').textContent = `Minimum ${formatBalance(config.minTopupCents)}. Your balance carries forward. Checkout shows any applicable taxes before you pay.`;
   }
 }
-async function refresh() {
-  const version = authVersion;
-  const data = await api("/subscription");
-  if (version !== authVersion) return false;
-  applySubscription(data);
-  if (data.active && data.plan === 'usage') await loadUsage();
-  return version === authVersion;
+async function loadBalance(accountVersion = version) {
+  const readVersion = ++balanceReadVersion;
+  const data = await api('/billing/balance');
+  if (accountVersion !== version || readVersion !== balanceReadVersion || !user) return;
+  applyBalance(data.balance);
 }
-async function initialize() {
-  const version = authVersion;
-  ready = false;
-  disablePlans(true);
+async function completePayment(accountVersion: number) {
+  if (!completionSession || !user) return;
+  const sessionId = completionSession;
+  feedback(status, 'Confirming your payment…');
   try {
-    const [configuration, session] = await Promise.all([api("/subscription/config"), api("/auth/me")]);
-    config = configuration as BillingConfig;
-    if (config!.plans) {
-      for (const [key, details] of Object.entries(config!.plans!)) {
-        if (Object.hasOwn(plans, key) && Number.isFinite(details.price)) plans[key].price = details.price;
-        if (Object.hasOwn(plans, key) && details.name) plans[key].name = details.name;
-      }
-      renderPolicy();
-    }
-    if (version !== authVersion) {
-      ready = Boolean(config!.configured);
-      render();
-      return;
-    }
-    user = session.user;
-    identifyAccount(user?.id || null);
-    if (!config!.configured) throw new Error("billing_unavailable");
-    render();
-    if (selectedPlan && !user) {
-      location.assign(`/login?returnTo=${encodeURIComponent(planPath(selectedPlan))}`);
-      return;
-    }
-    const params = new URLSearchParams(location.search);
-    const returningFromCheckout = params.has("subscription_return") || params.has("subscription_cancelled");
-    let completed = false;
-    if (user && params.get("subscription_return") === "1" && params.get("session_id")) {
-      message("Confirming your subscription…");
-      const confirmation = await api("/subscription/complete", { session_id: params.get("session_id") });
-      if (version !== authVersion) return;
-      applySubscription(confirmation);
-      if (confirmation.active && confirmation.plan === 'usage') await loadUsage();
-      if (confirmation.active && confirmation.subscription && Object.hasOwn(plans, confirmation.plan)) {
-        trackConfirmedPayment(params.get('session_id')!, confirmation.plan);
-      }
-      completed = true;
-      params.delete("subscription_return");
-      params.delete("session_id");
-      history.replaceState(null, "", `${location.pathname}${params.size ? `?${params}` : ""}${location.hash}`);
-    }
-    if (user && !completed) await refresh();
-    else if (!user) message(needsSignInCookies() ? signInCookieMessage : "Sign in to subscribe.");
-    if (version !== authVersion) return;
-    if (params.get("subscription_return") === "1" && !user) {
-      message("You’ve returned from Stripe. For help with your subscription, contact support@mainbrella.com.");
-      params.delete("subscription_return");
-      params.delete("session_id");
-      history.replaceState(null, "", `${location.pathname}${params.size ? `?${params}` : ""}${location.hash}`);
-    }
-    if (params.get("subscription_cancelled") === "1") {
-      message("Checkout canceled. You can subscribe whenever you’re ready.");
-      params.delete("subscription_cancelled");
-      history.replaceState(null, "", `${location.pathname}${params.size ? `?${params}` : ""}${location.hash}`);
-    }
-    ready = true;
-    if (selectedPlan && selectedPlan !== 'usage' && !subscription) {
-      location.assign(planPath('usage'));
-      return;
-    }
-    if (selectedPlan === 'usage' && config?.usage_configured !== true) throw new Error('billing_unavailable');
-    if (selectedPlan && user && !subscription && !subscriptionState?.active && !returningFromCheckout) {
-      await openCheckout(selectedPlan);
-    } else {
-      if (selectedPlan) closeCheckout();
-      render();
-    }
-  } catch {
-    if (version !== authVersion) return;
-    ready = false;
-    message("Subscriptions are temporarily unavailable. Please try again.", true);
-    if (selectedPlan && !checkoutView.hidden) {
-      const checkoutStatus = document.querySelector<HTMLElement>("#checkout-status")!;
-      checkoutStatus.textContent = "Subscriptions are temporarily unavailable. Refresh to try again.";
-      checkoutStatus.dataset.state = "error";
-      setPaymentLoading(false);
-    }
-    render();
+    const data = await api('/billing/topups/complete', { sessionId });
+    if (accountVersion !== version || !user) return;
+    applyBalance(data.balance);
+    if (!pendingTopup?.sessionId || pendingTopup.sessionId === sessionId) rememberPending(null);
+    completionSession = null;
+    const url = new URL(location.href);
+    url.searchParams.delete('topup_session');
+    url.searchParams.delete('topup_return');
+    url.searchParams.delete('session_id');
+    history.replaceState(null, '', url.pathname + url.search + url.hash);
+    trackConfirmedPayment(sessionId, 'prepaid');
+    feedback(status, 'Payment confirmed. Your prepaid balance is ready.');
+  } catch (error) {
+    if (accountVersion !== version || expired(error)) return;
+    const pending = error instanceof BillingError && ['payment_pending', 'topup_pending', 'payment_not_complete'].includes(error.code);
+    if (error instanceof BillingError && ['checkout_expired', 'topup_expired'].includes(error.code)) { rememberPending(null); completionSession = null; }
+    feedback(status, pending
+      ? 'Payment is still pending. No funds have been added yet. Refresh to check again.'
+      : 'Could not confirm the payment. Refresh to check again before starting another payment.', true);
   }
 }
-async function openCheckout(plan: string) {
-  if (!user) {
-    location.assign(`/login?returnTo=${encodeURIComponent(planPath(plan))}`);
+async function load(knownUser?: User | null) {
+  const accountVersion = ++version;
+  balanceReadVersion++;
+  loading = true;
+  busy = false;
+  balance = null;
+  amount.value = '20.00';
+  for (const id of ['topup-status', 'usage-status', 'recharge-status']) feedback(element(id), '');
+  capDirty = false;
+  rechargeDirty = false;
+  rechargeEnabled.checked = false;
+  user = knownUser ?? null;
+  feedback(status, 'Checking billing…');
+  render();
+  const results = await Promise.allSettled([
+    api('/billing/config'),
+    knownUser === undefined ? auth.readSession() : Promise.resolve(knownUser ? { user: knownUser } : null),
+  ]);
+  if (accountVersion !== version) return;
+  const [configuration, session] = results;
+  config = configuration.status === 'fulfilled' ? readConfig(configuration.value) : null;
+  if (session.status === 'fulfilled') user = session.value?.user || null;
+  else feedback(status, 'Could not check your sign-in. Refresh the page to try again.', true);
+  if (user) {
+    restorePending();
+    try {
+      await loadBalance(accountVersion);
+      if (accountVersion !== version) return;
+      feedback(status, config?.configured ? '' : 'Payments are unavailable. Please try again later.', !config?.configured);
+      if (completionSession) await completePayment(accountVersion);
+    } catch (error) {
+      if (accountVersion !== version || expired(error)) return;
+      feedback(status, 'Could not load your balance. Refresh to try again.', true);
+    }
+  } else if (session.status === 'fulfilled') {
+    feedback(status, needsSignInCookies() ? signInCookieMessage : 'Sign in to add prepaid balance.');
+  }
+  if (accountVersion !== version) return;
+  loading = false;
+  render();
+}
+
+presets.forEach(button => button.addEventListener('click', () => { amount.value = (Number(button.dataset.topupCents) / 100).toFixed(2); }));
+element<HTMLFormElement>('topup-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (busy || loading || !user || !balance || !config?.configured) return;
+  const amountCents = dollarsToCents(amount.value);
+  if (amountCents === null || amountCents < config.minTopupCents || amountCents > config.maxTopupCents) {
+    feedback(element('topup-status'), `Enter an amount from ${formatBalance(config.minTopupCents)} to ${formatBalance(config.maxTopupCents)}, with up to two decimal places.`, true);
+    amount.focus();
     return;
   }
-  closeCheckout();
-  const version = checkoutVersion;
-  busy = true;
-  render();
-  disablePlans(true);
-  try {
-    showCheckoutShell(plan);
-    const submit = document.querySelector<HTMLButtonElement>("#checkout-submit")!;
-    render();
-    const data = await api("/subscription/checkout", { plan });
-    if (version !== checkoutVersion) return;
-    if (!data.client_secret || !data.publishable_key) throw new Error("billing_unavailable");
-    trackFunnel('checkout_started', { plan });
-    checkoutEmail.disabled = false;
-    cleanupCheckout = mountStripeEmbeddedCheckout({
-      container: document.querySelector<HTMLElement>("#checkout-payment")!, form: checkoutForm,
-      submitButton: submit, statusElement: document.querySelector<HTMLElement>("#checkout-status")!,
-      emailInput: checkoutEmail, totalElement: document.querySelector<HTMLElement>("#checkout-total")!,
-      promotionInput: document.querySelector<HTMLInputElement>("#checkout-promotion-code")!,
-      promotionApply: document.querySelector<HTMLButtonElement>("#checkout-promotion-apply")!,
-      promotionRemove: document.querySelector<HTMLButtonElement>("#checkout-promotion-remove")!,
-      promotionStatus: document.querySelector<HTMLElement>("#checkout-promotion-status")!,
-      clientSecret: data.client_secret, publishableKey: data.publishable_key,
-      submitLabel: submit.textContent ?? "Subscribe",
-      onReady: () => { if (version === checkoutVersion) setPaymentLoading(false); },
-      onError: () => { if (version === checkoutVersion) setPaymentLoading(false); },
-      onProcessing: (processing) => {
-        checkoutProcessing = processing;
-        checkoutBack.disabled = processing;
-        logout.disabled = processing;
-        window.dispatchEvent(new CustomEvent('checkout-processing', { detail: { processing } }));
-      },
-      onComplete: async (session) => {
-        if (!session?.id) throw new Error("Unable to confirm your subscription. Please contact support@mainbrella.com.");
-        try {
-          const confirmation = await api("/subscription/complete", { session_id: session.id, client_secret: data.client_secret });
-          if (version !== checkoutVersion) return;
-          applySubscription(confirmation);
-          if (confirmation.active && confirmation.plan === 'usage') await loadUsage();
-          if (confirmation.active && confirmation.subscription && Object.hasOwn(plans, confirmation.plan)) {
-            trackConfirmedPayment(session.id, confirmation.plan);
-          }
-        } catch {
-          throw new Error("Payment was submitted. We couldn’t confirm your subscription. Retry confirmation or contact support@mainbrella.com.");
-        }
-        if (version !== checkoutVersion) return;
-        closeCheckout();
-        render();
-      },
-    });
-  } catch (caught) {
-      const error = caught instanceof Error ? caught : new Error("Unexpected error");
-    if (version !== checkoutVersion) return;
-    const checkoutStatus = document.querySelector<HTMLElement>("#checkout-status")!;
-    checkoutStatus.textContent = "Payment details are temporarily unavailable. Refresh to try again.";
-    checkoutStatus.dataset.state = "error";
-    setPaymentLoading(false);
-    if (error.message === "subscription_exists") {
-      closeCheckout();
-      await refresh().catch(() => {});
-    }
-    message("Unable to open payment details. Refresh to try again.", true);
-  } finally {
-    if (version === checkoutVersion) busy = false;
-    render();
-  }
-}
-checkoutBack.addEventListener("click", () => {
-  if (selectedPlan) {
-    location.assign("/pricing/");
+  if (pendingTopup && pendingTopup.amountCents !== amountCents) {
+    amount.value = (pendingTopup.amountCents / 100).toFixed(2);
+    feedback(element('topup-status'), `A ${formatBalance(pendingTopup.amountCents)} top-up is already in progress. Continue that checkout before adding another amount.`, true);
     return;
   }
-  closeCheckout();
-  render();
-  planButtons.find((button) => !button.hidden)?.focus();
-});
-async function openBilling() {
-  if (busy) return;
-  const version = authVersion;
+  rememberPending(pendingTopup || { requestId: crypto.randomUUID(), amountCents });
+  const accountVersion = version;
   busy = true;
+  feedback(element('topup-status'), 'Opening secure checkout…');
   render();
   try {
-    message(subscription ? "Opening billing…" : "Opening secure checkout…");
-    const data = await api("/subscription/portal", {});
-    if (version !== authVersion) return;
-    const url = new URL(data.url);
-    if (url.protocol !== "https:" || !["checkout.stripe.com", "billing.stripe.com"].includes(url.hostname)) {
-      throw new Error("invalid_checkout_url");
-    }
-    location.assign(url.href);
-  } catch (caught) {
-      const error = caught instanceof Error ? caught : new Error("Unexpected error");
-    if (version !== authVersion) return;
-    if (error.message === "subscription_exists") {
-      await refresh().catch(() => message("Unable to refresh billing. Please try again.", true));
-    } else if (error.message === "not_authenticated") {
-      user = null;
-      subscription = null;
-      subscriptionState = null;
-      message("Please sign in again to continue.");
-    } else {
-      message("Unable to open billing. Please try again.", true);
-    }
+    const data = await api('/billing/topups', { requestId: pendingTopup!.requestId, amountCents });
+    if (accountVersion !== version || !user) return;
+    const url = stripeCheckoutUrl(data.url);
+    if (typeof data.sessionId !== 'string' || !data.sessionId) throw new Error('invalid_checkout');
+    rememberPending({ ...pendingTopup!, sessionId: data.sessionId });
+    trackFunnel('checkout_started', { plan: 'prepaid' });
+    location.assign(url);
+  } catch (error) {
+    if (accountVersion !== version || expired(error)) return;
+    if (error instanceof BillingError && ['checkout_expired', 'topup_expired'].includes(error.code)) rememberPending(null);
+    if (error instanceof BillingError && error.code === 'topup_already_complete') {
+      rememberPending(null);
+      try {
+        await loadBalance(accountVersion);
+        if (accountVersion !== version) return;
+        feedback(element('topup-status'), 'That payment is already complete. Your balance has been refreshed.');
+      } catch {
+        if (accountVersion !== version) return;
+        feedback(element('topup-status'), 'That payment is already complete. Refresh to check your balance.', true);
+      }
+    } else feedback(element('topup-status'), 'Could not open checkout. No balance was added. Retry to continue the same payment.', true);
     busy = false;
     render();
   }
+});
+cap.addEventListener('input', () => { capDirty = true; });
+for (const input of [rechargeEnabled, rechargeAmount, rechargeMaximum]) {
+  input.addEventListener('input', () => { rechargeDirty = true; render(); });
 }
-function stripeUrl(data: { url: string }) {
-  const url = new URL(data.url);
-  if (url.protocol !== "https:" || !["checkout.stripe.com", "billing.stripe.com"].includes(url.hostname)) {
-    throw new Error("invalid_checkout_url");
-  }
-  location.assign(url.href);
-}
-async function changePlan(plan: string) {
-  if (busy) return;
-  const version = authVersion;
-  if (!user || !subscriptionState?.active) return openBilling();
-  const order: Record<string, number> = { usage: -1, builder: 0, pro: 1, scale: 2 };
-  if (plan === subscriptionState.plan && !subscriptionState.scheduled_plan) {
-    message(`${plans[plan].name} is already your current plan.`);
-    return;
-  }
-  if (order[plan] > order[subscriptionState.plan]) {
-    busy = true;
-    render();
-    try {
-      message(`Opening secure plan change…`);
-      const portal = await api("/subscription/portal", { plan });
-      if (version !== authVersion) return;
-      stripeUrl(portal);
-    } catch (caught) {
-      const error = caught instanceof Error ? caught : new Error("Unexpected error");
-      if (version !== authVersion) return;
-      message(billingError(error, "Unable to open the plan change. Please try again."), true);
-      busy = false;
-      render();
-    }
-    return;
-  }
-  const current = plans[subscriptionState.plan]?.name || "your current plan";
-  const target = plans[plan]?.name || plan;
-  const currentPrice = priceFor(subscriptionState.plan);
-  const targetPrice = priceFor(plan);
-  const changeText = plan === subscriptionState.plan
-    ? `Cancel the scheduled change and keep ${current}?`
-    : plan === 'usage'
-      ? `Switch from ${current} to usage billing at your next renewal? The $5 monthly minimum includes $5 of compute. Additional compute costs $0.02 per compute-unit hour. A $5 monthly spending cap applies by default; overages stay disabled until you authorize a higher cap. Your current plan stays active until renewal.`
-      : `Schedule a change from ${current} ($${currentPrice}/month) to ${target} ($${targetPrice}/month) at your next renewal? Your current plan stays active until then. Containers exceeding the new limits will stop when the change takes effect.`;
-  if (!window.confirm(changeText)) return;
+async function saveSettings(body: unknown, target: HTMLElement, success: string) {
+  if (busy || loading || !user || !balance || !config?.configured) return;
+  const accountVersion = version;
   busy = true;
+  feedback(target, 'Saving…');
   render();
   try {
-    await api("/subscription/change", { plan, confirm: true });
-    if (version !== authVersion) return;
-    await refresh();
-    if (version !== authVersion) return;
-    message(plan === subscriptionState.plan
-      ? `Scheduled plan change canceled. You’ll keep ${current}.`
-      : `Your change to ${target} is scheduled for your next renewal.`);
-  } catch (caught) {
-      const error = caught instanceof Error ? caught : new Error("Unexpected error");
-    if (version !== authVersion) return;
-    message(billingError(error, "Unable to change your plan. Please try again."), true);
-  } finally {
-    if (version === authVersion) { busy = false; render(); }
-  }
-}
-async function cancelSubscription() {
-  if (busy) return;
-  const version = authVersion;
-  const access = subscriptionState?.active ? 'Your paid plan stays active until then. ' : '';
-  if (!window.confirm(`Cancel your subscription ${periodEnd()}? ${access}Any scheduled plan change will be canceled.${subscriptionState?.plan === 'usage' ? ' Outstanding compute usage remains payable.' : ''}`)) return;
-  busy = true;
-  render();
-  try {
-    await api("/subscription/cancel", { confirm: true });
-    if (version !== authVersion) return;
-    await refresh();
-  } catch (caught) {
-      const error = caught instanceof Error ? caught : new Error("Unexpected error");
-    if (version !== authVersion) return;
-    message(billingError(error, "Unable to cancel your subscription. Please try again."), true);
-  } finally {
-    if (version === authVersion) { busy = false; render(); }
-  }
-}
-async function resumeSubscription() {
-  if (busy) return;
-  const version = authVersion;
-  busy = true;
-  render();
-  try {
-    await api("/subscription/resume", {});
-    if (version !== authVersion) return;
-    await refresh();
-    if (version !== authVersion) return;
-    message("Your subscription will continue renewing.");
-  } catch (caught) {
-      const error = caught instanceof Error ? caught : new Error("Unexpected error");
-    if (version !== authVersion) return;
-    message(billingError(error, "Unable to resume your subscription. Please try again."), true);
-  } finally {
-    if (version === authVersion) { busy = false; render(); }
-  }
-}
-planButtons.forEach((button) => button.addEventListener("click", async () => {
-  if (busy) return;
-  if (!ready) { await initialize(); if (!ready) return; }
-  if (!selectedPlan) {
-    location.assign(planPath(button.dataset.plan!));
-    return;
-  }
-  if (subscriptionState?.active && !subscriptionState?.trial) return changePlan(selectedPlan);
-  if (subscription) return openBilling();
-  return openCheckout(button.dataset.plan!);
-}));
-document.querySelector<HTMLInputElement>('#usage-spend-limit')?.addEventListener('input', () => { capDirty = true; });
-document.querySelector<HTMLInputElement>('#usage-authorize')?.addEventListener('change', () => { capDirty = true; });
-document.querySelector<HTMLFormElement>('#usage-limit-form')?.addEventListener('submit', async event => {
-  event.preventDefault();
-  const form = event.currentTarget as HTMLFormElement;
-  if (busy || !ready || !user || subscriptionState?.plan !== 'usage' || !form.reportValidity()) return;
-  const cap = document.querySelector<HTMLInputElement>('#usage-spend-limit')!;
-  const spendLimitCents = Math.round(Number(cap.value) * 100);
-  const authorizeOverages = document.querySelector<HTMLInputElement>('#usage-authorize')!.checked;
-  if (spendLimitCents > 500 && !authorizeOverages) { usageError = 'Authorize usage charges above $5 to raise your cap.'; render(); return; }
-  const version = authVersion;
-  busy = true; render();
-  try {
-    const data = await api('/subscription/usage', { spendLimitCents, authorizeOverages });
-    if (version !== authVersion) return;
-    if (!data.billing) throw new Error('billing_unavailable');
-    usageBilling = data.billing; capDirty = false;
-    usageError = 'Spending cap saved.';
+    const data = await api('/billing/settings', body);
+    if (accountVersion !== version || !user) return;
+    applyBalance(data.balance);
+    if (target.id === 'usage-status') capDirty = false;
+    else rechargeDirty = false;
+    feedback(target, success);
   } catch (error) {
-    if (version !== authVersion) return;
-    usageError = error instanceof Error && error.message === 'spend_limit_below_committed_usage'
-      ? 'This cap is below usage already incurred or reserved. Stop machines to release unused runtime, then try again.'
-      : 'Could not save the spending cap. Try again.';
-  } finally { if (version === authVersion) { busy = false; render(); } }
-});
-manage.addEventListener("click", openBilling);
-cancelButton?.addEventListener("click", cancelSubscription);
-resumeButton?.addEventListener("click", resumeSubscription);
-logout.addEventListener("click", async () => {
-  logout.disabled = true;
-  try {
-    closeCheckout();
-    await createAuthClient().signOut();
-    user = null;
-    subscription = null;
-    subscriptionState = null;
-    message("Signed out.");
-    render();
-  } catch {
-    message("Unable to sign out. Please try again.", true);
+    if (accountVersion !== version || expired(error)) return;
+    const code = error instanceof BillingError ? error.code : '';
+    feedback(target, code === 'payment_method_required'
+      ? 'Add balance first to save a payment method, then enable automatic recharge.'
+      : ['spend_limit_below_usage', 'spend_limit_below_committed', 'spend_limit_below_committed_usage'].includes(code)
+      ? 'Your cap must cover compute already used or reserved this month.'
+      : 'Could not save these settings. Your inputs are preserved; try again.', true);
   } finally {
-    logout.disabled = false;
+    if (accountVersion === version) { busy = false; render(); }
+  }
+}
+element<HTMLFormElement>('usage-limit-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const cents = dollarsToCents(cap.value);
+  if (cents === null || cents < 500 || cents > 100000) {
+    feedback(element('usage-status'), 'Enter a monthly spending cap from $5.00 to $1,000.00.', true);
+    cap.focus();
+    return;
+  }
+  await saveSettings({ spendLimitCents: cents }, element('usage-status'), 'Monthly spending cap saved.');
+});
+element<HTMLFormElement>('recharge-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const amountCents = dollarsToCents(rechargeAmount.value);
+  const monthlyLimitCents = dollarsToCents(rechargeMaximum.value);
+  if (rechargeEnabled.checked && (amountCents === null || monthlyLimitCents === null || amountCents < 500
+    || amountCents > 100000 || monthlyLimitCents < amountCents || monthlyLimitCents > 100000)) {
+    feedback(element('recharge-status'), 'Choose a recharge amount from $5 to $1,000 and a monthly maximum at least that amount, up to $1,000.', true);
+    return;
+  }
+  await saveSettings({ autoRecharge: {
+    enabled: rechargeEnabled.checked,
+    amountCents: rechargeEnabled.checked ? amountCents : balance?.autoRecharge.amountCents ?? 2000,
+    monthlyLimitCents: rechargeEnabled.checked ? monthlyLimitCents : balance?.autoRecharge.monthlyLimitCents ?? 10000,
+  } }, element('recharge-status'), rechargeEnabled.checked ? 'Automatic recharge enabled.' : 'Automatic recharge disabled.');
+});
+refresh.addEventListener('click', async () => {
+  if (loading || busy || !user) return;
+  const accountVersion = version;
+  loading = true;
+  feedback(status, 'Refreshing balance…');
+  render();
+  try {
+    const [configuration, currentBalance] = await Promise.allSettled([api('/billing/config'), loadBalance(accountVersion)]);
+    if (accountVersion !== version) return;
+    config = configuration.status === 'fulfilled' ? readConfig(configuration.value) : null;
+    if (currentBalance.status === 'rejected') throw currentBalance.reason;
+    feedback(status, config?.configured ? 'Balance refreshed.' : 'Payments are unavailable. Please try again later.', !config?.configured);
+    if (completionSession) await completePayment(accountVersion);
+  } catch (error) {
+    if (accountVersion === version && !expired(error)) feedback(status, 'Could not load your balance. Refresh to try again.', true);
+  } finally { if (accountVersion === version) { loading = false; render(); } }
+});
+window.addEventListener('auth-change', event => { void load(event.detail?.user); });
+window.addEventListener('cookie-consent-change', () => { void load(); });
+window.addEventListener('billing-balance-change', event => {
+  if (!user || event.detail?.userId !== user.id) return;
+  if (event.detail.balance) {
+    try { balance = readPrepaidBalance(event.detail.balance); balanceReadVersion++; render(); } catch { /* Keep verified balance if an unrelated publisher sends bad data. */ }
+  } else if (!loading && !busy) {
+    void loadBalance().then(render).catch(() => { feedback(status, 'Could not refresh your balance. Refresh to try again.', true); });
   }
 });
-window.addEventListener("auth-change", (event) => {
-  if (event.detail?.user !== null) return;
-  authVersion++;
-  closeCheckout();
-  user = null;
-  subscription = null;
-  subscriptionState = null;
-  ready = Boolean(config?.configured);
-  message("Signed out.");
-  render();
-});
-if (selectedPlan) showCheckoutShell(selectedPlan);
-initialize();
+void load();

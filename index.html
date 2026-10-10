@@ -22,7 +22,7 @@
         break;
       }
     </script>
-    <meta name="description" content="A Linux computer for your AI agent. Start it by API, run commands, upload files, SSH in, and open web previews. From $5/month." />
+    <meta name="description" content="A Linux computer for your AI agent. Start it by API, run commands, upload files, SSH in, and open web previews. Add prepaid balance from $5." />
     <meta name="theme-color" content="#0d1014" />
     <link rel="canonical" href="https://mainbrella.com/" />
     <meta property="og:type" content="website" />
@@ -30,12 +30,12 @@
     <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="https://mainbrella.com/" />
     <meta property="og:title" content="Mainbrella — A Linux computer for your AI agent." />
-    <meta property="og:description" content="Start a Linux computer for your AI agent by API. Commands, files, SSH, browser terminals, and web previews. From $5/month." />
+    <meta property="og:description" content="Start a Linux computer for your AI agent by API. Commands, files, SSH, browser terminals, and web previews. Add prepaid balance from $5." />
     <meta property="og:image" content="https://mainbrella.com/images/logo.png" />
     <meta property="og:image:alt" content="Mainbrella umbrella logo" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Mainbrella — A Linux computer for your AI agent." />
-    <meta name="twitter:description" content="Start a Linux computer for your AI agent by API. Commands, files, SSH, browser terminals, and web previews. From $5/month." />
+    <meta name="twitter:description" content="Start a Linux computer for your AI agent by API. Commands, files, SSH, browser terminals, and web previews. Add prepaid balance from $5." />
     <meta name="twitter:image" content="https://mainbrella.com/images/logo.png" />
     <meta name="twitter:image:alt" content="Mainbrella umbrella logo" />
     <link rel="icon" href="/images/favicon.png" type="image/png" />
@@ -52,14 +52,14 @@
         <div class="wrap hero">
           <div class="hero-copy">
             <h1 id="site-title">A Linux computer<br />for your AI agent.</h1>
-            <p class="hero-description">Start it by API. Run commands, upload files, SSH in, and open web previews. From $5/month.</p>
+            <p class="hero-description">Start it by API. Run commands, upload files, SSH in, and open web previews. Add prepaid balance from $5.</p>
             <div class="hero-actions">
               <a class="button" href="/pricing/usage/">Start with a $5 minimum</a>
               <a class="text-link" href="/docs/">Quickstart <span aria-hidden="true">→</span></a>
               <!-- agent-copy-cta -->
             </div>
             <p class="agent-copy-status" id="hero-agent-copy-status" role="status" aria-live="polite"></p>
-            <p class="hero-plan-note">Usage billing with a $5 minimum. Built on <a href="/cloudflare-sandbox/">Cloudflare</a>. <a href="/pricing/">See limits</a>.</p>
+            <p class="hero-plan-note">Prepaid compute, with no monthly subscription. Built on <a href="/cloudflare-sandbox/">Cloudflare</a>. <a href="/pricing/">See limits</a>.</p>
           </div>
           <figure class="sandbox-terminal acquisition-example">
             <figcaption><span>Agent workspace</span><span>JavaScript SDK</span></figcaption>
@@ -87,7 +87,7 @@ try {
           <li><h3>Read and write files</h3><p>Move inputs and outputs as raw bytes through the file API. Keep the workspace's exact generation attached to every operation.</p><a class="text-link" href="/docs/files/">File transfer →</a></li>
           <li><h3>Choose your environment</h3><p>Select an available runtime image or launch a ready custom image. Connect through SSH or the browser terminal for interactive work.</p><a class="text-link" href="/docs/images/">Images and runtimes →</a></li>
         </ul>
-        <div class="provider-details"><h3>One account. One workflow.</h3><p>Named API keys, idempotent creation, and generation checks connect your agent to the same containers you manage in the dashboard. Usage billing and a spending cap keep costs explicit.</p><p><a href="/docs/containers/#private-services">Private Services</a>, currently a local HTTP prototype, connects machines through named endpoints such as <code>http://api.internal</code>. Attach running machines to an account-owned network; keep the backend private and share the frontend separately.</p></div>
+        <div class="provider-details"><h3>One account. One workflow.</h3><p>Named API keys, idempotent creation, and generation checks connect your agent to the same containers you manage in the dashboard. Prepaid funding and a spending cap keep costs explicit.</p><p><a href="/docs/containers/#private-services">Private Services</a>, currently a local HTTP prototype, connects machines through named endpoints such as <code>http://api.internal</code>. Attach running machines to an account-owned network; keep the backend private and share the frontend separately.</p></div>
       </section>
       <section class="homepage-security wrap" aria-labelledby="isolation-title">
         <div class="provider-details"><h2 id="isolation-title">Isolated from the start.</h2><div><p>Cloudflare runs each container in its own microVM with a separate kernel and network. Mainbrella checks ownership, credentials, and container generations at the API boundary.</p><a class="text-link" href="/security/">Security and data handling <span aria-hidden="true">→</span></a>
@@ -99,26 +99,26 @@ try {
       <section class="workflow wrap" aria-labelledby="fit-title">
         <div class="section-heading"><div><h2 id="fit-title">Does Mainbrella fit your workload?</h2><p>Temporary agent workspaces with a monthly spending cap.</p></div><a class="text-link" href="/compare/">Compare sandbox and compute platforms <span aria-hidden="true">→</span></a></div>
         <div class="purchase-questions">
-          <details><summary>What if I need persistent files?</summary><p>Save a workspace before stopping to preserve its filesystem and restore it into a fresh container. Ordinary stop discards unsaved changes. Saved workspaces have plan-specific quotas and retention; keep independent exports. See <a href="/docs/containers/#workspaces">saved workspaces</a>.</p></details>
-          <details><summary>Will usage create an unexpected bill?</summary><p>The $5 monthly minimum includes $5 of compute. Additional usage costs $0.02 per compute-unit hour, plus applicable taxes. Your cap defaults to $5; raising it requires explicit authorization for overages. <a href="/pricing/">See rates and a worked example</a>.</p></details>
+          <details><summary>What if I need persistent files?</summary><p>Save a workspace before stopping to preserve its filesystem and restore it into a fresh container. Ordinary stop discards unsaved changes. Saved workspaces have account quotas and retention; keep independent exports. See <a href="/docs/containers/#workspaces">saved workspaces</a>.</p></details>
+          <details><summary>Will usage create an unexpected bill?</summary><p>Add $5 or more before using compute at $0.02 per compute-unit hour. Unused balance carries forward. Your monthly compute cap defaults to $5; raising it does not add funds. Automatic recharge is optional and requires your authorization. <a href="/pricing/">See rates and a worked example</a>.</p></details>
           <details><summary>Can I use my existing agent?</summary><p>Use the HTTP API from your application, or follow the Codex, Claude Code, and OpenAI Agents SDK <a href="/integrations/">integration recipes</a>. Read the <a href="/docs/limits/">execution and file limits</a> before moving a workload.</p></details>
         </div>
       </section>
 
       <section class="pricing wrap" id="pricing" aria-labelledby="pricing-title">
-        <div class="section-heading"><h2 id="pricing-title">Start with a real workload.</h2><a class="text-link" href="/pricing/">Compare all plans →</a></div>
+        <div class="section-heading"><h2 id="pricing-title">Start with a real workload.</h2><a class="text-link" href="/pricing/">See rates →</a></div>
         <div class="starter-pricing">
-          <div><h3>Usage billing</h3><p class="plan-price">$5<span> / month minimum</span></p><a class="button" href="/pricing/usage/">Start building</a></div>
+          <div><h3>Prepaid compute</h3><p class="plan-price">$5<span> minimum top-up</span></p><a class="button" href="/pricing/usage/">Start building</a></div>
           <div><ul class="plan-features">
-            <li><strong>$5 of compute included · $0.02 per unit-hour thereafter</strong></li>
+            <li><strong>$0.02 per compute-unit hour · Unused funds carry forward</strong></li>
             <li>Five machine sizes, from 256 MiB to 12 GiB RAM</li>
             <li>Up to 100 containers within 128 concurrent compute units</li>
             <li>Up to 24-hour sessions · 30-minute idle timeout</li>
             <li>SSH, browser terminal, files, and web previews</li>
           </ul>
-          <p class="pricing-note">All machines share one bill. The default $5 cap keeps overages disabled until you choose a higher limit. <a href="/pricing/">See hourly rates</a>.</p></div>
+          <p class="pricing-note">All machines share one prepaid balance. A separate monthly spending cap limits compute usage. <a href="/pricing/">See hourly rates</a>.</p></div>
         </div>
-        <p class="pricing-note">Billed monthly, plus applicable taxes shown at checkout. <a href="/terms/">Terms</a> · <a href="/docs/limits/">Full limits</a>.</p>
+        <p class="pricing-note">No monthly subscription. Applicable taxes are shown at checkout. <a href="/terms/">Terms</a> · <a href="/docs/limits/">Full limits</a>.</p>
       </section>
 
       <!-- agent-setup -->
@@ -135,7 +135,7 @@ try {
 
       <section class="availability wrap" aria-labelledby="availability-title">
         <h2 id="availability-title">Start with your first workspace.</h2>
-        <p>Sign in and choose a plan to create containers, then connect with SSH or the browser terminal.</p>
+        <p>Sign in and add prepaid balance to create containers, then connect with SSH or the browser terminal.</p>
         <a class="button" href="/pricing/usage/">Start building — $5 minimum</a>
       </section>
     </main>

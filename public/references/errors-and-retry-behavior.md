@@ -8,7 +8,7 @@ Errors are JSON `{ "error": "code" }`. Handle HTTP status as well as the code.
 | 400 | `invalid_container_id` / `container_id_required` | Select an ID returned by GET; supply it when multiple containers exist. |
 | 400 | `invalid_generation` / `invalid_file_path` | Send the exact returned creation timestamp and a valid absolute file path. |
 | 401 | `not_authenticated` | API key or session missing, malformed, expired, or revoked. Provision a valid credential. |
-| 402 | `subscription_required` | No paid container access. Use the web billing controls to subscribe or resolve payment; do not retry creation. |
+| 402 | `subscription_required` | No paid container access. Use the web billing controls to add prepaid funds or resolve legacy payment; do not retry creation. |
 | 403 | `origin_required` / `origin_not_allowed` | Cookie mutations need a trusted Origin; Bearer requests may omit it. Supplied Origins must be trusted. |
 | 404 | `not_found` | Use the exact documented route; no arbitrary container IDs. |
 | 413 | `request_too_large` | HTTP execution body exceeds 32 KiB. |

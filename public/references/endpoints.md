@@ -55,18 +55,18 @@ start returns 402 without provisioning or consuming quota. If an existing billin
 record is now unpaid, an attempted start also triggers background revocation of
 that account's existing containers.
 
-| Plan | USD/month | Concurrent containers | Starts/UTC month | Hard limit | Idle timeout |
+| Plan | Funding | Concurrent containers | Starts/UTC month | Hard limit | Idle timeout |
 | --- | ---: | ---: | ---: | --- | --- |
-| Usage (Ad Hoc) | $5 minimum | 100 | 10,000 | 24 hours | 30 minutes |
-| Builder (legacy) | $5 | 5 | 1,000 | 1 hour | 10 minutes |
-| Pro | $180 | 100 | 10,000 | 24 hours | 30 minutes |
-| Scale | $999 | 500 | 100,000 | 72 hours | 60 minutes |
+| Prepaid (Ad Hoc) | $5 minimum top-up | 100 | 10,000 | 24 hours | 30 minutes |
+| Builder (legacy) | $5/month | 5 | 1,000 | 1 hour | 10 minutes |
+| Pro (legacy) | $180/month | 100 | 10,000 | 24 hours | 30 minutes |
+| Scale (legacy) | $999/month | 500 | 100,000 | 72 hours | 60 minutes |
 
 All plans offer five sizes with bash, tmux and outbound internet. `POST /containers` accepts `size`: `lite` (default), `small`, `medium`, `large`, or `xl`. Size is included in the idempotency fingerprint. The default image includes Node 24; other runtimes depend on the selected image. All include SSH and browser terminals. A container permits four concurrent
 terminal connections (browser/SSH combined). An account permits ten live SSH
 access tokens, each lasting at most 15 minutes or the machine deadline. Process
 resume after stop, custom resources, teams, advanced logs/audits and
-priority capacity are unavailable. New usage subscriptions have a $5 monthly minimum credited toward resource usage. Existing fixed-price subscriptions retain their terms.
+priority capacity are unavailable. New accounts fund compute with one-time payments; unused balance carries forward. Existing fixed-price subscriptions retain their terms.
 Ordinary stop discards unsaved filesystem changes; save a workspace explicitly
 to restore its filesystem into a fresh container.
 
@@ -82,9 +82,9 @@ reservation; stopping early does not refund usage. Quota persists across stops,
 restarts, upgrades, downgrades, cancellation and resubscription, and resets at the
 next UTC month. At capacity, additional POSTs return 409 without spending usage.
 
-A successful payment for the current recognized plan period is required. Unapproved Stripe trials,
+A positive verified prepaid balance is required for prepaid access. Legacy access requires a successful payment for the current recognized plan period. Unapproved Stripe trials,
 failed payments, expired periods, paused/canceled subscriptions and stale database
-plan fields grant no access. Stripe outages return 503 instead of guessing a plan.
+plan fields grant no access. Stripe outages prevent new funding and legacy payment verification; prepaid accounts may continue only within already confirmed funds.
 DELETE cleanup remains available during billing outages. Hard deadlines are fixed
 at creation and capped by the original paid period; upgrades and renewals never
 lengthen existing sessions. Start a new container after that deadline.

@@ -30,6 +30,32 @@ export interface ContainerLimits {
 export interface UsageBilling {
   periodStart: number; periodEnd: number; computeUnitHours: number; estimatedCents: number;
   minimumCents: number; spendLimitCents: number; committedCents: number; alert: 50 | 80 | 100 | null; overagesEnabled: boolean; invoicingPending: boolean;
+  balanceCents?: number; availableBalanceCents?: number; reservedBalanceCents?: number;
+  monthlyUsageCents?: number; productionHourlyCents?: number; fundedRuntimeMs?: number | null;
+  minimumProductionRuntimeMs?: number;
+}
+export interface PrepaidBalance {
+  balanceCents: number;
+  availableBalanceCents: number;
+  reservedBalanceCents: number;
+  currency: 'usd';
+  spendLimitCents: number;
+  monthlyUsageCents: number;
+  productionHourlyCents: number;
+  fundedRuntimeMs: number | null;
+  minimumProductionRuntimeMs: number;
+  autoRecharge: {
+    enabled: boolean;
+    amountCents: number;
+    monthlyLimitCents: number;
+    spentCents: number;
+    status: string;
+  };
+}
+export interface PrepaidBillingConfig {
+  configured: boolean;
+  minTopupCents: number;
+  maxTopupCents: number;
 }
 export interface ContainerData {
   billing?: UsageBilling | null;

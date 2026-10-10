@@ -24,18 +24,14 @@ TypeScript tests. The public `/homepage.js` asset is compiled from
 `src/homepage.ts`. Downloadable `.mjs` tools and their Node scripts remain
 JavaScript so users can run them directly without a TypeScript toolchain.
 
-New purchases use one usage subscription with a $5 monthly minimum credited toward resource usage. Existing Builder, Pro, and Scale subscriptions retain their terms. Stripe's
-inline Payment Element, adapted from Cubacadabra's checkout helper. Customers
-sign in with Google before entering email and payment details on Mainbrella.
-The public pricing button opens `/pricing/usage`; legacy subscription routes remain available for management. Signed-out customers are redirected to `/login` with the selected
-plan route as `returnTo`; after sign-in that route opens checkout automatically.
-Existing subscribers see their subscription status and billing management instead.
-Plan details, billing FAQs, and subscription management are available at `/pricing/`. The homepage links to pricing without loading payment code; Stripe.js loads only when checkout opens. Plan-specific routes use `pricing/checkout.html`, copied to the usage and legacy plan directories at build time. Stripe collects card details directly; Mainbrella never
-receives them. Subscribers change plans or cancel from the pricing section;
-payment updates use the Stripe billing portal. Upgrades open a hosted Stripe
-confirmation, while downgrades and cancellations take effect at the next renewal.
-For existing guest purchases, contact support@mainbrella.com for billing changes
-or cancellation.
+New purchases fund a prepaid balance, dollar for dollar, with a $5 minimum
+one-time top-up and no monthly subscription. Signed-in users choose an amount
+at `/pricing/` and continue to hosted Stripe Checkout; returning to billing
+verifies payment before showing funded credit. There is no automatic purchase
+on page load. Unused credit carries forward. The billing page shows available
+and reserved balance, monthly compute usage/cap, and optional automatic recharge
+with explicit consent and a separate monthly recharge limit. The account menu
+shows the current balance. Legacy plan URLs redirect to billing.
 
 Visitors who reject cookies can browse public pages. Login and account features show a cookie message with a “Change cookie choice” button that reopens the original two-choice dialog. Sign-in providers and advertising pixels wait for “Accept All”; rejection is remembered without a cookie.
 
@@ -45,24 +41,24 @@ The default client ID is
 `854186419005-l0u2olqlqe40qmgin0q8tjpvftooi6ac.apps.googleusercontent.com`
 in `src/auth.ts` and `../backend/wrangler.jsonc`. Optional `VITE_GOOGLE_CLIENT_ID`
 and `VITE_API_URL` overrides support other environments; the backend client ID
-must match. Plan-specific billing login returns to the selected plan after sign-in.
+must match. Billing login returns to the billing page after sign-in.
 Other logins default to `/dashboard/`; safe same-site `returnTo` destinations
 take precedence. Profile remains available at `/profile/`, and the account menu
-links to the dashboard. The authenticated dashboard reads `/subscription` and
-shows None, Usage, Builder, Pro, or Scale based on active access. Failed status requests
-show an error with retry rather than implying the user has no subscription.
+links to the dashboard. The authenticated dashboard reads `/billing/balance` and
+shows prepaid funding alongside workloads. Failed status requests
+show an error with retry rather than reporting a zero balance.
 Container listing, creation, and stopping use the session-authenticated
-`GET`, `POST`, and `DELETE /containers` backend API. Usage subscriptions allow 100 containers within 128 concurrent units, 10,000 starts per UTC month, 24-hour sessions and a 30-minute idle timeout. The $5 default cap keeps overages disabled until explicitly authorized. Legacy subscriptions
+`GET`, `POST`, and `DELETE /containers` backend API. Prepaid accounts allow 100 containers within 128 concurrent units, 10,000 starts per UTC month, 24-hour sessions and a 30-minute idle timeout. The $5 default monthly cap limits consumption independently of purchased balance. Legacy subscriptions
 grant tier-specific limits: Builder allows 5 concurrent containers, 1,000 starts
 per UTC month, one-hour sessions and a 10-minute idle timeout; Pro allows
 100 concurrent containers, 10,000 monthly starts, 24-hour sessions and a
 30-minute idle timeout; Scale allows 500 concurrent containers, 100,000 monthly
 starts, 72-hour sessions and a 60-minute idle timeout. All plans offer five sizes (Lite through XL); legacy plans have 250 / 9,000 / 50,000 monthly compute-unit hours and 28 / 128 / 640 concurrent units. Each creation reserves a
 start even if stopped early; a pending start counts toward concurrency.
-Creation without an active paid subscription returns 402.
+Creation without funded access returns 402.
 Containers have outbound internet access for package installation. Save workspaces explicitly to preserve filesystem snapshots for restore; ordinary stop discards unsaved changes. The dashboard
 refreshes status every 15 seconds while visible; status reads do not renew the
-idle lease. Subscription failures do not prevent container management.
+idle lease. Billing outages do not prevent cleanup.
 
 Run `npm run deploy:preflight` in `../backend` before rollout. Its default `npm run deploy` gates and deploys the private `UserContainer` Worker with its account coordinator first, then the API. This ensures runtime support exists before API capability advertisement. Follow [the backend release runbook](../backend/docs/deployment.md), including migrations and explicit paid verification scope. Deploy this website afterward. Container IDs and configuration come from the backend, never the
 browser; the machine test token is not needed for this private binding.
@@ -70,22 +66,17 @@ The benchmark API remains separate. SSH access requires migrations `005_ssh_acce
 Cloudflare's included allowances are shared across the entire account, rather
 than renewed for each user; plan limits are enforced by Mainbrella.
 
-The backend configures the usage minimum through `STRIPE_USAGE_BASE_PRICE_ID` and retains the legacy price allowlist:
-- Builder: `price_1UNAovGSUs8K8zgHwUCsCX16`
-- Pro: `price_1UNAWSGSUs8K8zgHXfnoTiJE` (unchanged)
-- Scale: `price_1UNAq1GSUs8K8zgHnt8PplRQ`
-
-Checkout collects the monthly minimum. The backend records elapsed resource usage and adds overage invoice items at renewal after applying the included $5 once. Configure and qualify this integration using [the usage billing runbook](../backend/docs/usage-billing.md) before rollout.
-
-Before deploying, apply all backend migrations (including `006_billing_webhooks.sql` and `007_ssh_container_id.sql`) with
-`npm run db:migrate:remote` from the backend, and configure its Stripe account key
-with `npx wrangler secret put STRIPE_SECRET_KEY`. Enable the Stripe customer portal
-with payment updates. Add `https://mainbrella.com` (and
-`http://localhost:5173` for development) to the Google OAuth client's authorized
-JavaScript origins. Configure `STRIPE_PUBLISHABLE_KEY` with `npx wrangler secret put STRIPE_PUBLISHABLE_KEY`
-using the same Stripe account and mode as the secret key. Deploy the backend and
-website together; the checkout response now supplies a client secret instead of a
-hosted URL.
+The backend configures one-time funding through `STRIPE_PREPAID_PRICE_ID`:
+local test `price_1UOnn1GgJdfq06olbpFSrIMd`, production
+`price_1UOno4GSUs8K8zgHhtAJjabl`. The reference Price is $5 USD one-time;
+other purchase amounts use the same Product with inline pricing. Configure
+`STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` for the matching mode.
+Hosted Checkout does not need a publishable key. Apply backend migration
+`019_prepaid_billing.sql` and deploy the API, account/container runtime and
+frontend together. See [the prepaid billing runbook](../backend/docs/prepaid-billing.md)
+for rollout and signed webhook verification. Legacy subscription read/cancel
+endpoints remain available; no new recurring purchases are offered when
+prepaid billing is configured.
 
 For local development, run the backend on port 8787 and this site on port 5173.
 Start the frontend with `npm run dev` from this directory. If the backend uses a
@@ -93,16 +84,13 @@ different port or origin, set `VITE_API_URL` when starting Vite, for example
 `VITE_API_URL=http://localhost:9000 npm run dev`. When local project hosting is
 enabled, aliases use one label such as `app.localhost`; DNS and TLS checks are
 simulated, so click Verify DNS twice to activate an alias.
-Use matching Stripe test secret/publishable keys and test recurring prices in a local branch; the supplied
-production prices belong to their Stripe account and mode. The backend verifies
-subscription state with Stripe, saves billing details in `pro_billing`, and
-processes signed Stripe webhooks for subscription changes. A saved plan alone
-does not indicate paid access: the backend requires an active subscription, a
-paid invoice for its current period, and a successful payment that has not been
-refunded or disputed. Trialing, overdue, unpaid, and expired subscriptions do not
-grant access. Configure `STRIPE_WEBHOOK_SECRET` and the signed event endpoint
-`/subscription/webhook` as described in the backend README. Existing guest purchases remain in Stripe without a
-local account billing record.
+Use a matching Stripe test secret key, webhook secret and one-time Price locally.
+Signed webhooks and live payment proof fund the account wallet; refunds and
+disputes remove funding and fence affected runtime. The backend records customer
+ownership and immutable top-up requests in `prepaid_accounts`/`prepaid_topups`.
+The account controller stores exact lifetime usage and reservations. A saved
+payment method or pending payment grants no compute credit. Existing legacy
+subscriptions remain in Stripe and retain their existing billing terms.
 
 
 The dashboard's primary **Open terminal** action opens an in-page xterm.js terminal.

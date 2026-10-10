@@ -1,4 +1,4 @@
-import type { User } from './types.ts';
+import type { User, PrepaidBalance } from './types.ts';
 
 type GoogleIdentity = {
   initialize(options: { client_id: string; callback: (response: { credential?: string }) => void; context: string; ux_mode: string }): void;
@@ -19,6 +19,7 @@ declare global {
   interface WindowEventMap {
     'auth-change': CustomEvent<{ user: User | null }>;
     'checkout-processing': CustomEvent<{ processing: boolean }>;
+    'billing-balance-change': CustomEvent<{ userId: string; balance?: PrepaidBalance }>;
     'cookie-consent-change': CustomEvent<{ choice: 'accepted' | 'rejected' }>;
   }
 }
