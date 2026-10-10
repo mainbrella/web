@@ -364,12 +364,14 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     appendBriefAnswers(body, readBuildBriefPrompt(turn.prompt).answers);
     const activity = document.createElement('ul'); activity.className = 'build-activity-list';
     for (const item of tools) {
-      const state = item.status === 'running' && turn.status === 'failed' ? 'failed' : item.status;
+      const state = item.status === 'running' && turn.status === 'failed' ? 'unknown' : item.status;
       const entry = document.createElement('li'), icon = document.createElement('span'), text = document.createElement('p');
       entry.className = `build-tool build-tool-${state}`;
-      icon.textContent = state === 'running' ? '⋯' : state === 'failed' ? '!' : '✓';
-      icon.setAttribute('aria-label', state === 'running' ? 'In progress' : state === 'failed' ? 'Failed' : 'Completed');
-      text.textContent = item.text; entry.append(icon, text); activity.append(entry);
+      const statusLabel = { running: 'In progress', proposed: 'Proposed', skipped: 'Not run', blocked: 'Blocked', unknown: 'Outcome unknown', failed: 'Failed', succeeded: 'Completed' }[state];
+      icon.textContent = state === 'succeeded' ? '✓' : state === 'failed' ? '!' : state === 'running' || state === 'proposed' ? '⋯' : '–';
+      icon.setAttribute('aria-label', statusLabel);
+      text.textContent = `${item.text}${['skipped','blocked','unknown','proposed'].includes(state) ? ` · ${statusLabel}` : ''}${item.explanation && !['skipped','proposed'].includes(state) ? ` — ${item.explanation}` : ''}`;
+      entry.append(icon, text); activity.append(entry);
     }
     if (tools.length) body.append(activity);
     if (!body.children.length) {
@@ -382,8 +384,9 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     const row = existing ?? document.createElement('li'); row.className = 'build-image-message';
     const url = image && client.imageURL(appId, image.id);
     const label = image?.label ?? activity?.text ?? '';
-    if (existing && row.dataset.imageLabel === label && (image ? row.dataset.imageId === image.id : row.dataset.imageState === activity?.status)) return row;
+    if (existing && row.dataset.imageLabel === label && row.dataset.imageExplanation === (activity?.explanation ?? '') && (image ? row.dataset.imageId === image.id : row.dataset.imageState === activity?.status)) return row;
     row.dataset.imageId = image?.id ?? ''; row.dataset.imageState = activity?.status ?? ''; row.dataset.imageLabel = label;
+    row.dataset.imageExplanation = activity?.explanation ?? '';
     const figure = document.createElement('figure'), caption = document.createElement('figcaption');
     if (url && image) {
       const link = document.createElement('a'), img = document.createElement('img');
@@ -399,7 +402,9 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       if (pending) {
         const placeholder = document.createElement('div'); placeholder.className = 'build-image-pending'; placeholder.setAttribute('aria-hidden', 'true'); figure.append(placeholder);
       }
-      caption.textContent = pending ? `${activity!.text.replace(/^Generate /, 'Generating ')}…` : 'Could not generate this image. Build can continue.';
+      caption.textContent = pending ? `${activity!.text.replace(/^Generate /, 'Generating ')}…`
+        : activity?.explanation || (activity?.status === 'proposed' ? 'Image request proposed; generation has not started.'
+        : activity?.status === 'skipped' ? 'Image request was not run.' : activity?.status === 'unknown' ? 'Image generation outcome is unknown.' : 'Could not generate this image. Build can continue.');
       caption.setAttribute('role', 'status'); figure.append(caption);
     }
     row.replaceChildren(figure);
@@ -433,7 +438,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       const imageIds = new Set(imageTools.map(item => item.id));
       for (const tool of imageTools) {
         const key = `image-${turn.id}-${tool.id}`, image = turn.images?.find(image => image.toolId === tool.id);
-        const row = imageRow(app.id, image, { ...tool, status: tool.status === 'running' && turn.status === 'failed' ? 'failed' : tool.status }, existing.get(key));
+        const row = imageRow(app.id, image, { ...tool, status: tool.status === 'running' && turn.status === 'failed' ? 'unknown' : tool.status }, existing.get(key));
         row.dataset.messageKey = key; rows.push(row);
       }
       for (const image of turn.images ?? []) {
@@ -443,7 +448,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       }
       const activityKey = `activity-${turn.id}`, activity = activityRow(turn, existing.get(activityKey));
       activity.dataset.messageKey = activityKey; rows.push(activity);
-      if (turn.status === 'failed') message(`result-${turn.id}`, 'Build', buildErrorMessage(turn.error || 'build_failed', turn.log), 'build-message-error');
+      if (turn.status === 'failed') message(`result-${turn.id}`, 'Build', turn.errorExplanation || buildErrorMessage(turn.error || 'build_failed', turn.log), 'build-message-error');
       else if (turn.summary && !turn.activity?.some(item => item.type === 'message' && item.text === turn.summary)) message(`result-${turn.id}`, 'Build', turn.summary);
       else if (!turn.activity?.length && turn.status === 'succeeded') message(`result-${turn.id}`, 'Build', turn.stage);
     }

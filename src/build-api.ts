@@ -1,11 +1,12 @@
 import { API_ORIGIN } from './api-origin.ts';
 
-export type BuildActivity = { id: string; type: 'message' | 'tool'; text: string; status: 'running' | 'succeeded' | 'failed' };
+export type BuildActivity = { id: string; type: 'message' | 'tool'; text: string; status: 'proposed' | 'running' | 'skipped' | 'blocked' | 'succeeded' | 'failed' | 'unknown'; explanation?: string | null };
 export type BuildImage = { id: string; toolId: string; label: string; path: string };
 export type BuildTurn = {
   id: string; prompt: string; mode: 'build' | 'preview'; status: 'queued' | 'running' | 'succeeded' | 'failed';
   stage: string; summary: string | null; error: string | null; log: string; model: string; effort?: string | null;
-  inputTokens: number; outputTokens: number; createdAt: string; finishedAt: string | null;
+  inputTokens: number | null; outputTokens: number | null; createdAt: string; finishedAt: string | null;
+  errorExplanation?: string | null; failureOperationId?: string | null;
   aiCostCents?: number;
   activity?: BuildActivity[];
   images?: BuildImage[];
@@ -32,6 +33,9 @@ export function buildErrorMessage(code: string, details?: string | null): string
     spend_limit_exceeded: 'Your spending limit has been reached. Increase the limit to continue building.',
     build_billing_unavailable: 'Could not check your prepaid balance. Try again shortly.',
     build_billing_reconciliation_required: 'An AI request needs billing reconciliation. Your source is saved; contact support.',
+    build_operation_reconciliation_required: 'An operation has an unknown result. Execution stopped so it can be inspected safely.',
+    build_journal_unavailable: 'Required operation records could not be saved. Execution stopped; your saved source is retained.',
+    build_usage_storage_unavailable: 'Provider usage could not be saved. Execution stopped; accounting can retry independently.',
     build_model_unpriced: 'Build is unavailable right now. Please try again shortly.',
     build_unavailable: 'Build is unavailable right now. Please try again shortly.',
     build_busy: 'Another build is running in your account. Wait for it to finish.',
