@@ -126,7 +126,11 @@
                   <div id="build-preview-empty" class="build-preview-empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18m-14-2h.01M10 7h.01" /></svg><h3>Your app preview will appear here</h3><p id="build-preview-description">Build is getting started.</p></div>
                   <iframe id="build-preview-frame" title="Generated app preview" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads" referrerpolicy="no-referrer" hidden></iframe>
                 </div>
-                <div id="build-code-panel" class="build-code-panel" role="tabpanel" aria-labelledby="build-code-tab" tabindex="0" hidden><label for="build-file">Source file</label><select id="build-file"></select><pre id="build-code"></pre></div>
+                <div id="build-code-panel" class="build-repository-panel" role="tabpanel" aria-labelledby="build-code-tab" tabindex="0" hidden>
+                  <div class="build-source-toolbar"><label for="build-source-view" class="visually-hidden">Source version</label><select id="build-source-view"><option value="repository">main</option><option value="working">Working files</option></select><span id="build-source-commit"></span></div>
+                  <p id="build-source-message" class="build-source-message" hidden></p>
+                  <div id="build-files" class="build-files"></div>
+                </div>
                 <div id="build-history-panel" class="build-history-panel" role="tabpanel" aria-labelledby="build-history-tab" tabindex="0" hidden><p id="build-history-status" role="status"></p><ol id="build-history-list"></ol></div>
                 <div id="build-logs-panel" class="build-code-panel" role="tabpanel" aria-labelledby="build-logs-tab" tabindex="0" hidden><pre id="build-logs">No build output yet.</pre></div>
               </section>

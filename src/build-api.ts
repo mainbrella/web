@@ -38,7 +38,7 @@ export type BuildModel = { id: string; name: string; description?: string; effor
 export type BuildModelOptions = { model?: string; effort?: string };
 export type BuildConfig = { available: boolean; versionHistory?: boolean; model: string; models?: BuildModel[]; maxApps: number; aiBilling: 'included' | 'prepaid'; aiMarkupPercent: number; computeUnitHourlyCents: number; size: 'small' };
 export type BuildVersion = { id: string; commitId: string; parentVersionId: string | null; message: string; verified: boolean; createdAt: string };
-export type BuildVersionDetail = { version: BuildVersion; files: Record<string, string>; changes: { path: string; type: 'added' | 'modified' | 'deleted'; before: string | null; after: string | null }[] };
+export type BuildVersionDetail = { version: BuildVersion; files: Record<string, string>; assets?: { path: string; imageId: string }[]; changes: { path: string; type: 'added' | 'modified' | 'deleted'; before: string | null; after: string | null }[] };
 export type BuildSource = { revision: number; files: Record<string, string> };
 export class BuildAPIError extends Error {
   constructor(public code: string, public details?: string) { super(buildErrorMessage(code, details)); }

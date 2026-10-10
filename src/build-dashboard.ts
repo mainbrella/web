@@ -1,4 +1,5 @@
-import { BuildAPIError, buildErrorMessage, createBuildClient, safeBuildPreviewURL, type BuildActivity, type BuildImage, type BuildApp, type BuildConfig, type BuildSource, type BuildTurn, type BuildModel, type BuildModelOptions, type BuildDiagnostics, type BuildVersion } from './build-api.ts';
+import { BuildAPIError, buildErrorMessage, createBuildClient, safeBuildPreviewURL, type BuildActivity, type BuildImage, type BuildApp, type BuildConfig, type BuildTurn, type BuildModel, type BuildModelOptions, type BuildDiagnostics, type BuildVersion } from './build-api.ts';
+import { createBuildFileBrowser } from './build-files.ts';
 import { buildExamples, createBuildDraftStore } from './build-drafts.ts';
 import { buildBriefQuestions, formatBuildBriefPrompt, readBuildBriefPrompt } from './build-brief.ts';
 import { cleanDiagnosticOutput, failureOperations, formatBuildDiagnostics, operationExplanation, operationOutput } from './build-diagnostics.ts';
@@ -47,8 +48,10 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   const previewStatus = node<HTMLElement>('#build-preview-status');
   const frame = node<HTMLIFrameElement>('#build-preview-frame');
   const openPreview = node<HTMLAnchorElement>('#build-open-preview');
-  const file = node<HTMLSelectElement>('#build-file');
-  const code = node<HTMLElement>('#build-code');
+  const sourceView = node<HTMLSelectElement>('#build-source-view');
+  const sourceCommit = node<HTMLElement>('#build-source-commit');
+  const sourceMessage = node<HTMLElement>('#build-source-message');
+  const fileBrowser = createBuildFileBrowser(node<HTMLElement>('#build-files'));
   const tabs = ['preview', 'code', 'history', 'logs'].map(id => node<HTMLButtonElement>(`#build-${id}-tab`));
   const historyStatus = node<HTMLElement>('#build-history-status');
   const historyList = node<HTMLOListElement>('#build-history-list');
@@ -69,7 +72,6 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   let config: BuildConfig | null = null;
   let apps: BuildApp[] = [];
   let selected: BuildApp | null = null;
-  let source: BuildSource | null = null;
   let sourceVersion = 0;
   let userId: string | null = null;
   let disposed = false;
@@ -160,7 +162,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     node<HTMLButtonElement>('#build-start-preview').disabled = locked || !available;
     node<HTMLButtonElement>('#build-resume').disabled = locked || !config?.available;
     node<HTMLButtonElement>('#build-repository').hidden = !selected?.versionId;
-    for (const button of historyList.querySelectorAll<HTMLButtonElement>('button')) button.disabled = locked || active || !config?.available;
+    for (const button of historyList.querySelectorAll<HTMLButtonElement>('[data-restore-version]')) button.disabled = locked || active || !config?.available;
     for (const select of modelSelects) select.disabled = locked || !config?.models || modelSelects[0].options.length < 2;
     for (const select of effortSelects) select.disabled = locked || !config?.models || select.options.length < 2;
     retry.disabled = locked;
@@ -645,7 +647,15 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   }
 
   function renderApp(app: BuildApp) {
+    const appChanged = selected?.id !== app.id;
+    const sourceChanged = appChanged || selected?.versionId !== app.versionId || selected?.revision !== app.revision || Boolean(selected?.activeTurnId && !app.activeTurnId);
     const historyChanged = selected?.id !== app.id || selected?.versionId !== app.versionId || selected?.verifiedVersionId !== app.verifiedVersionId;
+    if (appChanged) {
+      sourceVersion++; fileBrowser.status('Loading files…', true);
+      sourceView.querySelector('[data-historical-version]')?.remove();
+      sourceView.value = app.versionId ? 'repository' : 'working';
+    } else if (!selected?.versionId && app.versionId) sourceView.value = 'repository';
+    sourceView.options[0].disabled = !app.versionId;
     selected = app; remember(app);
     home.hidden = true; workspace.hidden = false;
     if (document.activeElement !== name) name.value = app.name;
@@ -661,6 +671,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     inference.hidden = !buildTurn;
     inference.textContent = buildTurn ? `${app.activeTurnId === buildTurn.id ? 'Building with' : 'Last build:'} ${modelName(buildTurn.model)}${buildTurn.effort ? ` · ${effortLabel(buildTurn.effort)} effort` : ''}` : '';
     renderConversation(app); renderPreview(); controls();
+    if (sourceChanged && tabs[1].getAttribute('aria-selected') === 'true') void loadSource();
     if (historyChanged && node<HTMLButtonElement>('#build-history-tab').getAttribute('aria-selected') === 'true') void loadHistory();
     watchApp();
   }
@@ -683,9 +694,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     stopWatching = client.watch(id, app => {
       if (disposed || selected?.id !== id || busy) return;
       reconnecting = false;
-      const changed = selected.revision !== app.revision;
       clearError(); renderApp(app);
-      if (changed && tabs[1].getAttribute('aria-selected') === 'true') void loadSource();
       schedule();
     }, () => {
       if (disposed || selected?.id !== id) return;
@@ -722,21 +731,30 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   async function loadSource() {
     if (!selected || disposed) return;
     const id = selected.id, current = ++sourceVersion;
+    const versionId = sourceView.value === 'working' ? null : sourceView.value === 'repository' ? selected.versionId : sourceView.value;
+    fileBrowser.status('Loading files…'); sourceCommit.textContent = ''; sourceMessage.hidden = true;
     node<HTMLElement>('#build-code-panel').setAttribute('aria-busy', 'true');
     try {
-      const next = await client.source(id);
+      const next = versionId ? await client.version(id, versionId) : await client.source(id);
       if (disposed || selected?.id !== id || current !== sourceVersion) return;
-      source = next;
-      const previousFile = file.value;
-      file.replaceChildren();
-      for (const path of Object.keys(next.files).sort()) {
-        const option = document.createElement('option'); option.value = path; option.textContent = path; file.append(option);
+      const images: Record<string, string> = {};
+      if ('version' in next) {
+        sourceCommit.textContent = next.version.commitId.slice(0, 8);
+        sourceMessage.textContent = next.version.message; sourceMessage.hidden = false;
+        for (const asset of next.assets ?? []) {
+          const url = client.imageURL(id, asset.imageId); if (url) images[asset.path] = url;
+        }
+      } else {
+        sourceCommit.textContent = `Revision ${next.revision}`;
+        for (const turn of selected.turns ?? []) for (const image of turn.images ?? []) {
+          const url = client.imageURL(id, image.id);
+          if (url && Object.values(next.files).some(text => text.includes(image.path))) images[`public${image.path}`] = url;
+        }
       }
-      file.value = Object.hasOwn(next.files, previousFile) ? previousFile : Object.hasOwn(next.files, 'src/App.tsx') ? 'src/App.tsx' : file.options[0]?.value ?? '';
-      code.textContent = next.files[file.value] ?? 'No source files yet.';
+      fileBrowser.setFiles(next.files, images);
     } catch (cause) {
       if (!disposed && selected?.id === id && current === sourceVersion) {
-        code.textContent = 'Could not load source.';
+        fileBrowser.status('Could not load files.');
         reportError(cause, () => loadSource());
       }
     } finally {
@@ -804,10 +822,19 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
             changes.append(note, retry);
           } finally { loading = false; details.setAttribute('aria-busy', 'false'); }
         });
-        const restore = document.createElement('button'); restore.type = 'button'; restore.className = 'dashboard-retry'; restore.textContent = 'Restore';
+        const actions = document.createElement('div'); actions.className = 'build-version-actions';
+        const browse = document.createElement('button'); browse.type = 'button'; browse.className = 'dashboard-retry'; browse.textContent = 'Files';
+        browse.setAttribute('aria-label', `Browse files in ${saved.message}`);
+        browse.addEventListener('click', () => {
+          sourceView.querySelector('[data-historical-version]')?.remove();
+          const option = document.createElement('option'); option.value = saved.id; option.textContent = `Version ${saved.commitId.slice(0, 8)}`;
+          option.dataset.historicalVersion = ''; sourceView.append(option); sourceView.value = saved.id;
+          setTab(tabs[1], true);
+        });
+        const restore = document.createElement('button'); restore.type = 'button'; restore.className = 'dashboard-retry'; restore.textContent = 'Restore'; restore.dataset.restoreVersion = '';
         restore.setAttribute('aria-label', `Restore ${saved.message}`);
         restore.addEventListener('click', () => restoreVersion(saved));
-        row.append(details, restore); historyList.append(row);
+        actions.append(browse, restore); row.append(details, actions); historyList.append(row);
       }
       controls();
     } catch (cause) {
@@ -821,7 +848,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     if (!selected || busy || selected.activeTurnId || !window.confirm(`Restore version ${saved.commitId.slice(0, 8)}? This creates a new version and restarts the preview. Your history will remain available.`)) return;
     const app = selected, key = submissionKey(JSON.stringify(['restore', app.id, app.revision, saved.id]));
     void mutate(() => client.restore(app, saved.id, key), ({ app: next }) => {
-      clearSubmission(key); source = null; sourceVersion++; renderApp(next); setTab(tabs[0]);
+      clearSubmission(key); sourceVersion++; renderApp(next); setTab(tabs[0]);
     });
   }
 
@@ -839,9 +866,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       if (id) {
         const { app } = await client.read(id);
         if (disposed || current !== version || selected?.id !== id) return;
-        const changed = selected?.revision !== app.revision || Boolean(selected?.activeTurnId && !app.activeTurnId);
         renderApp(app);
-        if (changed && tabs[1].getAttribute('aria-selected') === 'true') void loadSource();
       } else {
         const result = await client.list();
         if (disposed || current !== version || selected) return;
@@ -885,7 +910,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     await mutate(() => client.read(id), ({ app }) => {
       reconnecting = false;
       clearClarification(); previewPreference = null; mobileView = 'conversation';
-      update.value = ''; source = null; sourceVersion++; conversationKey = '';
+      update.value = ''; sourceVersion++; conversationKey = '';
       const lastBuild = app.turns?.slice().reverse().find(turn => turn.mode === 'build');
       if (lastBuild) { modelOptions = { model: lastBuild.model, effort: lastBuild.effort ?? undefined }; renderModelOptions(); }
       setAppURL(id); renderApp(app); setTab(tabs[0]); update.focus();
@@ -986,7 +1011,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   });
   node<HTMLButtonElement>('#build-back').addEventListener('click', () => {
     if (busy || update.value.trim() && !window.confirm('Leave this app without sending your changes?')) return;
-    version++; sourceVersion++; selected = null; source = null; update.value = '';
+    version++; sourceVersion++; selected = null; update.value = '';
     clearClarification(); previewPreference = null; mobileView = 'conversation';
     disconnectStream();
     frame.removeAttribute('src'); setAppURL(null); clearError();
@@ -1015,7 +1040,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       setTab(tabs[next], true);
     });
   }
-  file.addEventListener('change', () => { code.textContent = source?.files[file.value] ?? ''; });
+  sourceView.addEventListener('change', () => void loadSource());
   retry.addEventListener('click', () => { const action = retryAction; clearError(); void action?.(); });
 
   function loadLocalBriefs(id: string) {
@@ -1080,9 +1105,9 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     disconnectStream(); optimistic = null;
     diagnostics.clear();
     reconnecting = false;
-    apps = []; selected = null; source = null; config = null; modelOptions = {}; renderModelOptions(); pendingSubmission = null; clarification = null;
+    apps = []; selected = null; config = null; modelOptions = {}; renderModelOptions(); pendingSubmission = null; clarification = null;
     prompt.value = ''; update.value = ''; name.value = ''; messages.replaceChildren(); list.replaceChildren();
-    node<HTMLElement>('#build-local-list').replaceChildren(); code.textContent = ''; node<HTMLElement>('#build-logs').textContent = '';
+    node<HTMLElement>('#build-local-list').replaceChildren(); fileBrowser.status('', true); node<HTMLElement>('#build-logs').textContent = '';
     frame.removeAttribute('src'); openPreview.removeAttribute('href'); controls();
     window.removeEventListener('beforeunload', beforeUnload);
     document.removeEventListener('visibilitychange', visibility);

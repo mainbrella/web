@@ -258,6 +258,32 @@
 .build-code-panel label { color: var(--muted); font-size: 12px; }
 .app-body .build-code-panel select { width: 100%; min-height: 44px; padding: 8px; border: 1px solid var(--control-border); border-radius: 8px; background: var(--paper); color: var(--ink); }
 .build-code-panel pre { flex: 1; min-width: 0; min-height: 0; margin: 0; padding: 12px; overflow: auto; border-radius: 8px; background: var(--paper); color: var(--ink); font: 12px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; tab-size: 2; }
+.build-repository-panel { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; background: var(--paper); }
+.build-source-toolbar { display: flex; flex: none; align-items: center; gap: 12px; min-width: 0; padding: 8px 12px; }
+.app-body .build-source-toolbar select { width: auto; max-width: 60%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--control-border); border-radius: 6px; background: var(--surface); color: var(--ink); font-size: 13px; }
+#build-source-commit { min-width: 0; color: var(--muted); font: 12px ui-monospace, monospace; overflow-wrap: anywhere; }
+.build-source-message { flex: none; margin: 0; padding: 8px 16px 12px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.build-files { display: flex; flex: 1; flex-direction: column; min-height: 0; min-width: 0; }
+.build-file-breadcrumbs { display: flex; flex: none; align-items: center; flex-wrap: wrap; gap: 4px; padding: 0 12px; border-bottom: 1px solid var(--line); }
+.build-file-breadcrumbs button, .build-file-toolbar button { min-height: 44px; padding: 8px 4px; border: 0; background: transparent; color: var(--blue); text-align: left; font-size: 13px; overflow-wrap: anywhere; }
+.build-file-breadcrumbs [aria-current] { color: var(--ink); }
+.build-file-breadcrumbs > span { color: var(--muted); font-size: 13px; }
+.build-file-content { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; overflow: auto; }
+.build-file-list { margin: 0; padding: 0; list-style: none; }
+.build-file-list li { border-bottom: 1px solid var(--line); }
+.build-file-list button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 10px 16px; border: 0; background: transparent; color: var(--ink); text-align: left; font-size: 13px; overflow-wrap: anywhere; transition: background 150ms; }
+.build-file-list button:hover { background: var(--surface); }
+.build-file-list svg { width: 18px; height: 18px; flex: none; color: var(--muted); }
+.build-file-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.build-file-kind { flex: none; margin-left: auto; color: var(--muted); font-size: 11px; }
+.build-file-toolbar { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 12px; padding: 0 12px; border-bottom: 1px solid var(--line); }
+.build-file-toolbar > span { color: var(--muted); font-size: 11px; }
+.build-file-content pre { flex: 1; min-height: 120px; margin: 0; padding: 16px; overflow: auto; color: var(--ink); font: 12px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace; tab-size: 2; }
+.build-file-status { margin: 0; padding: 16px; color: var(--muted); font-size: 13px; }
+.build-file-image { display: grid; flex: 1; place-items: center; margin: 0; padding: 16px; }
+.build-file-image img { display: block; max-width: 100%; max-height: 480px; height: auto; object-fit: contain; }
+.build-files button:focus-visible, .build-files pre:focus-visible, .build-source-toolbar select:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { .build-file-list button { transition: none; } }
 .build-history-panel { flex: 1; min-height: 0; padding: 12px; overflow: auto; }
 .build-history-panel > p { color: var(--muted); font-size: 13px; }
 #build-history-list { margin: 0; padding: 0; list-style: none; }
@@ -267,6 +293,8 @@
 .build-version-title { font-size: 13px; }
 .build-version-meta { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; line-height: 1.5; }
 #build-history-list > li > button { min-height: 44px; flex: none; }
+.build-version-actions { display: flex; flex: none; gap: 4px; }
+.build-version-actions button { min-height: 44px; }
 .build-version-changes { padding: 8px 0; font-size: 12px; }
 .build-version-changes p { margin: 4px 0; color: var(--muted); }
 .build-version-changes pre { max-height: 320px; margin: 4px 0 12px; padding: 8px; overflow: auto; background: var(--paper); font: 12px/1.6 ui-monospace, monospace; }
