@@ -4,7 +4,7 @@
 .try-body .platform-header nav > a[href="/about/"],
 .try-body .platform-header nav > a.button { display: none; }
 .try-main { flex: 1; padding-top: 36px; padding-bottom: 48px; }
-.try-hero { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: center; gap: 56px; }
+.try-hero { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: start; gap: 56px; }
 .try-intro { min-width: 0; max-width: 520px; }
 .try-intro h1 { max-width: 14ch; font-size: clamp(32px, 3.4vw, 44px); line-height: 1.14; letter-spacing: -.035em; }
 .try-description { max-width: 48ch; margin-top: 16px; color: var(--muted); }
