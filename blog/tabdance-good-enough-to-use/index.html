@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="TabDance now has live workspaces and tabs, predictable Command-K, selection that survives redraw, and file drops. How the macOS terminal works and how to build it." />
+    <meta name="description" content="TabDance now has live workspaces and tabs, predictable Command-K, selection that survives redraw, and file drops. How the macOS terminal works and how to try it." />
     <meta name="theme-color" content="#181a1b" />
     <link rel="canonical" href="https://mainbrella.com/blog/tabdance-good-enough-to-use/" />
     <meta property="og:title" content="TabDance is good enough to use · Mainbrella" />
-    <meta property="og:description" content="From a terminal prototype to live workspaces, reliable clearing and copying, and a macOS app you can build. The implementation details that made the difference." />
+    <meta property="og:description" content="From a terminal prototype to live workspaces, reliable clearing and copying, and a macOS app you can download. The implementation details that made the difference." />
     <meta property="og:url" content="https://mainbrella.com/blog/tabdance-good-enough-to-use/" />
     <meta property="og:type" content="article" />
     <meta property="og:image" content="https://mainbrella.com/images/blog/tabdance-good-enough-to-use/workspaces.png" />
@@ -31,16 +31,13 @@
 
         <img class="article-logo" src="/images/blog/tabdance-good-enough-to-use/logo.png" width="1254" height="1254" alt="TabDance logo: three colorful terminal windows connected by curved ribbons." decoding="async" fetchpriority="high" />
 
-        <p>TabDance is now good enough to use. Command-K keeps the command you’re editing, copying survives a terminal redraw, and each tab keeps its shell when you switch workspaces. You can build the macOS app from source.</p>
-        <p>In <a href="/blog/tabdance-terminal-feel/">the first article</a>, my Command-K, <code>cat file.txt</code>, Command-A copying habit led from cmux and Rio to studying Apple Terminal’s executable. TabDance was a small AppKit prototype with a real shell. The <a href="https://github.com/andrewarrow/TabDance/compare/045d83cdefd6dfbefcdcd416eaf16be355894290...1ac4e614ddadad91b752cbe5e0b65c0e624a86f2">changes since that snapshot</a> put those everyday operations alongside the workspace layout I wanted.</p>
+        <p>TabDance is now good enough to use. Command-K keeps the command you’re editing, copying survives a terminal redraw, and each tab keeps its shell when you switch workspaces. There’s now a downloadable macOS app.</p>
+        <p>In <a href="/blog/tabdance-terminal-feel/">the first article</a>, my Command-K, <code>cat file.txt</code>, Command-A copying habit led from cmux and Rio to studying Apple Terminal’s executable. TabDance was a small AppKit prototype with a real shell. The <a href="https://github.com/andrewarrow/TabDance/compare/045d83cdefd6dfbefcdcd416eaf16be355894290...8de87c29569ce6dc5ced990c435252616836ca74">changes since that snapshot</a> put those everyday operations alongside the workspace layout I wanted.</p>
 
-        <h2 id="build">Build it on your Mac</h2>
-        <p>You’ll need macOS 13 or later and Xcode 16 or later, with its command-line tools selected. From a terminal:</p>
-        <pre class="docs-code"><code>git clone https://github.com/andrewarrow/TabDance.git
-cd TabDance
-./build-app.sh
-open dist/TabDance.app</code></pre>
-        <p>Or open <code>TabDance.xcodeproj</code>, select the TabDance scheme, and press Command-R. Allow SwiftTerm’s build information plugin if Xcode prompts you. The <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/build-app.sh">build script</a> produces an ad-hoc signed app for Apple silicon and Intel Macs.</p>
+        <h2 id="build">Download it on your Mac</h2>
+        <p>For an Apple silicon Mac running macOS 13 or later, open the <a href="https://github.com/andrewarrow/TabDance/actions/workflows/build.yml">Build macOS app workflow</a> and choose the latest successful run. Download <code>TabDance-macos-arm64</code> from its Artifacts section; you’ll need to be signed into GitHub. Unzip the download, open <code>TabDance-macos-arm64.dmg</code>, and drag TabDance to Applications.</p>
+        <p>The app isn’t notarized yet, so its first launch may need approval under <a href="https://support.apple.com/en-us/102445">System Settings → Privacy &amp; Security</a>.</p>
+        <p>Building from source is still an option, including for Intel Macs. The <a href="https://github.com/andrewarrow/TabDance#build-and-run">README</a> covers the Xcode setup and build commands.</p>
         <p>The app starts your account’s login shell, so your usual shell setup comes with it. Each shell runs through a pseudoterminal (PTY), the connection through which terminal programs exchange input and output. <a href="https://github.com/migueldeicaza/SwiftTerm/tree/464df5207fc2432e16c9a23abe538187196daf5f">SwiftTerm 1.19.0</a> supplies the terminal emulator and rendering; TabDance adds the AppKit workspace UI and its own clearing and copying behavior.</p>
 
         <h2 id="live-tabs">A tab switch keeps the shell</h2>
