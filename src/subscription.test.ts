@@ -48,6 +48,8 @@ const wallet = (extra: Partial<PrepaidBalance> = {}): PrepaidBalance => ({
 });
 const tick = () => new Promise(resolve => setImmediate(resolve));
 async function fixture(t: TestContext, extra: Record<string, any> = {}) {
+  const tryFlow = new URLSearchParams(extra.search || '').get('flow') === 'try';
+  const creditCents = tryFlow ? 500 : 2000;
   const nodes = new Map<string, Element>();
   const node = (id: string) => { if (!nodes.has(id)) nodes.set(id, new Element(id)); return nodes.get(id)!; };
   const calls: { path: string; body: any; credentials: RequestCredentials | undefined }[] = [];
@@ -63,7 +65,9 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
   let completionError: string | null = extra.completionError || null;
   const topupErrors: string[] = [...(extra.topupErrors || [])];
   const stripeSession = { id: 'cs_test', email: 'owner@example.com', canConfirm: Boolean(extra.zeroTotal),
-    total: { total: { amount: extra.zeroTotal ? '$0.00' : '$20.00', minorUnitsAmount: extra.zeroTotal ? 0 : 2000 } }, discountAmounts: [] as any[] };
+    total: { total: { amount: extra.zeroTotal ? '$0.00' : `$${(creditCents / 100).toFixed(2)}`, minorUnitsAmount: extra.zeroTotal ? 0 : creditCents },
+      discount: { amount: '$0.00', minorUnitsAmount: 0 } }, discountAmounts: [] as any[] };
+  const promotionCalls: string[] = [];
   const confirmations: any[] = [];
   let sessionChanged: (session: any) => void = () => {};
   const paymentEvents = new Map<string, (event?: any) => void>();
@@ -78,19 +82,23 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
     getSession: () => stripeSession,
     updateEmail: async () => ({ type: 'success' }),
     applyPromotionCode: async (code: string) => {
+      promotionCalls.push(code);
       if (extra.promotionGate) await extra.promotionGate;
-      if (code !== 'SAVE5' && code !== 'FREE') return { type: 'error', error: { message: 'That promotion code is invalid.' } };
-      stripeSession.total.total.amount = code === 'FREE' ? '$0.00' : '$15.00';
-      stripeSession.total.total.minorUnitsAmount = code === 'FREE' ? 0 : 1500;
-      stripeSession.discountAmounts = [{ promotionCode: { code } }];
+      if (extra.promotionError || !['SAVE5', 'FREE', 'BRELLA-GIT-TRY5'].includes(code)) return { type: 'error', error: { message: extra.promotionError || 'That promotion code is invalid.' } };
+      const discountCents = code === 'FREE' ? creditCents : 500;
+      stripeSession.total.discount = { amount: `$${(discountCents / 100).toFixed(2)}`, minorUnitsAmount: discountCents };
+      stripeSession.total.total.amount = `$${((creditCents - discountCents) / 100).toFixed(2)}`;
+      stripeSession.total.total.minorUnitsAmount = creditCents - discountCents;
+      stripeSession.discountAmounts = [{ promotionCode: code }];
       // Mounted, incomplete card fields prevent confirmation until removed.
-      if (code === 'FREE') stripeSession.canConfirm = !paymentMounted && extra.noCostCanConfirm !== false;
+      if (creditCents === discountCents) stripeSession.canConfirm = !paymentMounted && extra.noCostCanConfirm !== false;
       sessionChanged(stripeSession);
       return { type: 'success' };
     },
     removePromotionCode: async () => {
       stripeSession.total.total.amount = '$20.00';
       stripeSession.total.total.minorUnitsAmount = 2000;
+      stripeSession.total.discount = { amount: '$0.00', minorUnitsAmount: 0 };
       stripeSession.discountAmounts = [];
       stripeSession.canConfirm = false;
       sessionChanged(stripeSession);
@@ -155,7 +163,7 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
     }
     if (path === '/billing/topups/complete') {
       if (completionError) return Response.json({ error: completionError }, { status: 409 });
-      balance = wallet({ balanceCents: 3234, availableBalanceCents: 3000 });
+      balance = tryFlow ? wallet({ balanceCents: 500, availableBalanceCents: 500 }) : wallet({ balanceCents: 3234, availableBalanceCents: 3000 });
       return Response.json({ balance });
     }
     if (path === '/billing/settings') {
@@ -175,7 +183,7 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
     paymentReady(complete = true) { stripeSession.canConfirm = complete; sessionChanged(stripeSession); },
     setPromotionGate(value: Promise<void> | null) { extra.promotionGate = value; },
     paymentLoadError() { paymentEvents.get('loaderror')?.({ error: { message: 'Unable to load card details.' } }); },
-    confirmations, isMounted: () => mounted, isDestroyed: () => destroyed,
+    confirmations, promotionCalls, isMounted: () => mounted, isDestroyed: () => destroyed,
     paymentCreations: () => paymentCreations, paymentDestructions: () => paymentDestructions,
     changeAccount(value: User | null) { events.get('auth-change')?.({ detail: { user: value } }); },
   };
@@ -191,6 +199,95 @@ test('prepaid page shows balance, reserved funds and usage without opening a pay
   assert.equal(f.calls.some(call => call.body !== null), false);
   assert.equal(f.isMounted(), false);
   assert.equal(f.calls.find(call => call.path === '/billing/balance')?.credentials, 'include');
+});
+
+const repoFunding = { repo: 'owner/repo', returnTo: '/run/?flow=try&private=1#config=9c854f89-5f3e-467c-b5f2-0bc6685ef75c' };
+const trySearch = `?${new URLSearchParams({ flow: 'try', ...repoFunding })}`;
+const emptyWallet = () => wallet({ balanceCents: 0, availableBalanceCents: 0, reservedBalanceCents: 0 });
+
+test('try checkout automatically applies the $5 offer without card fields or unverified credit', async t => {
+  const f = await fixture(t, { search: trySearch, balance: emptyWallet() });
+  await tick();
+  assert.equal(f.calls.find(call => call.path === '/billing/topups')?.body.amountCents, 500);
+  assert.deepEqual(f.promotionCalls, ['BRELLA-GIT-TRY5']);
+  assert.equal(f.node('checkout-promotion-code').value, 'BRELLA-GIT-TRY5');
+  assert.equal(f.node('try-credit-value').textContent, '$5.00');
+  assert.equal(f.node('try-credit-discount').textContent, '−$5.00');
+  assert.equal(f.node('try-credit-due').textContent, '$0.00');
+  assert.equal(f.node('checkout-submit').textContent, 'Confirm $5 credit and continue');
+  assert.equal(f.node('checkout-submit').disabled, false);
+  assert.equal(f.paymentCreations(), 0);
+  assert.equal(f.node('billing-balance').textContent, '$0.00');
+  assert.equal(f.calls.some(call => call.path === '/billing/topups/complete'), false);
+  assert.equal(f.node('checkout-promotion').open, true);
+  const back = new URL(f.node('try-checkout-back').href, 'https://mainbrella.com');
+  assert.equal(back.searchParams.get('prepare'), '1');
+  assert.equal(back.hash, new URL(repoFunding.returnTo, back.origin).hash);
+  await f.node('checkout-form').submit(); await tick();
+  assert.equal(f.node('billing-balance').textContent, '$5.00');
+  assert.deepEqual(f.redirects, [repoFunding.returnTo]);
+});
+
+test('try checkout waits for promo validation and preserves credit confirmation for pending results', async t => {
+  let release!: () => void;
+  const f = await fixture(t, { search: trySearch, balance: emptyWallet(), promotionGate: new Promise<void>(resolve => { release = resolve; }), completionError: 'payment_pending' });
+  await tick();
+  assert.equal(f.node('checkout-submit').disabled, true);
+  assert.equal(f.paymentCreations(), 0);
+  await f.node('checkout-form').submit();
+  assert.equal(f.confirmations.length, 0);
+  release(); await tick();
+  await f.node('checkout-form').submit(); await tick();
+  assert.deepEqual(f.redirects, []);
+  assert.equal(f.node('billing-balance').textContent, '$0.00');
+  f.setCompletionError(null);
+  await f.node('checkout-form').submit(); await tick();
+  assert.equal(f.confirmations.length, 1);
+  assert.deepEqual(f.redirects, [repoFunding.returnTo]);
+});
+
+test('a rejected try promo displays the real price and requires card confirmation', async t => {
+  const f = await fixture(t, { search: trySearch, balance: emptyWallet(), promotionError: 'This code has expired.' });
+  await tick();
+  assert.equal(f.node('try-credit-discount').textContent, '$0.00');
+  assert.equal(f.node('try-credit-due').textContent, '$5.00');
+  assert.equal(f.node('checkout-submit').textContent, 'Pay $5.00');
+  assert.equal(f.node('checkout-submit').disabled, true);
+  assert.equal(f.paymentCreations(), 1);
+  assert.match(f.node('checkout-promotion-status').textContent, /expired/);
+  assert.deepEqual(f.redirects, []);
+  assert.equal(f.node('billing-balance').textContent, '$0.00');
+});
+
+test('a Stripe return restores the account-owned repository destination and verifies before returning', async t => {
+  const saved = { requestId: 'a4b63055-32c7-4256-a671-a11211884d18', amountCents: 500, sessionId: 'cs_test', repoFunding };
+  const storage = new Map([['mainbrella-prepaid-topup:owner', JSON.stringify(saved)]]);
+  const f = await fixture(t, { storage, search: '?topup_return=1&session_id=cs_test' });
+  assert.deepEqual(f.redirects, [repoFunding.returnTo]);
+  assert.equal(f.calls.filter(call => call.path === '/billing/topups/complete').length, 1);
+  assert.equal(f.calls.some(call => call.path === '/billing/topups'), false);
+});
+
+test('try checkout preserves sign-in context and rejects foreign destinations', async t => {
+  const f = await fixture(t, { search: trySearch, signedOut: true });
+  const login = new URL(f.node('billing-login').href, 'https://mainbrella.com');
+  assert.equal(login.searchParams.get('returnTo'), `/pricing/${trySearch}`);
+  assert.equal(f.calls.some(call => call.path === '/billing/topups'), false);
+});
+
+test('an invalid try return does not start checkout or prefill a promotion', async t => {
+  const f = await fixture(t, { search: `?${new URLSearchParams({ flow: 'try', repo: 'owner/repo', returnTo: '//evil.test/run/' })}` });
+  assert.equal(f.calls.some(call => call.path === '/billing/topups'), false);
+  assert.equal(f.node('topup-amount').value, '20.00');
+});
+
+test('try checkout does not replace another pending purchase', async t => {
+  const saved = { requestId: 'a4b63055-32c7-4256-a671-a11211884d18', amountCents: 5000, sessionId: 'cs_other' };
+  const storage = new Map([['mainbrella-prepaid-topup:owner', JSON.stringify(saved)]]);
+  const f = await fixture(t, { storage, search: trySearch });
+  assert.equal(f.calls.some(call => call.path === '/billing/topups'), false);
+  assert.equal(f.storage.get('mainbrella-prepaid-topup:owner'), JSON.stringify(saved));
+  assert.match(f.node('topup-status').textContent, /Another top-up/);
 });
 
 test('signed-out and rejected-cookie visitors cannot add balance or fetch an account wallet', async t => {

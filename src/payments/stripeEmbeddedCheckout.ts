@@ -3,6 +3,8 @@ interface CheckoutOptions {
   container: HTMLElement; paymentSlot?: HTMLElement; form: HTMLFormElement; submitButton: HTMLButtonElement; statusElement: HTMLElement;
   clientSecret: string; publishableKey: string; submitLabel: string; emailInput: HTMLInputElement; totalElement: HTMLElement;
   promotionInput?: HTMLInputElement | null; promotionApply?: HTMLButtonElement | null; promotionRemove?: HTMLButtonElement | null; promotionStatus?: HTMLElement | null;
+  initialPromotionCode?: string; noCostSubmitLabel?: string;
+  onSessionChange?: (session: StripeCheckoutSession) => void;
   onProcessing?: (processing: boolean) => void; onComplete?: (session: StripeCheckoutSession) => Promise<void>;
   onError?: (message: string) => void; onReady?: () => void;
 }
@@ -95,6 +97,9 @@ export function mountStripeEmbeddedCheckout({
   promotionApply,
   promotionRemove,
   promotionStatus,
+  initialPromotionCode,
+  noCostSubmitLabel = 'Confirm',
+  onSessionChange,
   onProcessing,
   onComplete,
   onError,
@@ -114,7 +119,7 @@ export function mountStripeEmbeddedCheckout({
   let paymentFailed = false;
   let syncingPaymentElement = false;
 
-  if (promotionInput) promotionInput.value = "";
+  if (promotionInput) promotionInput.value = initialPromotionCode || "";
   if (promotionStatus) setStatus(promotionStatus, "");
   if (promotionInput) promotionInput.disabled = true;
   if (promotionApply) promotionApply.disabled = true;
@@ -145,6 +150,20 @@ export function mountStripeEmbeddedCheckout({
       }
 
       checkoutActions = loadResult.actions;
+      if (initialPromotionCode && !checkoutActions.getSession().discountAmounts?.some(discount => discount.promotionCode === initialPromotionCode)) {
+        updatingPromotion = true;
+        setStatus(promotionStatus, 'Applying code…', 'pending');
+        try {
+          const result = await checkoutActions.applyPromotionCode(initialPromotionCode);
+          if (destroyed) return;
+          if (result.type === 'error') throw new Error(result.error.message);
+          setStatus(promotionStatus, 'Promotion code applied.');
+        } catch (caught) {
+          if (destroyed) return;
+          setStatus(promotionStatus, caught instanceof Error ? caught.message : 'Could not apply the code. Check the amount due before continuing.', 'error');
+        } finally { updatingPromotion = false; }
+      }
+      if (destroyed) return;
       const sessionEmail = checkoutActions.getSession()?.email;
       // A Customer email supplied by the backend is fixed by Stripe for this
       // session. Display Stripe's value without attempting to update it.
@@ -193,13 +212,14 @@ export function mountStripeEmbeddedCheckout({
         }
         // Destroying the card Element can change Stripe's readiness immediately.
         session = checkoutActions!.getSession();
+        onSessionChange?.(session);
         const checkoutReady = noPaymentRequired || (paymentReady && !paymentFailed);
         const currentTotal = session?.total?.total?.amount;
         if (currentTotal) {
           totalElement.textContent = `Due today: ${currentTotal}`;
           if (!processing) {
             const amountCents = session?.total?.total?.minorUnitsAmount;
-            submitButton.textContent = confirmedSession ? "Retry confirmation" : amountCents === 0 ? "Confirm" : `Pay ${currentTotal}`;
+            submitButton.textContent = confirmedSession ? "Retry confirmation" : amountCents === 0 ? noCostSubmitLabel : `Pay ${currentTotal}`;
           }
         }
         submitButton.disabled = processing || !checkoutReady || updatingPromotion || (!confirmedSession && ((!fixedEmail && syncedEmail !== emailInput.value.trim()) || !emailInput.validity.valid || session?.canConfirm !== true));

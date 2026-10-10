@@ -9,6 +9,8 @@
 .run-body summary { min-height: 44px; align-content: center; cursor: pointer; font-size: 13px; }
 #run-allowance { margin: 16px 0 12px; }
 #run-status:empty, #run-prompt-status:empty, #run-import-status:empty { display: none; }
+#run-funding-note:empty { display: none; }
+#run-fund { min-height: 44px; }
 #run-repo-label { margin-bottom: 8px; }
 .repo-run-actions { margin-top: 16px; }
 .run-body :is(#run-prompt-copy, #run-help-copy) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; }

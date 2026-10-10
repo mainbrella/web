@@ -19,8 +19,8 @@
     <a class="skip-link" href="#main">Skip to content</a>
     <!-- site-header -->
     <main id="main" class="pricing-page prepaid-page wrap">
-      <h1>Pricing &amp; billing</h1>
-      <p class="pricing-intro">Prepay for compute at $0.02 per compute-unit hour. Add $5 or more; unused funds carry forward. No monthly subscription.</p>
+      <h1 id="pricing-title">Pricing &amp; billing</h1>
+      <p id="pricing-intro" class="pricing-intro">Prepay for compute at $0.02 per compute-unit hour. Add $5 or more; unused funds carry forward. No monthly subscription.</p>
       <p id="billing-status" class="pricing-note" role="status" aria-live="polite">Checking billing…</p>
       <a id="billing-login" class="text-link" href="/login/?returnTo=%2Fpricing%2F" hidden>Sign in to add balance</a>
       <section id="prepaid-billing" class="prepaid-billing" aria-labelledby="balance-title" hidden>
@@ -42,6 +42,11 @@
         <section id="inline-checkout" class="inline-checkout prepaid-checkout" aria-labelledby="checkout-title" hidden>
           <div class="billing-heading"><h2 id="checkout-title" tabindex="-1">Payment details</h2><button id="checkout-back" class="text-link billing-link" type="button">Close payment form</button></div>
           <form id="checkout-form">
+            <dl id="try-credit-summary" class="balance-list try-credit-summary" aria-label="Compute credit and checkout total" aria-live="polite" hidden>
+              <div><dt>Compute credit</dt><dd id="try-credit-value">$5.00</dd></div>
+              <div><dt>Promotion discount</dt><dd id="try-credit-discount">Checking…</dd></div>
+              <div><dt>Due today</dt><dd id="try-credit-due">Checking…</dd></div>
+            </dl>
             <label for="checkout-email">Email for receipts</label>
             <input id="checkout-email" name="email" type="email" autocomplete="email" required disabled />
             <div id="checkout-payment-slot" class="checkout-payment-slot" data-loading="true" aria-busy="true">
@@ -61,7 +66,7 @@
               </div>
             </div>
             <p id="checkout-total" class="pricing-note" aria-live="polite"></p>
-            <details class="checkout-promotion">
+            <details id="checkout-promotion" class="checkout-promotion">
               <summary>Promotion code</summary>
               <label for="checkout-promotion-code">Promotion code</label>
               <div class="checkout-promotion-controls">
@@ -71,7 +76,7 @@
               </div>
               <p class="pricing-note" id="checkout-promotion-status" role="status" aria-live="polite"></p>
             </details>
-            <p class="pricing-note">Payment is collected by Stripe. Funds become available after payment succeeds. By paying, you agree to the <a href="/terms/">Terms of Service</a>.</p>
+            <p class="pricing-note">Checkout is handled by Stripe. Credit becomes available after confirmation. By confirming, you agree to the <a href="/terms/">Terms of Service</a>.</p>
             <p id="checkout-status" class="pricing-note" role="status" aria-live="polite"></p>
             <button id="checkout-submit" class="button button-small" type="submit" disabled>Pay</button>
           </form>
@@ -100,6 +105,7 @@
           <p id="recharge-status" class="pricing-note" role="status" aria-live="polite"></p>
         </section>
       </section>
+      <a id="try-checkout-back" class="text-link" href="/run/" hidden>Prepare setup first</a>
       <noscript><p class="pricing-note">Enable JavaScript to view billing and add balance.</p></noscript>
       <section class="pricing-explanation" aria-labelledby="compute-title">
         <h2 id="compute-title">Machine rates</h2>

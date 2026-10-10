@@ -33,7 +33,7 @@ class Element {
 }
 const flush = async () => { for (let i = 0; i < 4; i++) await new Promise(resolve => setImmediate(resolve)); };
 type ExecutionRecord = { stdout?: string; stderr?: string; status?: string; exitCode?: number | null; timedOut?: boolean; outputTruncated?: boolean; startedAt?: string; cursor?: number };
-async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=node', hash = '', session = true, paid = true, state: initialState = null as RepositoryLaunch | null, stored = {} as Record<string, string>, executions: initialExecutions = {} as Record<string, ExecutionRecord | ExecutionRecord[]>, unavailableExecutions = [] as string[], executionGate: initialExecutionGate = null as Promise<void> | null, outputEvents = {} as Record<string, string | ReadableStream<Uint8Array>> } = {}) {
+async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=node', hash = '', session = true, paid = true, billing = undefined as Record<string, number> | undefined, resolveError = '', state: initialState = null as RepositoryLaunch | null, stored = {} as Record<string, string>, executions: initialExecutions = {} as Record<string, ExecutionRecord | ExecutionRecord[]>, unavailableExecutions = [] as string[], executionGate: initialExecutionGate = null as Promise<void> | null, outputEvents = {} as Record<string, string | ReadableStream<Uint8Array>> } = {}) {
   const nodes = new Map<string, Element>();
   const node = (id: string) => { if (!nodes.has(id)) nodes.set(id, new Element()); return nodes.get(id)!; };
   node('run-submit').textContent = 'Run repository';
@@ -67,8 +67,8 @@ async function fixture(t: TestContext, { search = '?repo=acme/demo&catalogId=nod
     const url = new URL(input); const body = options.body ? JSON.parse(options.body as string) : null;
     calls.push({ url, options, body });
     if (gate) await gate;
-    if (url.pathname === '/containers') return Response.json({ active: paid, limits: { maxStartsPerMonth: 1000 }, usage: { starts: 3 } });
-    if (url.pathname === '/repo-launches/resolve') return Response.json({ repo: 'acme/demo', ref: 'main', commit: 'a'.repeat(40), suggestedCatalogId: 'node' });
+    if (url.pathname === '/containers') return Response.json({ active: paid, billing, limits: { maxStartsPerMonth: 1000 }, usage: { starts: 3 } });
+    if (url.pathname === '/repo-launches/resolve') return resolveError ? Response.json({ error: resolveError }, { status: 503 }) : Response.json({ repo: 'acme/demo', ref: 'main', commit: 'a'.repeat(40), suggestedCatalogId: 'node' });
     if (url.pathname === '/repo-launches') {
       if (failCreate) { const status = failCreate; failCreate = 0; return Response.json({ error: status === 400 ? 'public_repo_not_found' : 'launch_unavailable' }, { status }); }
       state = { id: '12345678-1234-1234-1234-123456789abc', phase: 'allocating', options: body,
@@ -134,6 +134,61 @@ test('signed-in preparation and unpaid access never allocate', async t => {
   const f = await fixture(t, { paid: false });
   assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
   assert.equal(f.node('run-submit').disabled, true); assert.equal(f.node('run-plans').hidden, false);
+});
+
+test('try visitors without funds reach checkout before copying or importing AI setup', async t => {
+  const f = await fixture(t, { search: '?flow=try&repo=acme/demo', paid: false });
+  const checkout = new URL(f.location.href, f.location.origin);
+  assert.equal(checkout.pathname, '/pricing/usage/');
+  assert.equal(checkout.searchParams.get('repo'), 'acme/demo');
+  assert.equal(checkout.searchParams.get('returnTo'), '/run/?repo=acme%2Fdemo&flow=try');
+  assert.equal(f.node('run-form').hidden, true);
+  assert.equal(f.copied.length, 0);
+  assert.ok(f.calls.every(call => (call.options.method ?? 'GET') === 'GET'));
+});
+
+test('try sign-in preserves the selected repository and offer', async t => {
+  const f = await fixture(t, { search: '?flow=try&repo=acme/demo&ref=feature%2Fa', session: false });
+  const login = new URL(f.location.href, f.location.origin);
+  assert.equal(login.pathname, '/login/');
+  const destination = new URL(login.searchParams.get('returnTo')!, login.origin);
+  assert.equal(destination.searchParams.get('flow'), 'try');
+  assert.equal(destination.searchParams.get('repo'), 'acme/demo');
+  assert.equal(destination.searchParams.get('ref'), 'feature/a');
+  assert.equal(f.calls.length, 0);
+});
+
+test('active plan or trial access skips try checkout and explains the allowance', async t => {
+  const f = await fixture(t, { search: '?flow=try&repo=acme/demo' });
+  assert.equal(f.location.href, '');
+  assert.equal(f.node('run-form').hidden, false);
+  assert.equal(f.node('run-copy-step').hidden, false);
+  assert.match(f.node('run-funding-note').textContent, /active plan or trial/);
+  assert.equal(f.calls.some(call => call.url.pathname === '/repo-launches'), false);
+});
+
+test('try checkout uses available funds rather than a fully reserved wallet', async t => {
+  const f = await fixture(t, { search: '?flow=try&repo=acme/demo', billing: { balanceCents: 500, availableBalanceCents: 0 } });
+  assert.equal(new URL(f.location.href, f.location.origin).pathname, '/pricing/usage/');
+  assert.equal(f.calls.some(call => (call.options.method ?? 'GET') !== 'GET'), false);
+});
+
+test('repository access failures show a retry rather than opening try checkout', async t => {
+  const f = await fixture(t, { search: '?flow=try&repo=acme/demo', paid: false, resolveError: 'github_connection_required' });
+  assert.equal(f.location.href, '');
+  assert.equal(f.node('run-github').hidden, false);
+  assert.equal(f.node('run-access-retry').hidden, false);
+  assert.equal(f.calls.some(call => (call.options.method ?? 'GET') !== 'GET'), false);
+});
+
+test('prepare-first visitors can review setup with a funding action beside launch', async t => {
+  const f = await fixture(t, { search: '?flow=try&repo=acme/demo&prepare=1&catalogId=node', paid: false });
+  assert.equal(f.location.href, '');
+  assert.equal(f.node('run-form').hidden, false);
+  assert.equal(f.node('run-submit').hidden, true);
+  assert.equal(f.node('run-fund').hidden, false);
+  const checkout = new URL(f.node('run-fund').href, f.location.origin);
+  assert.equal(new URL(checkout.searchParams.get('returnTo')!, f.location.origin).searchParams.has('prepare'), false);
 });
 test('explicit Run records private identity, resumes phases and copies only commit-pinned YAML', async t => {
   const f = await fixture(t); assert.equal(f.node('run-submit').disabled, false);

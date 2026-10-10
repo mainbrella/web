@@ -22,6 +22,8 @@
       <p id="run-status" class="dashboard-status" role="status"></p>
       <p id="run-error" class="dashboard-error" role="alert" hidden></p>
       <p id="run-access" class="dashboard-status" hidden><a id="run-sign-in" href="/login/">Sign in</a><a id="run-plans" href="/pricing/" hidden>Add prepaid balance</a><span id="run-access-note"></span></p>
+      <p id="run-funding-note" class="dashboard-status"></p>
+      <button id="run-access-retry" class="dashboard-retry" type="button" hidden>Retry access check</button>
       <section id="run-github" class="repo-run-github" aria-label="Private repository access" hidden>
         <p id="run-github-status" class="dashboard-status" role="status">Private repositories need one extra step: connect the read-only Mainbrella Import app.</p>
         <p class="dashboard-status">Choose <strong>Only select repositories</strong> on GitHub and select this repository. Your organization may require an owner's approval.</p>
@@ -47,6 +49,7 @@
         </fieldset>
         <pre id="run-config" class="repo-run-config" hidden></pre>
         <button id="run-submit" class="button button-small" type="submit" disabled hidden>Run repository</button>
+        <a id="run-fund" class="button button-small" href="/pricing/" hidden>Get $5 credit and continue</a>
         <p id="run-allowance" class="dashboard-status" hidden>Each run creates a container in your account and uses your prepaid balance and monthly spending cap.</p>
       </form>
       <section id="run-progress" hidden aria-label="Repository launch">

@@ -4,6 +4,7 @@ import { needsSignInCookies, signInCookieMessage } from './cookie-preferences.ts
 import { trackConfirmedPayment, trackFunnel } from './acquisition-analytics.ts';
 import { dollarsToCents, formatBalance, readPrepaidBalance } from './prepaid-billing.ts';
 import { mountStripeEmbeddedCheckout } from './payments/stripeEmbeddedCheckout.ts';
+import { readRepoFunding, TRY_CREDIT_CENTS, TRY_PROMOTION_CODE, type RepoFunding } from './repo-funding.ts';
 
 const auth = createAuthClient();
 const element = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -41,11 +42,14 @@ let loading = true;
 let capDirty = false;
 let rechargeDirty = false;
 const returnParams = new URLSearchParams(location.search);
+const billingOrigin = new URL(location.href).origin;
+let repoFunding: RepoFunding | null = returnParams.get('flow') === 'try'
+  ? readRepoFunding({ repo: returnParams.get('repo'), returnTo: returnParams.get('returnTo') }, billingOrigin) : null;
 let completionSession = returnParams.get('topup_session') || (returnParams.get('topup_return') === '1' ? returnParams.get('session_id') : null);
 let completionUserId: string | null = null;
 let balanceReadVersion = 0;
 
-type PendingTopup = { requestId: string; amountCents: number; sessionId?: string };
+type PendingTopup = { requestId: string; amountCents: number; sessionId?: string; repoFunding?: RepoFunding };
 let pendingTopup: PendingTopup | null = null;
 function storageKey() { return `mainbrella-prepaid-topup:${user?.id}`; }
 function restorePending() {
@@ -54,7 +58,14 @@ function restorePending() {
     const saved = JSON.parse(window.sessionStorage.getItem(storageKey()) || 'null');
     if (saved && typeof saved.requestId === 'string' && /^[a-f0-9-]{36}$/i.test(saved.requestId)
       && Number.isSafeInteger(saved.amountCents) && saved.amountCents >= 500
-      && (!saved.sessionId || typeof saved.sessionId === 'string')) pendingTopup = saved;
+      && (!saved.sessionId || typeof saved.sessionId === 'string')) {
+      pendingTopup = { requestId: saved.requestId, amountCents: saved.amountCents, ...(saved.sessionId ? { sessionId: saved.sessionId } : {}) };
+      const funding = readRepoFunding(saved.repoFunding, billingOrigin);
+      if (funding) {
+        pendingTopup.repoFunding = funding;
+        if (!repoFunding && completionSession === saved.sessionId) repoFunding = funding;
+      }
+    }
   } catch { /* Blocked storage still allows retries within this page. */ }
   if (pendingTopup) amount.value = (pendingTopup.amountCents / 100).toFixed(2);
 }
@@ -118,7 +129,24 @@ function closeCheckout() {
     window.dispatchEvent(new CustomEvent('checkout-processing', { detail: { processing: false } }));
   }
 }
+function renderRepoFunding() {
+  element('main').dataset.tryCheckout = String(Boolean(repoFunding));
+  element('try-credit-summary').hidden = !repoFunding;
+  element('try-checkout-back').hidden = !repoFunding;
+  if (!repoFunding) return;
+  element('pricing-title').textContent = 'Get $5 compute credit';
+  element('pricing-intro').textContent = `For ${repoFunding.repo}. ${TRY_PROMOTION_CODE} takes $5 off this top-up. No monthly subscription.`;
+  const setup = new URL(repoFunding.returnTo, billingOrigin);
+  setup.searchParams.set('prepare', '1');
+  element<HTMLAnchorElement>('try-checkout-back').href = setup.pathname + setup.search + setup.hash;
+  element<HTMLDetailsElement>('checkout-promotion').open = true;
+  element('topup-form').hidden = !checkoutView.hidden;
+  topup.textContent = 'Get $5 credit';
+  const destination = new URL(location.href);
+  login.href = `/login/?returnTo=${encodeURIComponent(destination.pathname + destination.search + destination.hash)}`;
+}
 function render() {
+  renderRepoFunding();
   walletView.hidden = !user;
   login.hidden = Boolean(user) || loading;
   const ready = Boolean(user && balance && config?.configured && !loading && !busy);
@@ -190,6 +218,7 @@ async function completePayment(accountVersion: number, retryInForm = false) {
     const data = await api('/billing/topups/complete', { sessionId });
     if (accountVersion !== version || !user) return;
     applyBalance(data.balance);
+    const destination = pendingTopup?.sessionId === sessionId ? pendingTopup.repoFunding?.returnTo : undefined;
     if (!pendingTopup?.sessionId || pendingTopup.sessionId === sessionId) rememberPending(null);
     completionSession = null;
     completionUserId = null;
@@ -201,6 +230,7 @@ async function completePayment(accountVersion: number, retryInForm = false) {
     history.replaceState(null, '', url.pathname + url.search + url.hash);
     trackConfirmedPayment(sessionId, 'prepaid');
     feedback(status, 'Payment confirmed. Your prepaid balance is ready.');
+    if (destination && balance!.availableBalanceCents > 0) location.assign(destination);
   } catch (error) {
     if (accountVersion !== version || expired(error)) return;
     const pending = error instanceof BillingError && ['payment_pending', 'topup_pending', 'payment_not_complete'].includes(error.code);
@@ -218,13 +248,14 @@ async function completePayment(accountVersion: number, retryInForm = false) {
   }
 }
 async function load(knownUser?: User | null) {
+  const returningFromCheckout = Boolean(completionSession);
   const accountVersion = ++version;
   closeCheckout();
   balanceReadVersion++;
   loading = true;
   busy = false;
   balance = null;
-  amount.value = '20.00';
+  amount.value = repoFunding ? (TRY_CREDIT_CENTS / 100).toFixed(2) : '20.00';
   for (const id of ['topup-status', 'usage-status', 'recharge-status']) feedback(element(id), '');
   capDirty = false;
   rechargeDirty = false;
@@ -262,6 +293,12 @@ async function load(knownUser?: User | null) {
   if (accountVersion !== version) return;
   loading = false;
   render();
+  if (repoFunding && user && balance && config?.configured && !completionSession && !returningFromCheckout) {
+    if (pendingTopup && (!pendingTopup.repoFunding || pendingTopup.repoFunding.returnTo !== repoFunding.returnTo)) {
+      feedback(element('topup-status'), 'Another top-up is in progress. Finish it in Billing before claiming this offer.', true);
+      topup.disabled = true;
+    } else await openCheckout();
+  }
 }
 
 presets.forEach(button => button.addEventListener('click', () => { amount.value = (Number(button.dataset.topupCents) / 100).toFixed(2); }));
@@ -271,8 +308,7 @@ checkoutBack.addEventListener('click', () => {
   render();
   topup.focus();
 });
-element<HTMLFormElement>('topup-form').addEventListener('submit', async event => {
-  event.preventDefault();
+async function openCheckout() {
   if (busy || loading || !user || !balance || !config?.configured || !checkoutView.hidden || completionSession) return;
   const amountCents = dollarsToCents(amount.value);
   if (amountCents === null || amountCents < config.minTopupCents || amountCents > config.maxTopupCents) {
@@ -285,7 +321,7 @@ element<HTMLFormElement>('topup-form').addEventListener('submit', async event =>
     feedback(element('topup-status'), `A ${formatBalance(pendingTopup.amountCents)} top-up is already in progress. Continue that checkout before adding another amount.`, true);
     return;
   }
-  rememberPending(pendingTopup || { requestId: crypto.randomUUID(), amountCents });
+  rememberPending(pendingTopup || { requestId: crypto.randomUUID(), amountCents, ...(repoFunding ? { repoFunding } : {}) });
   const accountVersion = version;
   busy = true;
   feedback(element('topup-status'), 'Opening secure checkout…');
@@ -299,7 +335,7 @@ element<HTMLFormElement>('topup-form').addEventListener('submit', async event =>
       if (!(error instanceof BillingError) || !['checkout_expired', 'topup_expired'].includes(error.code)) throw error;
       // Stripe has confirmed the old checkout can no longer charge. Replace
       // its purchase identity once, without requiring a second user action.
-      rememberPending({ requestId: crypto.randomUUID(), amountCents });
+      rememberPending({ requestId: crypto.randomUUID(), amountCents, ...(repoFunding ? { repoFunding } : {}) });
       data = await api('/billing/topups', { requestId: pendingTopup!.requestId, amountCents });
     }
     if (accountVersion !== version || !user) return;
@@ -312,7 +348,7 @@ element<HTMLFormElement>('topup-form').addEventListener('submit', async event =>
     checkoutEmail.value = user.email || '';
     checkoutEmail.disabled = false;
     checkoutEmail.readOnly = false;
-    const submitLabel = `Pay ${formatBalance(amountCents)}`;
+    const submitLabel = repoFunding ? 'Checking offer…' : `Pay ${formatBalance(amountCents)}`;
     const submit = element<HTMLButtonElement>('checkout-submit');
     submit.textContent = submitLabel;
     element('checkout-total').textContent = `Due today: ${formatBalance(amountCents)}`;
@@ -326,6 +362,16 @@ element<HTMLFormElement>('topup-form').addEventListener('submit', async event =>
       emailInput: checkoutEmail, totalElement: element('checkout-total'),
       promotionInput: checkoutPromotionInput, promotionApply: checkoutPromotionApply,
       promotionRemove: checkoutPromotionRemove, promotionStatus: checkoutPromotionStatus,
+      ...(repoFunding ? {
+        initialPromotionCode: TRY_PROMOTION_CODE,
+        noCostSubmitLabel: 'Confirm $5 credit and continue',
+        onSessionChange: (session: import('@stripe/stripe-js').StripeCheckoutSession) => {
+          if (!current()) return;
+          element('try-credit-value').textContent = formatBalance(amountCents);
+          element('try-credit-discount').textContent = session.total.discount.minorUnitsAmount > 0 ? `−${session.total.discount.amount}` : session.total.discount.amount;
+          element('try-credit-due').textContent = session.total.total.amount;
+        },
+      } : {}),
       clientSecret: data.client_secret, publishableKey: data.publishable_key, submitLabel,
       onReady: () => { if (current()) setPaymentLoading(false); },
       onError: () => { if (current()) setPaymentLoading(false); },
@@ -364,6 +410,10 @@ element<HTMLFormElement>('topup-form').addEventListener('submit', async event =>
   } finally {
     if (accountVersion === version) { busy = false; render(); }
   }
+}
+element<HTMLFormElement>('topup-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  await openCheckout();
 });
 cap.addEventListener('input', () => { capDirty = true; });
 for (const input of [rechargeEnabled, rechargeAmount, rechargeMaximum]) {

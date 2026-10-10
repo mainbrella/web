@@ -6,6 +6,7 @@ import { parseRepoRunConfig, stringifyRepoRunConfig, validateRepoRunConfig } fro
 import { streamRunOutput, type RunOutputStatus } from './repo-run-output.ts';
 import type { ContainerData } from './types.ts';
 import { captureRepository } from './acquisition-spine.ts';
+import { repoFundingUrl } from './repo-funding.ts';
 
 const element = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const form = element<HTMLFormElement>('run-form');
@@ -17,6 +18,8 @@ const terminalHost = element('run-terminal');
 const repo = element<HTMLInputElement>('run-repo');
 const configInput = element<HTMLTextAreaElement>('run-import-text');
 const params = new URLSearchParams(location.search);
+const tryFlow = params.get('flow') === 'try';
+const prepareOnly = params.get('prepare') === '1';
 let privateRequested = params.get('private') === '1';
 let identity = launchIdentity(location.hash);
 // Existing configured links remain supported; new configurations stay in this tab.
@@ -33,6 +36,7 @@ let launchMode = Boolean(identity || legacyMode || imported);
 let launch: RepositoryLaunch | null = null;
 let userId: string | null = null;
 let active = false;
+let accessChecked = !tryFlow;
 let busy = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
 let terminal: { dispose: () => void } | undefined;
@@ -338,7 +342,8 @@ function updatePrompt() {
   element('run-import-step').hidden = Boolean(identity) || legacyMode || (!launchMode && !promptCopied && !configId);
   element('run-access').hidden = !launchMode || Boolean(userId && active);
   status.hidden = !launchMode;
-  submit.hidden = !launchMode;
+  submit.hidden = !launchMode || Boolean(userId && !active);
+  element('run-fund').hidden = !launchMode || !userId || active;
   element('run-allowance').hidden = !launchMode;
   element('run-intro').hidden = !launchMode || Boolean(imported);
   element('run-repo-label').textContent = launchMode ? 'GitHub repository' : '1. Paste the GitHub URL';
@@ -349,10 +354,16 @@ function updatePrompt() {
   const value = options();
   config.textContent = [value.ref && `Ref: ${value.ref}`, `Runtime: ${value.catalogId || 'Automatic'} · Size: ${value.size}`, `Directory: ${value.cwd}`,
     value.setupCommand && `Setup: ${value.setupCommand}`, value.startCommand && `Start: ${value.startCommand}`, value.port !== undefined && `Preview port: ${value.port}`].filter(Boolean).join('\n');
+  if (tryFlow && (!accessChecked || !active && !prepareOnly)) {
+    form.hidden = true;
+    status.hidden = false;
+    element('run-access').hidden = !accessChecked;
+  }
 }
 function configurationUrl(): URL {
   const url = imported ? new URL('/run/', location.origin) : repoRunUrl(options(), location.origin);
   if (privateRequested) url.searchParams.set('private', '1');
+  if (tryFlow) url.searchParams.set('flow', 'try');
   if (imported && configId) url.hash = `config=${configId}`;
   return url;
 }
@@ -388,7 +399,7 @@ function importConfiguration() {
   }
 }
 function preparePrompt() {
-  if (launchMode) return;
+  if (launchMode || tryFlow && (!accessChecked || !active && !prepareOnly)) return;
   if (repo.value !== preparedRepo) promptCopied = false;
   preparedRepo = repo.value;
   promptVersion++;
@@ -442,6 +453,7 @@ function saveIdentity(kind: 'launch' | 'request', id: string) {
   if (imported && kind === 'request') storeConfiguration(id, imported);
   const url = imported ? new URL('/run/', location.origin) : repoRunUrl(launch?.options ?? options(), location.origin);
   if (privateRequested || launch?.repository.private) url.searchParams.set('private', '1');
+  if (tryFlow) url.searchParams.set('flow', 'try');
   url.hash = `${kind}=${id}`;
   history.replaceState(null, '', url);
   identity = { kind, id };
@@ -473,6 +485,8 @@ function signIn() {
   element('run-access').hidden = !launchMode;
   element('run-sign-in').hidden = false;
   element('run-plans').hidden = true;
+  element('run-fund').hidden = true;
+  element('run-funding-note').textContent = '';
   element('run-access-note').textContent = 'to run this repository in your account.';
   status.textContent = '';
   submit.disabled = false;
@@ -681,12 +695,19 @@ async function init() {
   try {
     const session = await createAuthClient().readSession();
     if (stopped || version !== sessionVersion) return;
-    if (!session) { signIn(); return; }
+    if (!session) {
+      signIn();
+      if (tryFlow) location.href = element<HTMLAnchorElement>('run-sign-in').href;
+      return;
+    }
     userId = session.user.id;
     submit.formNoValidate = false;
     const data = await request<ContainerData>('/containers');
     if (stopped || version !== sessionVersion) return;
     active = data.active;
+    const prepaid = data.billing?.balanceCents !== undefined;
+    if (prepaid && typeof data.billing?.availableBalanceCents === 'number' && data.billing.availableBalanceCents <= 0) active = false;
+    accessChecked = true;
     submit.disabled = !active;
     element('run-access').hidden = !launchMode || active;
     element('run-sign-in').hidden = true;
@@ -694,7 +715,26 @@ async function init() {
     element('run-plans').textContent = 'Add prepaid balance';
     element('run-access-note').textContent = 'to fund this repository run.';
     status.textContent = '';
-    if (data.active) element('run-allowance').textContent = `${Math.max(0, data.limits.maxStartsPerMonth - data.usage.starts)} starts remaining this month. Each run uses your prepaid balance and monthly spending cap.`;
+    const fundingUrl = repoFundingUrl(options().repo, configurationUrl());
+    element<HTMLAnchorElement>('run-plans').href = fundingUrl;
+    element<HTMLAnchorElement>('run-fund').href = fundingUrl;
+    element('run-fund').hidden = !launchMode || active;
+    element('run-access-retry').hidden = true;
+    element('run-funding-note').textContent = tryFlow && active && !prepaid
+      ? 'Your active plan or trial covers this run. Prepaid funds are not required.' : '';
+    if (tryFlow && !prepareOnly && !active && identity?.kind !== 'launch') {
+      status.textContent = 'Checking your repository before checkout…';
+      const value = options();
+      const query = new URLSearchParams({ repo: value.repo, cwd: value.cwd || '.' });
+      if (value.ref) query.set('ref', value.ref);
+      await request(`/repo-launches/resolve?${query}`);
+      if (stopped || version !== sessionVersion) return;
+      location.href = fundingUrl;
+      return;
+    }
+    if (tryFlow) form.hidden = false;
+    updatePrompt(); preparePrompt();
+    if (data.active) element('run-allowance').textContent = `${Math.max(0, data.limits.maxStartsPerMonth - data.usage.starts)} starts remaining this month. ${prepaid ? 'Each run uses your prepaid balance and monthly spending cap.' : 'This run uses your active plan or trial compute allowance. Prepaid funds are not required.'}`;
     if (identity?.kind === 'launch') {
       const state = await request<RepositoryLaunch>(`/repo-launches/${identity.id}`);
       if (stopped || version !== sessionVersion) return;
@@ -703,8 +743,14 @@ async function init() {
       render();
       if (active) void advance();
     }
-  } catch (cause) { if (stopped || version !== sessionVersion) return; showError(cause); status.textContent = ''; element('run-retry').hidden = false; element('run-progress').hidden = false; }
+  } catch (cause) {
+    if (stopped || version !== sessionVersion) return;
+    showError(cause); status.textContent = '';
+    if (tryFlow && !launch) element('run-access-retry').hidden = false;
+    else { element('run-retry').hidden = false; element('run-progress').hidden = false; }
+  }
 }
+element('run-access-retry').addEventListener('click', () => { void init(); });
 form.addEventListener('submit', event => { event.preventDefault(); if (launchMode) void run(); else { preparePrompt(); void copyPrompt(); } });
 form.addEventListener('input', event => {
   if (event.target === configInput) { importConfiguration(); return; }
@@ -735,11 +781,15 @@ const expiryTimer = setInterval(() => {
 const outputTimer = setInterval(() => { void logs(); }, 2000);
 window.addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
 window.addEventListener('pagehide', () => { stopped = true; clearTimeout(timer); clearInterval(expiryTimer); clearInterval(outputTimer); stopOutputStreams(); terminal?.dispose(); });
-window.addEventListener('auth-change', () => { if (!launchMode) return; stopped = true; signIn(); element('run-progress').hidden = true; });
+window.addEventListener('auth-change', () => { if (!launchMode && !tryFlow) return; stopped = true; signIn(); element('run-progress').hidden = true; });
 window.addEventListener('github-repository-ready', event => {
   if (launch || identity || busy) return;
   const detail = (event as CustomEvent).detail;
   privateRequested = Boolean(detail.private);
+  if (tryFlow && !prepareOnly && userId && accessChecked && !active) {
+    location.href = repoFundingUrl(options().repo, configurationUrl());
+    return;
+  }
   // Keep a reviewed configuration when reconnecting; detection supplies first-use defaults only.
   if (!imported && detail.suggestedConfiguration) {
     configInput.value = stringifyRepoRunConfig(detail.suggestedConfiguration);
@@ -747,7 +797,7 @@ window.addEventListener('github-repository-ready', event => {
   } else { updatePrompt(); preparePrompt(); }
 });
 window.addEventListener('cookie-consent-change', event => {
-  if (!launchMode) return;
+  if (!launchMode && !tryFlow) return;
   if ((event as CustomEvent).detail?.choice === 'accepted') { stopped = false; void init(); }
   else { stopped = true; signIn(); element('run-progress').hidden = true; }
 });
@@ -757,5 +807,5 @@ if (configId && !imported) {
   element('run-import-status').textContent = 'This configuration is unavailable in this tab. Paste the AI response again.';
   element('run-import-status').className = 'dashboard-error';
 }
-if (launchMode) void init();
+if (launchMode || tryFlow) void init();
 if (!privateRequested && params.has('repo') && validRepo(repo.value)) void captureRepository(repo.value, 'run_v1');

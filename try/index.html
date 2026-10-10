@@ -24,6 +24,7 @@
           <h1 id="try-title">Run your GitHub project in a cloud Linux machine.</h1>
           <p class="try-description">Try a public repository first for the quickest setup. Use your ChatGPT or Claude account to prepare the setup, then review it in Mainbrella.</p>
           <form id="try-form" class="try-form" action="/run/" method="get">
+            <input type="hidden" name="flow" value="try">
             <label for="try-repo">GitHub repository</label>
             <div class="try-form-controls">
               <input id="try-repo" name="repo" type="text" inputmode="url" maxlength="240" autocomplete="url" spellcheck="false" required placeholder="owner/repository or GitHub URL" aria-describedby="try-repo-hint try-repo-error">
@@ -33,8 +34,8 @@
             <p id="try-repo-error" class="try-error" role="alert" hidden></p>
             <label class="try-private-choice"><input type="checkbox" name="private" value="1">This repository is private</label>
           </form>
+          <p class="try-pricing">Get $5 off compute credit with <strong>BRELLA-GIT-TRY5</strong>, automatically applied at checkout. Confirm your credit, then set up your repository. No monthly subscription. <a href="/pricing/">See pricing</a></p>
           <p class="try-private">Only have a private repo? Select the checkbox and we'll guide you through one extra step: installing <a href="https://github.com/apps/mainbrella-import" target="_blank" rel="noopener noreferrer">Mainbrella Import</a> with read-only access to the repositories you select. Publishing changes later uses a separate Build connection.</p>
-          <p class="try-pricing">A Mainbrella account and prepaid balance are needed to run a project. Add $5 or more; no monthly subscription. <a href="/pricing/">See pricing</a></p>
           <a class="try-yaml" href="/yaml/">YAML launch format and examples</a>
         </div>
         <figure class="try-walkthrough">

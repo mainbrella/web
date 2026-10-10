@@ -783,6 +783,15 @@ html.cookie-consent-open { overflow: hidden; }
 .prepaid-billing .pricing-note { margin-top: 8px; line-height: 1.6; }
 .prepaid-billing .pricing-note:empty { display: none; }
 .billing-settings { margin-top: 28px; }
+.prepaid-page[data-try-checkout="true"] { max-width: 640px; }
+.prepaid-page[data-try-checkout="true"] h1 { font-size: 28px; }
+.prepaid-page[data-try-checkout="true"] :is(.billing-settings, .pricing-explanation, #prepaid-billing > .billing-heading, #prepaid-billing > .balance-list, #inline-checkout > .billing-heading, #billing-runtime, #topup-note, #checkout-total, #topup-form > div, #checkout-promotion > summary) { display: none; }
+.prepaid-page[data-try-checkout="true"] .prepaid-checkout { margin-top: 16px; }
+.try-credit-summary { margin: 0 0 16px; }
+.try-credit-summary > div:last-child :is(dt, dd) { color: var(--ink); font-weight: 600; }
+.prepaid-page[data-try-checkout="true"] #try-checkout-back { display: inline-flex; align-items: center; min-height: 44px; }
+.prepaid-page[data-try-checkout="true"] #checkout-promotion-apply { border: 1px solid var(--line); background: transparent; color: var(--ink); }
+.prepaid-page[data-try-checkout="true"] #checkout-promotion-remove { border: 0; background: transparent; color: var(--blue); }
 .recharge-form { align-items: start; }
 .recharge-form .recharge-toggle { display: flex; flex-basis: 100%; align-items: center; gap: 8px; min-height: 44px; }
 .recharge-toggle input { width: 18px; height: 18px; flex-shrink: 0; }
