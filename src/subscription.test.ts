@@ -55,6 +55,7 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
   let failRead = extra.failRead || false;
   let checkoutData: any = { sessionId: 'cs_test', client_secret: 'cs_test_secret_inline', publishable_key: `pk_test_fixture_${sequence + 1}` };
   let completionError: string | null = extra.completionError || null;
+  const topupErrors: string[] = [...(extra.topupErrors || [])];
   const stripeSession = { id: 'cs_test', email: 'owner@example.com', canConfirm: false, total: { total: { amount: '$20.00' } } };
   const confirmations: any[] = [];
   let sessionChanged: (session: any) => void = () => {};
@@ -116,7 +117,10 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
     }
     if (mutationGate) await mutationGate;
     if (fail) return Response.json({ error: fail }, { status: fail === 'unauthorized' ? 401 : 409 });
-    if (path === '/billing/topups') return Response.json(checkoutData);
+    if (path === '/billing/topups') {
+      const error = topupErrors.shift();
+      return error ? Response.json({ error }, { status: 409 }) : Response.json(checkoutData);
+    }
     if (path === '/billing/topups/complete') {
       if (completionError) return Response.json({ error: completionError }, { status: 409 });
       balance = wallet({ balanceCents: 3234, availableBalanceCents: 3000 });
@@ -136,7 +140,7 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
     setCompletionError(value: string | null) { completionError = value; },
     setConfirmationError(value: string | null) { confirmationError = value; },
     setConfirmGate(value: Promise<void> | null) { confirmGate = value; },
-    paymentReady() { stripeSession.canConfirm = true; sessionChanged(stripeSession); },
+    paymentReady(complete = true) { stripeSession.canConfirm = complete; sessionChanged(stripeSession); },
     paymentLoadError() { paymentEvents.get('loaderror')?.({ error: { message: 'Unable to load card details.' } }); },
     confirmations, isMounted: () => mounted, isDestroyed: () => destroyed,
     changeAccount(value: User | null) { events.get('auth-change')?.({ detail: { user: value } }); },
@@ -230,6 +234,167 @@ test('checkout requires an embedded session and never falls back to external nav
   assert.deepEqual(f.redirects, []);
   assert.equal(f.isMounted(), false);
   assert.equal(f.node('topup-submit').disabled, false);
+});
+
+test('an expired checkout opens a fresh embedded form in the same action', async t => {
+  const saved = { requestId: 'a4b63055-32c7-4256-a671-a11211884d18', amountCents: 5000, sessionId: 'cs_old_hosted' };
+  const storage = new Map([['mainbrella-prepaid-topup:owner', JSON.stringify(saved)]]);
+  const f = await fixture(t, { storage, topupErrors: ['topup_expired'] });
+  await f.node('topup-form').submit(); await tick();
+  const requests = f.calls.filter(call => call.path === '/billing/topups').map(call => call.body);
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].requestId, saved.requestId);
+  assert.notEqual(requests[1].requestId, saved.requestId);
+  assert.deepEqual(requests.map(request => request.amountCents), [5000, 5000]);
+  assert.equal(f.isMounted(), true);
+  assert.equal(f.node('inline-checkout').hidden, false);
+  assert.equal(f.node('topup-status').textContent, '');
+  assert.equal(f.node('billing-balance').textContent, '$12.34');
+  assert.equal(f.calls.some(call => call.path === '/billing/topups/complete'), false);
+  assert.deepEqual(f.redirects, []);
+});
+
+test('automatic replacement is bounded if the new checkout also expires', async t => {
+  const f = await fixture(t, { topupErrors: ['topup_expired', 'topup_expired'] });
+  await f.node('topup-form').submit(); await tick();
+  assert.equal(f.calls.filter(call => call.path === '/billing/topups').length, 2);
+  assert.equal(f.isMounted(), false);
+  assert.equal(f.storage.size, 0);
+  assert.equal(f.node('topup-submit').disabled, false);
+});
+
+test('an uncertain old-session expiry preserves the same purchase for retry', async t => {
+  const f = await fixture(t, { topupErrors: ['billing_unavailable'] });
+  await f.node('topup-form').submit();
+  const first = f.calls.find(call => call.path === '/billing/topups')!.body;
+  assert.equal(f.calls.filter(call => call.path === '/billing/topups').length, 1);
+  await f.node('topup-form').submit(); await tick();
+  assert.deepEqual(f.calls.filter(call => call.path === '/billing/topups').map(call => call.body), [first, first]);
+  assert.equal(f.isMounted(), true);
+});
+
+test('the inline form credits balance only after server payment verification', async t => {
+  const f = await fixture(t);
+  await f.node('topup-form').submit(); await tick();
+  assert.equal(f.node('inline-checkout').hidden, false);
+  assert.equal(f.node('checkout-payment-slot').dataset.loading, 'false');
+  assert.equal(f.node('topup-amount').disabled, true);
+  assert.equal(f.node('checkout-submit').disabled, true);
+  assert.equal(f.node('billing-balance').textContent, '$12.34');
+  f.paymentReady();
+  await f.node('checkout-form').submit(); await tick();
+  assert.deepEqual(f.confirmations, [{ redirect: 'if_required' }]);
+  assert.deepEqual(f.calls.find(call => call.path === '/billing/topups/complete')?.body, { sessionId: 'cs_test' });
+  assert.equal(f.node('billing-balance').textContent, '$32.34');
+  assert.equal(f.node('inline-checkout').hidden, true);
+  assert.equal(f.isDestroyed(), true);
+  assert.equal(f.storage.size, 0);
+  assert.deepEqual(mocks.billingTracking, ['cs_test']);
+  assert.equal(f.node('topup-submit').disabled, false);
+  assert.deepEqual(f.redirects, []);
+});
+
+test('Pay explains incomplete card details and enables as Stripe validates the form', async t => {
+  const f = await fixture(t);
+  await f.node('topup-form').submit(); await tick();
+  assert.equal(f.node('checkout-submit').disabled, true);
+  assert.equal(f.node('checkout-status').textContent, 'Complete your card details to enable payment.');
+  f.paymentReady();
+  assert.equal(f.node('checkout-submit').disabled, false);
+  assert.equal(f.node('checkout-status').textContent, '');
+  f.paymentReady(false);
+  assert.equal(f.node('checkout-submit').disabled, true);
+  assert.equal(f.node('checkout-status').textContent, 'Complete your card details to enable payment.');
+  await f.node('checkout-form').submit();
+  assert.equal(f.confirmations.length, 0);
+});
+
+test('retrying a pending inline confirmation verifies again without charging again', async t => {
+  const f = await fixture(t, { completionError: 'payment_pending' });
+  await f.node('topup-form').submit(); await tick();
+  f.paymentReady();
+  await f.node('checkout-form').submit(); await tick();
+  assert.equal(f.node('billing-balance').textContent, '$12.34');
+  assert.match(f.node('checkout-status').textContent, /No funds have been added/);
+  assert.equal(f.node('checkout-submit').textContent, 'Retry confirmation');
+  assert.equal(f.node('checkout-submit').disabled, false);
+  assert.equal(f.node('topup-submit').disabled, true);
+  assert.deepEqual(mocks.billingTracking, []);
+  f.setCompletionError(null);
+  await f.node('checkout-form').submit(); await tick();
+  assert.equal(f.confirmations.length, 1);
+  assert.equal(f.calls.filter(call => call.path === '/billing/topups/complete').length, 2);
+  assert.equal(f.node('billing-balance').textContent, '$32.34');
+  assert.equal(f.storage.size, 0);
+});
+
+test('Stripe payment errors stay inline and do not credit balance', async t => {
+  const f = await fixture(t);
+  await f.node('topup-form').submit(); await tick();
+  f.paymentReady(); f.setConfirmationError('Your card was declined.');
+  await f.node('checkout-form').submit(); await tick();
+  assert.equal(f.node('checkout-status').textContent, 'Your card was declined.');
+  assert.equal(f.node('checkout-submit').disabled, false);
+  assert.equal(f.node('checkout-submit').textContent, 'Pay $20.00');
+  assert.equal(f.node('billing-balance').textContent, '$12.34');
+  assert.equal(f.calls.some(call => call.path === '/billing/topups/complete'), false);
+  assert.deepEqual(mocks.billingTracking, []);
+});
+
+test('duplicate payment submits and closing the form are blocked during charging', async t => {
+  const f = await fixture(t);
+  await f.node('topup-form').submit(); await tick();
+  f.paymentReady();
+  let release!: () => void;
+  f.setConfirmGate(new Promise(resolve => { release = resolve; }));
+  const payment = f.node('checkout-form').submit(); await tick();
+  await f.node('checkout-form').submit();
+  await f.node('checkout-back').click();
+  assert.equal(f.confirmations.length, 1);
+  assert.equal(f.node('checkout-back').disabled, true);
+  assert.equal(f.node('usage-save').disabled, true);
+  assert.equal(f.node('inline-checkout').hidden, false);
+  release(); await payment; await tick();
+  assert.equal(f.node('inline-checkout').hidden, true);
+  assert.equal(f.node('usage-save').disabled, false);
+});
+
+test('closing an unpaid form preserves its purchase identity when reopened', async t => {
+  const f = await fixture(t);
+  await f.node('topup-form').submit(); await tick();
+  const initial = f.calls.find(call => call.path === '/billing/topups')!.body;
+  await f.node('checkout-back').click();
+  assert.equal(f.isDestroyed(), true);
+  assert.equal(f.node('inline-checkout').hidden, true);
+  assert.equal(f.node('topup-submit').disabled, false);
+  await f.node('topup-form').submit(); await tick();
+  assert.deepEqual(f.calls.filter(call => call.path === '/billing/topups').map(call => call.body), [initial, initial]);
+  assert.equal(f.confirmations.length, 0);
+});
+
+test('switching accounts while Stripe loads cannot mount the old account form', async t => {
+  let release!: () => void;
+  const f = await fixture(t, { stripeGate: new Promise<void>(resolve => { release = resolve; }) });
+  await f.node('topup-form').submit();
+  f.changeAccount({ id: 'next-owner' }); await tick();
+  release(); await tick();
+  assert.equal(f.isMounted(), false);
+  assert.equal(f.node('inline-checkout').hidden, true);
+});
+
+test('switching accounts during verification clears old payment state and ignores its result', async t => {
+  const f = await fixture(t);
+  await f.node('topup-form').submit(); await tick();
+  f.paymentReady();
+  let release!: () => void;
+  f.setGate(new Promise(resolve => { release = resolve; }));
+  const payment = f.node('checkout-form').submit(); await tick();
+  f.changeAccount({ id: 'next-owner' }); await tick();
+  release(); await payment; await tick();
+  assert.equal(f.node('billing-balance').textContent, '$12.34');
+  assert.equal(f.node('inline-checkout').hidden, true);
+  assert.equal(f.node('topup-submit').disabled, false);
+  assert.deepEqual(mocks.billingTracking, []);
 });
 
 test('return confirms server-paid funds without starting a new checkout', async t => {

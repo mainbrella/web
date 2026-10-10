@@ -38,6 +38,7 @@ let capDirty = false;
 let rechargeDirty = false;
 const returnParams = new URLSearchParams(location.search);
 let completionSession = returnParams.get('topup_session') || (returnParams.get('topup_return') === '1' ? returnParams.get('session_id') : null);
+let completionUserId: string | null = null;
 let balanceReadVersion = 0;
 
 type PendingTopup = { requestId: string; amountCents: number; sessionId?: string };
@@ -178,6 +179,7 @@ async function loadBalance(accountVersion = version) {
 }
 async function completePayment(accountVersion: number, retryInForm = false) {
   if (!completionSession || !user) return;
+  completionUserId = user.id;
   const sessionId = completionSession;
   feedback(status, 'Confirming your payment…');
   try {
@@ -186,6 +188,7 @@ async function completePayment(accountVersion: number, retryInForm = false) {
     applyBalance(data.balance);
     if (!pendingTopup?.sessionId || pendingTopup.sessionId === sessionId) rememberPending(null);
     completionSession = null;
+    completionUserId = null;
     closeCheckout();
     const url = new URL(location.href);
     url.searchParams.delete('topup_session');
@@ -197,7 +200,12 @@ async function completePayment(accountVersion: number, retryInForm = false) {
   } catch (error) {
     if (accountVersion !== version || expired(error)) return;
     const pending = error instanceof BillingError && ['payment_pending', 'topup_pending', 'payment_not_complete'].includes(error.code);
-    if (error instanceof BillingError && ['checkout_expired', 'topup_expired'].includes(error.code)) { rememberPending(null); completionSession = null; }
+    if (error instanceof BillingError && ['checkout_expired', 'topup_expired'].includes(error.code)) {
+      rememberPending(null);
+      completionSession = null;
+      completionUserId = null;
+      closeCheckout();
+    }
     const message = pending
       ? 'Payment is still pending. No funds have been added yet. Refresh to check again.'
       : 'Could not confirm the payment. Refresh to check again before starting another payment.';
@@ -229,6 +237,10 @@ async function load(knownUser?: User | null) {
   config = configuration.status === 'fulfilled' ? readConfig(configuration.value) : null;
   if (session.status === 'fulfilled') user = session.value?.user || null;
   else feedback(status, 'Could not check your sign-in. Refresh the page to try again.', true);
+  if (completionUserId && completionUserId !== user?.id) {
+    completionSession = null;
+    completionUserId = null;
+  }
   if (user) {
     restorePending();
     try {
@@ -275,7 +287,17 @@ element<HTMLFormElement>('topup-form').addEventListener('submit', async event =>
   feedback(element('topup-status'), 'Opening secure checkout…');
   render();
   try {
-    const data = await api('/billing/topups', { requestId: pendingTopup!.requestId, amountCents });
+    let data;
+    try {
+      data = await api('/billing/topups', { requestId: pendingTopup!.requestId, amountCents });
+    } catch (error) {
+      if (accountVersion !== version || !user) return;
+      if (!(error instanceof BillingError) || !['checkout_expired', 'topup_expired'].includes(error.code)) throw error;
+      // Stripe has confirmed the old checkout can no longer charge. Replace
+      // its purchase identity once, without requiring a second user action.
+      rememberPending({ requestId: crypto.randomUUID(), amountCents });
+      data = await api('/billing/topups', { requestId: pendingTopup!.requestId, amountCents });
+    }
     if (accountVersion !== version || !user) return;
     if (typeof data.sessionId !== 'string' || !/^cs_[A-Za-z0-9_]+$/.test(data.sessionId)
       || typeof data.client_secret !== 'string' || !data.client_secret.startsWith(`${data.sessionId}_secret_`)
@@ -326,11 +348,12 @@ element<HTMLFormElement>('topup-form').addEventListener('submit', async event =>
         completionSession = pendingTopup.sessionId;
         await completePayment(accountVersion);
       } else {
+        rememberPending(null);
         await loadBalance(accountVersion).catch(() => {});
         if (accountVersion === version) feedback(element('topup-status'), 'That payment is already complete. Refresh to check your balance.', true);
       }
     } else feedback(element('topup-status'), error instanceof BillingError && ['checkout_expired', 'topup_expired'].includes(error.code)
-      ? 'That checkout expired. Continue to payment to open a new form.'
+      ? 'Could not prepare a new payment form. Please try again.'
       : 'Could not open checkout. No balance was added. Retry to continue the same payment.', true);
   } finally {
     if (accountVersion === version) { busy = false; render(); }

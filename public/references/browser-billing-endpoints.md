@@ -8,7 +8,7 @@ Bearer automation credentials do not authorize purchases or plan changes.
 | --- | --- |
 | `GET /billing/config` | Public `{configured,minTopupCents:500,maxTopupCents:100000}`. |
 | `GET /billing/balance` | `{balance}` with confirmed balance, available and reserved cents, monthly spending, production rate/runway and automatic recharge settings. |
-| `POST /billing/topups` with `{"amountCents":2000,"requestId":"<uuid>"}` | Creates or recovers hosted one-time Stripe Checkout and returns `{url,sessionId}`. Reuse the same UUID and amount after an uncertain response. |
+| `POST /billing/topups` with `{"amountCents":2000,"requestId":"<uuid>"}` | Creates or recovers embedded one-time Stripe Checkout and returns `{client_secret,publishable_key,sessionId}`. Reuse the same UUID and amount after an uncertain response. |
 | `POST /billing/topups/complete` with `{"sessionId":"cs_..."}` | Verifies account-owned Checkout and live succeeded/captured card payment, then applies funding by immutable payment identity. Returns 200 `{balance}` only after verified payment; pending returns 409 `payment_pending`, expired returns 409 `topup_expired`. |
 | `POST /billing/settings` with `{"spendLimitCents":5000}` | Sets the USD monthly consumption cap; raising it adds no funds. |
 | `POST /billing/settings` with `{"autoRecharge":{"enabled":true,"amountCents":2000,"monthlyLimitCents":10000}}` | Explicitly authorizes $20 automatic recharges up to $100 per UTC month and saving the verified card. Both amounts are $5–$1,000 and maximum must cover at least one recharge. Pending payments count toward authorization and never fund runtime. |

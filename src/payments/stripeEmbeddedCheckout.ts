@@ -99,6 +99,7 @@ export function mountStripeEmbeddedCheckout({
   let checkoutActions: StripeCheckoutLoadActionsSuccess | null = null;
   let paymentElement: StripePaymentElement | null = null;
   let processing = false;
+  let paymentReady = false;
   let emailTimer: ReturnType<typeof setTimeout> | undefined;
   let syncSession: (session: StripeCheckoutSession) => void = () => {};
   let syncedEmail = "";
@@ -143,6 +144,12 @@ export function mountStripeEmbeddedCheckout({
         if (destroyed) return;
         if (session?.total?.total?.amount) totalElement.textContent = `Due today: ${session.total.total.amount}`;
         submitButton.disabled = processing || updatingPromotion || (!confirmedSession && ((!fixedEmail && syncedEmail !== emailInput.value.trim()) || !emailInput.validity.valid || session?.canConfirm !== true));
+        if (paymentReady && !processing && !confirmedSession && ["", "pending", "incomplete"].includes(statusElement.dataset.state || "")) {
+          const emailReady = emailInput.validity.valid && (fixedEmail || syncedEmail === emailInput.value.trim());
+          const message = !emailReady ? "Enter a valid email for your receipt."
+            : session?.canConfirm !== true ? "Complete your card details to enable payment." : "";
+          setStatus(statusElement, message, message ? "incomplete" : "");
+        }
         const promotionLocked = processing || updatingPromotion || Boolean(confirmedSession);
         if (promotionInput) promotionInput.disabled = promotionLocked;
         if (promotionApply) promotionApply.disabled = promotionLocked || !promotionInput?.value.trim();
@@ -156,7 +163,8 @@ export function mountStripeEmbeddedCheckout({
       paymentElement = checkout.createPaymentElement(PAYMENT_ELEMENT_OPTIONS);
       paymentElement.on?.("ready", () => {
         if (destroyed) return;
-        if (statusElement.dataset.state === "pending") setStatus(statusElement, "");
+        paymentReady = true;
+        syncSession(checkoutActions!.getSession());
         onReady?.();
       });
       paymentElement.on?.("loaderror", (event) => {
@@ -187,8 +195,8 @@ export function mountStripeEmbeddedCheckout({
       if (destroyed || email !== emailInput.value.trim()) return;
       if (result.type === "error") throw new Error(result.error.message);
       syncedEmail = email;
-      syncSession(checkoutActions.getSession());
       setStatus(statusElement, "");
+      syncSession(checkoutActions.getSession());
     } catch (caught) {
       const error = caught instanceof Error ? caught : new Error("Unexpected error");
       if (destroyed) return;
