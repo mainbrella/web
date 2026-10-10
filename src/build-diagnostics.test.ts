@@ -92,6 +92,13 @@ test('old diagnostics explain incomplete streams from evidence when no server ex
   assert.equal(operationExplanation(op('other', { explanation: '  server reason  ' })), 'server reason');
 });
 
+test('spending limit diagnostics identify Mainbrella and a request blocked before Cloudflare dispatch', () => {
+  const blocked = op('text-12', { kind: 'text', status: 'blocked', dispatch_attempted: 0,
+    result: { ok: false, failure: { code: 'spend_limit_exceeded' } } });
+  assert.match(operationExplanation(blocked)!, /Mainbrella account's monthly spending limit/);
+  assert.match(operationExplanation(blocked)!, /No request was sent to Cloudflare/);
+});
+
 test('operation labels inspect command evidence when labels are generic', () => {
   assert.equal(operationLabel(op('tool-1-2-command', { kind: 'tool', label: 'Run command', evidence: { toolName: 'run_command', command: 'tsc --noEmit' } })), 'Type-check and compile');
   assert.equal(operationLabel(op('tool-1-2-command', { kind: 'tool', label: 'Run command', evidence: { toolName: 'run_command', command: 'npm install' } })), 'Install dependencies');
