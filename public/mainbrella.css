@@ -776,9 +776,11 @@ html.cookie-consent-open { overflow: hidden; }
 .prepaid-checkout { margin-top: 24px; }
 .prepaid-checkout .billing-heading { flex-wrap: wrap; gap: 8px 24px; }
 .prepaid-checkout #checkout-form { margin-top: 12px; }
+.prepaid-checkout #checkout-billing-address { margin-top: 16px; }
 .prepaid-checkout .checkout-payment-slot[data-loading="false"] #checkout-payment { min-height: 0; }
 .prepaid-checkout #checkout-status { min-height: 0; }
 .prepaid-checkout #checkout-submit { min-height: 44px; }
+.prepaid-checkout button:disabled { cursor: not-allowed; }
 .prepaid-checkout :is(button, input):focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
 .prepaid-billing .pricing-note { margin-top: 8px; line-height: 1.6; }
 .prepaid-billing .pricing-note:empty { display: none; }

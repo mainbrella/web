@@ -358,6 +358,7 @@ async function openCheckout() {
     const current = () => accountVersion === version && mountVersion === checkoutVersion && Boolean(user);
     cleanupCheckout = mountStripeEmbeddedCheckout({
       container: element('checkout-payment'), paymentSlot: checkoutSlot, form: checkoutForm,
+      billingAddressContainer: element('checkout-billing-address'),
       submitButton: submit, statusElement: element('checkout-status'),
       emailInput: checkoutEmail, totalElement: element('checkout-total'),
       promotionInput: checkoutPromotionInput, promotionApply: checkoutPromotionApply,

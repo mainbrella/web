@@ -71,6 +71,11 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
   const confirmations: any[] = [];
   let sessionChanged: (session: any) => void = () => {};
   const paymentEvents = new Map<string, (event?: any) => void>();
+  const addressEvents = new Map<string, (event?: any) => void>();
+  let billingAddressComplete = extra.billingAddressComplete !== false;
+  let cardComplete = false;
+  let addressCreations = 0;
+  let addressDestructions = 0;
   let mounted = false;
   let destroyed = false;
   let paymentMounted = false;
@@ -78,6 +83,10 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
   let paymentDestructions = 0;
   let confirmGate: Promise<void> | null = null;
   let confirmationError: string | null = null;
+  function updateCanConfirm() {
+    stripeSession.canConfirm = billingAddressComplete && (stripeSession.total.total.minorUnitsAmount === 0
+      ? !paymentMounted && extra.noCostCanConfirm !== false : cardComplete);
+  }
   const actions = {
     getSession: () => stripeSession,
     updateEmail: async () => ({ type: 'success' }),
@@ -91,7 +100,7 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
       stripeSession.total.total.minorUnitsAmount = creditCents - discountCents;
       stripeSession.discountAmounts = [{ promotionCode: code }];
       // Mounted, incomplete card fields prevent confirmation until removed.
-      if (creditCents === discountCents) stripeSession.canConfirm = !paymentMounted && extra.noCostCanConfirm !== false;
+      if (creditCents === discountCents) updateCanConfirm();
       sessionChanged(stripeSession);
       return { type: 'success' };
     },
@@ -118,12 +127,21 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
     return { initCheckoutElementsSdk: () => ({
       loadActions: async () => ({ type: 'success', actions }),
       on: (_type: string, handler: (session: any) => void) => { sessionChanged = handler; },
+      createBillingAddressElement: () => { addressCreations++; return {
+        on: (type: string, handler: (event?: any) => void) => addressEvents.set(type, handler),
+        mount: (container: Element) => {
+          container.textContent = 'Billing address';
+          updateCanConfirm();
+          addressEvents.get('change')?.({ complete: billingAddressComplete });
+        },
+        destroy: () => { addressDestructions++; },
+      }; },
       createPaymentElement: () => { paymentCreations++; return {
         on: (type: string, handler: (event?: any) => void) => paymentEvents.set(type, handler),
         mount: () => { mounted = true; paymentMounted = true; paymentEvents.get('ready')?.(); },
         destroy: () => {
           destroyed = true; paymentMounted = false; paymentDestructions++;
-          stripeSession.canConfirm = stripeSession.total.total.minorUnitsAmount === 0 && extra.noCostCanConfirm !== false;
+          updateCanConfirm();
         },
       }; },
     }) };
@@ -180,11 +198,17 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
     setCompletionError(value: string | null) { completionError = value; },
     setConfirmationError(value: string | null) { confirmationError = value; },
     setConfirmGate(value: Promise<void> | null) { confirmGate = value; },
-    paymentReady(complete = true) { stripeSession.canConfirm = complete; sessionChanged(stripeSession); },
+    paymentReady(complete = true) { cardComplete = complete; updateCanConfirm(); sessionChanged(stripeSession); },
+    completeBillingAddress(complete = true) {
+      billingAddressComplete = complete; updateCanConfirm();
+      addressEvents.get('change')?.({ complete }); sessionChanged(stripeSession);
+    },
+    billingAddressLoadError() { addressEvents.get('loaderror')?.({ error: { message: 'Unable to load billing address.' } }); },
     setPromotionGate(value: Promise<void> | null) { extra.promotionGate = value; },
     paymentLoadError() { paymentEvents.get('loaderror')?.({ error: { message: 'Unable to load card details.' } }); },
     confirmations, promotionCalls, isMounted: () => mounted, isDestroyed: () => destroyed,
     paymentCreations: () => paymentCreations, paymentDestructions: () => paymentDestructions,
+    addressCreations: () => addressCreations, addressDestructions: () => addressDestructions,
     changeAccount(value: User | null) { events.get('auth-change')?.({ detail: { user: value } }); },
   };
 }
@@ -244,6 +268,66 @@ test('try checkout waits for promo validation and preserves credit confirmation 
   await f.node('checkout-form').submit(); await tick();
   assert.equal(f.confirmations.length, 1);
   assert.deepEqual(f.redirects, [repoFunding.returnTo]);
+});
+
+test('free try credit collects the required billing address before enabling confirmation', async t => {
+  const f = await fixture(t, { search: trySearch, balance: emptyWallet(), billingAddressComplete: false });
+  await tick();
+  assert.equal(f.node('try-credit-due').textContent, '$0.00');
+  assert.equal(f.addressCreations(), 1);
+  assert.equal(f.node('checkout-billing-address').textContent, 'Billing address');
+  assert.equal(f.paymentCreations(), 0);
+  assert.equal(f.node('checkout-payment-slot').hidden, true);
+  assert.equal(f.node('checkout-submit').disabled, true);
+  assert.equal(f.node('checkout-status').textContent, 'Complete your billing address to continue.');
+  await f.node('checkout-form').submit();
+  assert.equal(f.confirmations.length, 0);
+  f.completeBillingAddress();
+  assert.equal(f.node('checkout-submit').disabled, false);
+  assert.match(f.node('checkout-status').textContent, /No payment is due/);
+  f.completeBillingAddress(false);
+  assert.equal(f.node('checkout-submit').disabled, true);
+  f.completeBillingAddress();
+  await f.node('checkout-form').submit(); await tick();
+  assert.equal(f.confirmations.length, 1);
+  assert.equal(f.addressDestructions(), 1);
+  assert.equal(f.node('billing-balance').textContent, '$5.00');
+  assert.deepEqual(f.redirects, [repoFunding.returnTo]);
+});
+
+test('paid checkout requires both the billing address and valid card details', async t => {
+  const f = await fixture(t, { billingAddressComplete: false });
+  await f.node('topup-form').submit(); await tick();
+  assert.equal(f.addressCreations(), 1);
+  f.paymentReady();
+  assert.equal(f.node('checkout-submit').disabled, true);
+  assert.match(f.node('checkout-status').textContent, /billing address/);
+  await f.node('checkout-form').submit();
+  assert.equal(f.confirmations.length, 0);
+  f.completeBillingAddress();
+  assert.equal(f.node('checkout-submit').disabled, false);
+  f.paymentReady(false);
+  assert.equal(f.node('checkout-submit').disabled, true);
+  assert.match(f.node('checkout-status').textContent, /card details/);
+  f.paymentReady();
+  await f.node('checkout-form').submit(); await tick();
+  assert.equal(f.confirmations.length, 1);
+  assert.equal(f.addressDestructions(), 1);
+});
+
+test('a billing address load failure blocks confirmation and closing ignores late events', async t => {
+  const f = await fixture(t, { zeroTotal: true });
+  await f.node('topup-form').submit(); await tick();
+  f.billingAddressLoadError();
+  assert.equal(f.node('checkout-submit').disabled, true);
+  assert.equal(f.node('checkout-status').textContent, 'Unable to load billing address.');
+  await f.node('checkout-form').submit();
+  assert.equal(f.confirmations.length, 0);
+  await f.node('checkout-back').click();
+  assert.equal(f.addressDestructions(), 1);
+  f.completeBillingAddress();
+  assert.equal(f.node('checkout-status').textContent, 'Unable to load billing address.');
+  assert.equal(f.node('checkout-submit').disabled, true);
 });
 
 test('a rejected try promo displays the real price and requires card confirmation', async t => {

@@ -165,6 +165,7 @@ test('importing payment code does not inject Stripe before checkout opens', asyn
   assert.deepEqual(scripts, []);
   const cleanup = mountStripeEmbeddedCheckout({
     container: { replaceChildren() {} } as unknown as HTMLElement,
+    billingAddressContainer: { replaceChildren() {} } as unknown as HTMLElement,
     form: { addEventListener() {}, removeEventListener() {} } as unknown as HTMLFormElement,
     emailInput: { addEventListener() {}, removeEventListener() {} } as unknown as HTMLInputElement,
     submitButton: {} as HTMLButtonElement, statusElement: { dataset: {} } as HTMLElement,

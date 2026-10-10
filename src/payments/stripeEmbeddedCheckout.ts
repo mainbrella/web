@@ -1,6 +1,6 @@
-import type { Appearance, Stripe, StripePaymentElement, StripeCheckoutSession, StripeCheckoutLoadActionsSuccess, StripeCheckoutPaymentElementOptions } from '@stripe/stripe-js';
+import type { Appearance, Stripe, StripeAddressElement, StripePaymentElement, StripeCheckoutSession, StripeCheckoutLoadActionsSuccess, StripeCheckoutPaymentElementOptions } from '@stripe/stripe-js';
 interface CheckoutOptions {
-  container: HTMLElement; paymentSlot?: HTMLElement; form: HTMLFormElement; submitButton: HTMLButtonElement; statusElement: HTMLElement;
+  container: HTMLElement; billingAddressContainer: HTMLElement; paymentSlot?: HTMLElement; form: HTMLFormElement; submitButton: HTMLButtonElement; statusElement: HTMLElement;
   clientSecret: string; publishableKey: string; submitLabel: string; emailInput: HTMLInputElement; totalElement: HTMLElement;
   promotionInput?: HTMLInputElement | null; promotionApply?: HTMLButtonElement | null; promotionRemove?: HTMLButtonElement | null; promotionStatus?: HTMLElement | null;
   initialPromotionCode?: string; noCostSubmitLabel?: string;
@@ -84,6 +84,7 @@ function isNoCostCheckout(session: StripeCheckoutSession) {
 
 export function mountStripeEmbeddedCheckout({
   container,
+  billingAddressContainer,
   paymentSlot = container,
   form,
   submitButton,
@@ -108,6 +109,9 @@ export function mountStripeEmbeddedCheckout({
   let destroyed = false;
   let checkoutActions: StripeCheckoutLoadActionsSuccess | null = null;
   let paymentElement: StripePaymentElement | null = null;
+  let billingAddressElement: StripeAddressElement | null = null;
+  let billingAddressComplete = false;
+  let billingAddressFailed = false;
   let processing = false;
   let paymentReady = false;
   let emailTimer: ReturnType<typeof setTimeout> | undefined;
@@ -213,7 +217,7 @@ export function mountStripeEmbeddedCheckout({
         // Destroying the card Element can change Stripe's readiness immediately.
         session = checkoutActions!.getSession();
         onSessionChange?.(session);
-        const checkoutReady = noPaymentRequired || (paymentReady && !paymentFailed);
+        const checkoutReady = !billingAddressFailed && (noPaymentRequired || (paymentReady && !paymentFailed));
         const currentTotal = session?.total?.total?.amount;
         if (currentTotal) {
           totalElement.textContent = `Due today: ${currentTotal}`;
@@ -226,6 +230,7 @@ export function mountStripeEmbeddedCheckout({
         if (checkoutReady && !processing && !confirmedSession && ["", "pending", "incomplete"].includes(statusElement.dataset.state || "")) {
           const emailReady = emailInput.validity.valid && (fixedEmail || syncedEmail === emailInput.value.trim());
           const message = !emailReady ? "Enter a valid email for your receipt."
+            : !billingAddressComplete ? "Complete your billing address to continue."
             : noPaymentRequired ? (session?.canConfirm === true ? "No payment is due. Confirm to continue." : "Checkout is not ready to confirm. Please try again.")
             : session?.canConfirm !== true ? "Complete your card details to enable payment." : "";
           setStatus(statusElement, message, message ? "incomplete" : "");
@@ -239,6 +244,25 @@ export function mountStripeEmbeddedCheckout({
         }
       };
       if (typeof checkout.on === "function") checkout.on("change", syncSession);
+
+      // The backend requires a billing address even when a promotion makes the
+      // total zero. The Payment Element does not collect it for these sessions.
+      const addressElement = checkout.createBillingAddressElement();
+      billingAddressElement = addressElement;
+      addressElement.on("change", (event) => {
+        if (destroyed || billingAddressElement !== addressElement) return;
+        billingAddressComplete = event.complete;
+        syncSession(checkoutActions!.getSession());
+      });
+      addressElement.on("loaderror", (event) => {
+        if (destroyed || billingAddressElement !== addressElement) return;
+        billingAddressFailed = true;
+        const message = event?.error?.message || "Unable to load your billing address form. Please reload to try again.";
+        syncSession(checkoutActions!.getSession());
+        setStatus(statusElement, message, "error");
+        onError?.(message);
+      });
+      addressElement.mount(billingAddressContainer);
 
       syncSession(checkoutActions.getSession?.());
       if (!fixedEmail && emailInput.value) await updateEmail();
@@ -317,7 +341,7 @@ export function mountStripeEmbeddedCheckout({
       setStatus(statusElement, "Payment form is still loading.", "error");
       return;
     }
-    if (processing || updatingPromotion || !form.reportValidity()) return;
+    if (processing || updatingPromotion || billingAddressFailed || !form.reportValidity()) return;
     if (!confirmedSession && (checkoutActions.getSession()?.canConfirm !== true
       || (!fixedEmail && syncedEmail !== emailInput.value.trim()))) return;
     processing = true;
@@ -375,7 +399,10 @@ export function mountStripeEmbeddedCheckout({
     promotionRemove?.removeEventListener("click", handlePromotionRemove);
     paymentElement?.destroy?.();
     paymentElement = null;
+    billingAddressElement?.destroy();
+    billingAddressElement = null;
     checkoutActions = null;
     container.replaceChildren();
+    billingAddressContainer.replaceChildren();
   };
 }
