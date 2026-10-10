@@ -4,7 +4,7 @@ export type BuildActivity = { id: string; type: 'message' | 'tool'; text: string
 export type BuildImage = { id: string; toolId: string; label: string; path: string };
 export type BuildTurn = {
   id: string; prompt: string; mode: 'build' | 'preview'; status: 'queued' | 'running' | 'succeeded' | 'failed';
-  stage: string; summary: string | null; error: string | null; log: string; model: string;
+  stage: string; summary: string | null; error: string | null; log: string; model: string; effort?: string | null;
   inputTokens: number; outputTokens: number; createdAt: string; finishedAt: string | null;
   aiCostCents?: number;
   activity?: BuildActivity[];
@@ -16,13 +16,17 @@ export type BuildApp = {
   preview: { id: string; url: string; expiresAt: number } | null;
   createdAt: string; updatedAt: string; turns?: BuildTurn[];
 };
-export type BuildConfig = { available: boolean; model: string; maxApps: number; dailyTurns: number; aiBilling: 'included' | 'prepaid'; aiMarkupPercent: number; computeUnitHourlyCents: number; size: 'small' };
+export type BuildModel = { id: string; name: string; efforts: string[]; defaultEffort: string };
+export type BuildModelOptions = { model?: string; effort?: string };
+export type BuildConfig = { available: boolean; model: string; models?: BuildModel[]; maxApps: number; dailyTurns: number; aiBilling: 'included' | 'prepaid'; aiMarkupPercent: number; computeUnitHourlyCents: number; size: 'small' };
 export type BuildSource = { revision: number; files: Record<string, string> };
 export class BuildAPIError extends Error {
   constructor(public code: string) { super(buildErrorMessage(code)); }
 }
 export function buildErrorMessage(code: string): string {
   return ({
+    invalid_build_model: 'Choose an available Build model and try again.',
+    invalid_build_effort: 'Choose a supported effort for this model and try again.',
     subscription_required: 'Add prepaid balance to build and run apps.',
     build_billing_unavailable: 'Could not check your prepaid balance. Try again shortly.',
     build_billing_reconciliation_required: 'An AI request needs billing reconciliation. Your source is saved; contact support.',
@@ -80,8 +84,8 @@ export function createBuildClient(onUnauthenticated: () => void, signal?: AbortS
     config: () => request<BuildConfig>('/config'),
     list: () => request<{ apps: BuildApp[] }>('/apps'),
     read: (id: string) => request<{ app: BuildApp }>(appPath(id)),
-    create: (prompt: string, key: string) => request<{ app: BuildApp }>('/apps', 'POST', { prompt }, key),
-    turn: (app: BuildApp, prompt: string, key: string) => request<{ app: BuildApp }>(`${appPath(app.id)}/turns`, 'POST', { mode: 'build', prompt, revision: app.revision }, key),
+    create: (prompt: string, key: string, options: BuildModelOptions = {}) => request<{ app: BuildApp }>('/apps', 'POST', { prompt, ...options }, key),
+    turn: (app: BuildApp, prompt: string, key: string, options: BuildModelOptions = {}) => request<{ app: BuildApp }>(`${appPath(app.id)}/turns`, 'POST', { mode: 'build', prompt, revision: app.revision, ...options }, key),
     preview: (app: BuildApp, key: string) => request<{ app: BuildApp }>(`${appPath(app.id)}/turns`, 'POST', { mode: 'preview', revision: app.revision }, key),
     resume: (id: string) => request<{ app: BuildApp }>(`${appPath(id)}/resume`, 'POST'),
     rename: (id: string, name: string) => request<{ app: BuildApp }>(appPath(id), 'PATCH', { name }),

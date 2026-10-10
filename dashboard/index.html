@@ -38,6 +38,10 @@
               <h2 id="build-prompt-label">What would you like to build?</h2>
               <form id="build-create-form" class="build-composer">
                 <textarea id="build-prompt" rows="3" maxlength="6000" required aria-labelledby="build-prompt-label" aria-describedby="build-availability" placeholder="Describe an app, a website, or an idea…"></textarea>
+                <div class="build-model-options">
+                    <label for="build-create-model">Model<select id="build-create-model" disabled><option>Loading…</option></select></label>
+                    <label for="build-create-effort">Effort<select id="build-create-effort" disabled><option>Loading…</option></select></label>
+                  </div>
                 <div class="build-composer-footer">
                   <span class="build-shortcut" aria-hidden="true">Enter to build · Shift + Enter for a new line</span>
                   <button id="build-create" class="button build-send" type="submit" aria-label="Start building" title="Start building" disabled><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6" /></svg></button>
@@ -91,8 +95,13 @@
                 </form>
                 </div>
                 <form id="build-update-form" class="build-composer build-update-composer">
+                  <p id="build-current-model" class="build-current-model" role="status" hidden></p>
                   <label for="build-update" class="build-update-label">Message Build</label>
                   <textarea id="build-update" rows="2" maxlength="6000" required placeholder="Ask for a change…"></textarea>
+                  <div class="build-model-options">
+                    <label for="build-update-model">Model<select id="build-update-model" disabled><option>Loading…</option></select></label>
+                    <label for="build-update-effort">Effort<select id="build-update-effort" disabled><option>Loading…</option></select></label>
+                  </div>
                   <div class="build-composer-footer"><span id="build-save-status" role="status"></span><button id="build-update-save" class="button build-send" type="submit" aria-label="Send message" title="Send message" disabled><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6" /></svg></button></div>
                 </form>
               </section>

@@ -276,3 +276,11 @@
   .build-composer, .build-question-option, .build-style-option, .build-activity > summary::after { transition: none; }
   .build-progress::before, .build-message-streaming p::after, .build-image-pending, .build-questions:not([hidden]), .build-preview { animation: none; }
 }
+
+.build-model-options { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; }
+.build-model-options label { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--muted); font-size: 12px; }
+.build-model-options label:first-child { flex: 1; }
+.app-body .build-model-options select { width: auto; min-width: 0; max-width: 100%; min-height: 44px; padding: 4px 24px 4px 8px; font-size: 12px; }
+.build-model-options label:first-child select { flex: 1; }
+.build-current-model { margin: 0 0 8px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .build-model-options { gap: 4px 8px; } .build-model-options label:first-child { flex-basis: 100%; } }

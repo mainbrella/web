@@ -1,4 +1,4 @@
-import { BuildAPIError, buildErrorMessage, createBuildClient, safeBuildPreviewURL, type BuildActivity, type BuildImage, type BuildApp, type BuildConfig, type BuildSource, type BuildTurn } from './build-api.ts';
+import { BuildAPIError, buildErrorMessage, createBuildClient, safeBuildPreviewURL, type BuildActivity, type BuildImage, type BuildApp, type BuildConfig, type BuildSource, type BuildTurn, type BuildModelOptions } from './build-api.ts';
 import { buildExamples, createBuildDraftStore } from './build-drafts.ts';
 import { buildBriefQuestions, formatBuildBriefPrompt, readBuildBriefPrompt } from './build-brief.ts';
 
@@ -38,6 +38,9 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   const mobile = window.matchMedia('(max-width: 900px)');
   const controller = new AbortController();
   const client = createBuildClient(() => { dispose(); onUnauthenticated(); }, controller.signal);
+  const modelSelects = ['create', 'update'].map(id => node<HTMLSelectElement>(`#build-${id}-model`));
+  const effortSelects = ['create', 'update'].map(id => node<HTMLSelectElement>(`#build-${id}-effort`));
+  let modelOptions: BuildModelOptions = {};
   let config: BuildConfig | null = null;
   let apps: BuildApp[] = [];
   let selected: BuildApp | null = null;
@@ -89,6 +92,31 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     togglePreview.setAttribute('aria-expanded', String(expanded));
   }
 
+  const effortLabel = (value: string) => ({ none: 'Off', on: 'On', always: 'Always on', unsupported: 'Not supported', default: 'Model default', xhigh: 'Extra high' } as Record<string, string>)[value] ?? value.charAt(0).toUpperCase() + value.slice(1);
+  function modelName(id: string) { return config?.models?.find(model => model.id === id)?.name ?? id; }
+  function renderModelOptions() {
+    const models = config?.models ?? (config ? [{ id: config.model, name: config.model, efforts: ['default'], defaultEffort: 'default' }] : []);
+    const model = models.find(item => item.id === modelOptions.model) ?? models.find(item => item.id === config?.model) ?? models[0];
+    modelOptions = model ? { model: model.id, effort: model.efforts.includes(modelOptions.effort ?? '') ? modelOptions.effort : model.defaultEffort } : {};
+    for (const select of modelSelects) {
+      select.replaceChildren(...models.map(item => new Option(item.name, item.id)));
+      select.value = modelOptions.model ?? '';
+    }
+    for (const select of effortSelects) {
+      select.replaceChildren(...(model?.efforts ?? []).map(value => new Option(effortLabel(value), value)));
+      select.value = modelOptions.effort ?? '';
+    }
+  }
+  function rememberModelOptions() {
+    try { sessionStorage.setItem(`mainbrella-build-model:${userId}`, JSON.stringify(modelOptions)); } catch { /* Optional preference. */ }
+  }
+  modelSelects.forEach(select => select.addEventListener('change', () => {
+    modelOptions = { model: select.value }; renderModelOptions(); rememberModelOptions(); controls();
+  }));
+  effortSelects.forEach(select => select.addEventListener('change', () => {
+    modelOptions.effort = select.value; renderModelOptions(); rememberModelOptions(); controls();
+  }));
+
   function controls() {
     const locked = busy || disposed;
     const active = apps.some(app => app.activeTurnId) || Boolean(selected?.activeTurnId);
@@ -103,6 +131,8 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     node<HTMLButtonElement>('#build-stop').disabled = locked || Boolean(selected?.activeTurnId);
     node<HTMLButtonElement>('#build-start-preview').disabled = locked || !available;
     node<HTMLButtonElement>('#build-resume').disabled = locked || !config?.available;
+    for (const select of modelSelects) select.disabled = locked || !config?.models || modelSelects[0].options.length < 2;
+    for (const select of effortSelects) select.disabled = locked || !config?.models || select.options.length < 2;
     retry.disabled = locked;
     create.title = active ? 'A build is already running in your account.' : apps.length >= (config?.maxApps ?? 50) ? 'Delete an app to make room.' : '';
     send.title = active ? 'You can write your next change while Build works.' : '';
@@ -215,6 +245,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     if (focus) questionTitle.focus();
   }
   function beginClarification(brief: Clarification) {
+    node<HTMLElement>('#build-current-model').hidden = true;
     clarification = brief; selected = null; previewPreference = null; mobileView = 'conversation';
     home.hidden = true; workspace.hidden = false; workspace.classList.add('is-clarifying');
     workspace.classList.remove('is-building');
@@ -228,8 +259,8 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     renderQuestions();
   }
   function submitNewApp(text: string) {
-    const key = submissionKey(JSON.stringify(['create', text]));
-    void mutate(() => client.create(text, key), ({ app }) => {
+    const options = { ...modelOptions }, key = submissionKey(JSON.stringify(['create', text, options]));
+    void mutate(() => client.create(text, key, config?.models ? options : {}), ({ app }) => {
       clearSubmission(key); clearClarification(); prompt.value = ''; update.value = ''; conversationKey = '';
       setAppURL(app.id); renderApp(app); setTab(tabs[0]); update.focus();
     }, text);
@@ -318,6 +349,10 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     const tools = (turn.activity ?? []).filter(item => item.type === 'tool');
     details.querySelector<HTMLElement>('.build-activity-count')!.textContent = tools.length ? `${tools.length} ${tools.length === 1 ? 'step' : 'steps'}` : '';
     const body = details.querySelector<HTMLElement>('.build-activity-body')!; body.replaceChildren();
+    if (turn.mode === 'build') {
+      const inference = document.createElement('p'); inference.className = 'build-current-model';
+      inference.textContent = `${modelName(turn.model)}${turn.effort ? ` · ${effortLabel(turn.effort)} effort` : ''}`; body.append(inference);
+    }
     appendBriefAnswers(body, readBuildBriefPrompt(turn.prompt).answers);
     const activity = document.createElement('ul'); activity.className = 'build-activity-list';
     for (const item of tools) {
@@ -408,7 +443,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     rows.forEach((row, index) => { if (messages.children[index] !== row) messages.insertBefore(row, messages.children[index] ?? null); });
     if (nearBottom) conversationScroll.scrollTop = conversationScroll.scrollHeight;
     node<HTMLElement>('#build-logs').textContent = (app.turns ?? []).map(turn =>
-      `${turn.mode === 'preview' ? 'Preview' : 'Build'} · ${turn.stage}${turn.aiCostCents ? ` · AI $${(turn.aiCostCents / 100).toFixed(6)}` : ''}${turn.activity?.length ? `\n${turn.activity.map(item => item.text).join('\n')}` : ''}${turn.error ? `\n${buildErrorMessage(turn.error)}` : ''}${turn.log ? `\n${turn.log}` : ''}`
+      `${turn.mode === 'preview' ? 'Preview' : 'Build'} · ${turn.stage}${turn.mode === 'build' ? ` · ${modelName(turn.model)}${turn.effort ? ` · ${effortLabel(turn.effort)} effort` : ''}` : ''}${turn.aiCostCents ? ` · AI $${(turn.aiCostCents / 100).toFixed(6)}` : ''}${turn.activity?.length ? `\n${turn.activity.map(item => item.text).join('\n')}` : ''}${turn.error ? `\n${buildErrorMessage(turn.error)}` : ''}${turn.log ? `\n${turn.log}` : ''}`
     ).join('\n\n') || 'No build output yet.';
   }
 
@@ -453,6 +488,10 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     progress.textContent = app.activeTurnId ? turn?.stage || 'Connecting to Build…' : '';
     messages.setAttribute('aria-busy', String(Boolean(app.activeTurnId)));
     workspace.classList.toggle('is-building', Boolean(app.activeTurnId));
+    const inference = node<HTMLElement>('#build-current-model');
+    const buildTurn = app.turns?.slice().reverse().find(item => item.mode === 'build');
+    inference.hidden = !buildTurn;
+    inference.textContent = buildTurn ? `${app.activeTurnId === buildTurn.id ? 'Building with' : 'Last build:'} ${modelName(buildTurn.model)}${buildTurn.effort ? ` · ${effortLabel(buildTurn.effort)} effort` : ''}` : '';
     renderConversation(app); renderPreview(); controls();
     watchApp();
   }
@@ -599,6 +638,8 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     await mutate(() => client.read(id), ({ app }) => {
       clearClarification(); previewPreference = null; mobileView = 'conversation';
       update.value = ''; source = null; sourceVersion++; conversationKey = '';
+      const lastBuild = app.turns?.slice().reverse().find(turn => turn.mode === 'build');
+      if (lastBuild) { modelOptions = { model: lastBuild.model, effort: lastBuild.effort ?? undefined }; renderModelOptions(); }
       setAppURL(id); renderApp(app); setTab(tabs[0]); update.focus();
     });
   }
@@ -613,8 +654,8 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     if (send.disabled) return;
     if (clarification) { submitBrief(clarification.answers, update.value.trim()); return; }
     if (!selected) return;
-    const app = selected, text = update.value.trim(), key = submissionKey(JSON.stringify(['build', app.id, app.revision, text]));
-    void mutate(() => client.turn(app, text, key), ({ app: next }) => {
+    const app = selected, text = update.value.trim(), options = { ...modelOptions }, key = submissionKey(JSON.stringify(['build', app.id, app.revision, text, options]));
+    void mutate(() => client.turn(app, text, key, config?.models ? options : {}), ({ app: next }) => {
       clearSubmission(key); update.value = ''; renderApp(next); update.focus();
     }, text);
   });
@@ -753,6 +794,8 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     if (disposed || current !== version) return;
     const [configuration, listing] = results;
     config = configuration.status === 'fulfilled' ? configuration.value : null;
+    try { modelOptions = JSON.parse(sessionStorage.getItem(`mainbrella-build-model:${id}`) ?? '{}'); if (!modelOptions || typeof modelOptions !== 'object') modelOptions = {}; } catch { modelOptions = {}; }
+    renderModelOptions();
     if (listing.status === 'fulfilled') { apps = listing.value.apps; loaded = true; renderList(); }
     node<HTMLElement>('#build-availability').textContent = configuration.status === 'rejected' ? 'Could not check Build availability.'
       : !config?.available ? 'Build is unavailable right now. Your saved apps and source remain accessible.'
@@ -778,7 +821,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   function dispose() {
     disposed = true; version++; sourceVersion++; controller.abort(); clearTimeout(timer);
     disconnectStream(); optimistic = null;
-    apps = []; selected = null; source = null; config = null; pendingSubmission = null; clarification = null;
+    apps = []; selected = null; source = null; config = null; modelOptions = {}; renderModelOptions(); pendingSubmission = null; clarification = null;
     prompt.value = ''; update.value = ''; name.value = ''; messages.replaceChildren(); list.replaceChildren();
     node<HTMLElement>('#build-local-list').replaceChildren(); code.textContent = ''; node<HTMLElement>('#build-logs').textContent = '';
     frame.removeAttribute('src'); openPreview.removeAttribute('href'); controls();

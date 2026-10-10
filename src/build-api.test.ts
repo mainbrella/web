@@ -116,3 +116,16 @@ test('live progress uses the authenticated app stream and closes on cancellation
   Events.instances[2].onerror?.();
   assert.equal(disconnected, 2); assert.equal(Events.instances[2].closed, true);
 });
+
+
+test('model and effort are carried on paid build requests but not preview requests', async t => {
+  const bodies: unknown[] = [];
+  t.mock.method(globalThis, 'fetch', async (_url: string, options: RequestInit) => {
+    bodies.push(JSON.parse(options.body as string)); return Response.json({ app });
+  });
+  const client = createBuildClient(() => {}), settings = { model: '@cf/zai-org/glm-5.3', effort: 'max' };
+  await client.create('A tracker', 'new', settings);
+  await client.turn(app, 'Add charts', 'change', settings);
+  await client.preview(app, 'preview');
+  assert.deepEqual(bodies, [{ prompt: 'A tracker', ...settings }, { mode: 'build', prompt: 'Add charts', revision: 3, ...settings }, { mode: 'preview', revision: 3 }]);
+});
