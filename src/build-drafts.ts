@@ -10,6 +10,7 @@ export type BuildDraft = {
 export const maxBuildDrafts = 50;
 export const maxBuildMessages = 100;
 export const buildExamples: Record<string, string> = {
+  hello: 'A simple hello world app',
   expense: 'Build an expense tracker with a monthly overview, spending by category, budgets, and a searchable list of transactions. Use a clean layout that works on mobile.',
   portfolio: 'Build a portfolio website for a freelance designer with selected projects, an about page, and a contact form. Use large project images, simple typography, and a responsive layout.',
   team: 'Build a task board for a small team with To do, In progress, and Done columns. Include task owners, due dates, priority, and filters by team member.',

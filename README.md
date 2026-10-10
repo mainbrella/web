@@ -49,8 +49,11 @@ shows prepaid funding alongside workloads. Failed status requests
 show an error with retry rather than reporting a zero balance.
 
 The **Build** tab at `/dashboard/?view=build` connects to the session-authenticated
-`/build` API. Describe a frontend app, follow its durable build in the conversation
-and Logs, then use the live preview or browse its source in Code. Apps, source,
+`/build` API. Describe a frontend app and press Enter (Shift+Enter adds a line).
+The conversation opens immediately; assistant text and file activity stream through
+the session-authenticated `/build/apps/<id>/events` SSE endpoint. Progress is retained
+in D1, survives reloads, and reconnects without resubmitting the build. Status polling
+recovers if streaming disconnects. Use the live preview or browse its source in Code. Apps, source,
 conversations, and successful revisions are saved to the account independently of
 the sandbox. The UI supports iterative changes, renaming, queued-build resumption,
 restarting previews, stopping sandboxes, deletion, and ZIP source export. An app
@@ -59,7 +62,8 @@ keys survive retries and same-tab reloads to avoid duplicate builds after a lost
 response. Previous browser-only briefs remain available as prompt inputs.
 
 Availability comes from `/build/config`; saved apps remain accessible when building
-is disabled. The current backend allows 50 apps, 100 turns per app, 10 turns per UTC
+is disabled. Deploy backend migration `024_build_activity.sql` and the updated API/
+Workflow before this frontend to enable streamed model output. The current backend allows 50 apps, 100 turns per app, 10 turns per UTC
 day, and one active build per account. AI is included during beta; Small Ad Hoc
 sandboxes use prepaid compute billing. Preview links last at most 30 minutes and
 can stop earlier with the sandbox's idle or funding deadline. This release does

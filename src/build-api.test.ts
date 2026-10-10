@@ -79,3 +79,40 @@ test('source export preserves binary ZIP bytes and reports API failures', async 
   t.mock.method(globalThis, 'fetch', async () => Response.json({ error: 'app_not_found' }, { status: 404 }));
   await assert.rejects(client.export(app.id), cause => cause instanceof BuildAPIError && cause.code === 'app_not_found');
 });
+
+test('live progress uses the authenticated app stream and closes on cancellation or disconnect', t => {
+  class Events {
+    static instances: Events[] = [];
+    listeners = new Map<string, (event: unknown) => void>();
+    onerror: (() => void) | null = null;
+    closed = false;
+    constructor(public url: string, public options: EventSourceInit) { Events.instances.push(this); }
+    addEventListener(type: string, listener: (event: unknown) => void) { this.listeners.set(type, listener); }
+    close() { this.closed = true; }
+    app(value: unknown) { this.listeners.get('app')?.({ data: JSON.stringify(value) }); }
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'EventSource');
+  Object.defineProperty(globalThis, 'EventSource', { value: Events, configurable: true });
+  t.after(() => { if (descriptor) Object.defineProperty(globalThis, 'EventSource', descriptor); else Reflect.deleteProperty(globalThis, 'EventSource'); });
+  const controller = new AbortController(), received: BuildApp[] = [];
+  let disconnected = 0;
+  const client = createBuildClient(() => assert.fail('no extra submission'), controller.signal);
+  const stop = client.watch(app.id, value => received.push(value), () => { disconnected++; });
+  const events = Events.instances[0];
+  assert.equal(events.url, `http://localhost:8787/build/apps/${app.id}/events`);
+  assert.equal(events.options.withCredentials, true);
+  events.app({ app: { ...app, turns: [] } });
+  assert.equal(received.length, 1);
+  controller.abort();
+  assert.equal(events.closed, true);
+  events.app({ app: { ...app, turns: [] } });
+  assert.equal(received.length, 1); assert.equal(disconnected, 0);
+  stop();
+  const active = createBuildClient(() => {}).watch(app.id, value => received.push(value), () => { disconnected++; });
+  Events.instances[1].app({ app: { ...app, id: 'wrong-app', turns: [] } });
+  assert.equal(received.length, 1); assert.equal(disconnected, 1); assert.equal(Events.instances[1].closed, true);
+  active();
+  createBuildClient(() => {}).watch(app.id, () => {}, () => { disconnected++; });
+  Events.instances[2].onerror?.();
+  assert.equal(disconnected, 2); assert.equal(Events.instances[2].closed, true);
+});

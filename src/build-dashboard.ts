@@ -13,6 +13,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   const name = node<HTMLInputElement>('#build-draft-name');
   const list = node<HTMLElement>('#build-draft-list');
   const messages = node<HTMLElement>('#build-messages');
+  const progress = node<HTMLElement>('#build-progress');
   const error = node<HTMLElement>('#build-storage-error');
   const retry = node<HTMLButtonElement>('#build-retry');
   const status = node<HTMLElement>('#build-save-status');
@@ -39,6 +40,9 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   let retryAction: (() => unknown) | null = null;
   let conversationKey = '';
   let pendingSubmission: { signature: string; key: string } | null = null;
+  let stopWatching: (() => void) | null = null;
+  let watchedAppId: string | null = null;
+  let optimistic: { text: string; newApp: boolean } | null = null;
 
   function controls() {
     const locked = busy || disposed;
@@ -55,6 +59,8 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     node<HTMLButtonElement>('#build-resume').disabled = locked || !config?.available;
     retry.disabled = locked;
     create.title = active ? 'A build is already running in your account.' : apps.length >= (config?.maxApps ?? 50) ? 'Delete an app to make room.' : '';
+    send.title = active ? 'You can write your next change while Build works.' : '';
+    node<HTMLElement>('.build-more').hidden = !selected;
   }
 
   function clearError() { error.hidden = true; retry.hidden = true; retryAction = null; }
@@ -131,22 +137,37 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     if (key === conversationKey) return;
     conversationKey = key;
     const nearBottom = messages.scrollHeight - messages.scrollTop - messages.clientHeight < 80;
-    messages.replaceChildren();
-    function message(label: string, text: string, failed = false) {
-      const row = document.createElement('li');
-      if (failed) row.className = 'build-message-error';
-      const heading = document.createElement('span'); heading.textContent = label;
-      const paragraph = document.createElement('p'); paragraph.textContent = text;
-      row.append(heading, paragraph); messages.append(row);
+    const existing = new Map(Array.from(messages.children, child => [(child as HTMLElement).dataset.messageKey, child as HTMLElement]));
+    const rows: HTMLElement[] = [];
+    function message(key: string, label: string, text: string, className = '') {
+      let row = existing.get(key);
+      if (!row) {
+        row = document.createElement('li'); row.dataset.messageKey = key;
+        row.append(document.createElement('span'), document.createElement('p'));
+      }
+      row.className = className;
+      if (row.children[0].textContent !== label) row.children[0].textContent = label;
+      if (row.children[1].textContent !== text) row.children[1].textContent = text;
+      rows.push(row);
     }
     for (const turn of app.turns ?? []) {
-      message('You', turn.mode === 'preview' ? 'Restart the preview from saved source.' : turn.prompt);
-      message('Build', turn.status === 'failed' ? buildErrorMessage(turn.error || 'build_failed')
-        : turn.summary || turn.stage, turn.status === 'failed');
+      message(`user-${turn.id}`, 'You', turn.mode === 'preview' ? 'Restart the preview from saved source.' : turn.prompt);
+      for (const item of turn.activity ?? []) {
+        if (item.type === 'tool') {
+          const state = item.status === 'running' && turn.status === 'failed' ? 'failed' : item.status;
+          message(`${turn.id}-${item.id}`, state === 'running' ? '…' : state === 'failed' ? '!' : '✓', item.text, `build-tool build-tool-${state}`);
+          rows.at(-1)!.children[0].setAttribute('aria-label', state === 'running' ? 'In progress' : state === 'failed' ? 'Failed' : 'Completed');
+        } else message(`${turn.id}-${item.id}`, 'Build', item.text, item.status === 'running' && app.activeTurnId === turn.id ? 'build-message-streaming' : '');
+      }
+      if (turn.status === 'failed') message(`result-${turn.id}`, 'Build', buildErrorMessage(turn.error || 'build_failed'), 'build-message-error');
+      else if (turn.summary && !turn.activity?.some(item => item.type === 'message' && item.text === turn.summary)) message(`result-${turn.id}`, 'Build', turn.summary);
+      else if (!turn.activity?.length && turn.status === 'succeeded') message(`result-${turn.id}`, 'Build', turn.stage);
     }
+    for (const row of Array.from(messages.children)) if (!rows.includes(row as HTMLElement)) row.remove();
+    rows.forEach((row, index) => { if (messages.children[index] !== row) messages.insertBefore(row, messages.children[index] ?? null); });
     if (nearBottom) messages.scrollTop = messages.scrollHeight;
     node<HTMLElement>('#build-logs').textContent = (app.turns ?? []).map(turn =>
-      `${turn.mode === 'preview' ? 'Preview' : 'Build'} · ${turn.stage}${turn.error ? `\n${buildErrorMessage(turn.error)}` : ''}${turn.log ? `\n${turn.log}` : ''}`
+      `${turn.mode === 'preview' ? 'Preview' : 'Build'} · ${turn.stage}${turn.activity?.length ? `\n${turn.activity.map(item => item.text).join('\n')}` : ''}${turn.error ? `\n${buildErrorMessage(turn.error)}` : ''}${turn.log ? `\n${turn.log}` : ''}`
     ).join('\n\n') || 'No build output yet.';
   }
 
@@ -166,14 +187,15 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     } else {
       frame.removeAttribute('src'); openPreview.removeAttribute('href');
       const turn = selected.turns?.at(-1);
-      previewStatus.textContent = selected.activeTurnId ? turn?.stage || 'Building your app…' : 'Preview stopped';
-      node<HTMLElement>('#build-preview-description').textContent = selected.activeTurnId ? 'You can follow progress in the conversation and Logs.'
+      previewStatus.textContent = selected.activeTurnId ? 'Building…' : 'Preview stopped';
+      node<HTMLElement>('#build-preview-description').textContent = selected.activeTurnId ? 'Follow the live progress in the conversation.'
         : turn?.status === 'failed' ? 'Check Logs, then ask Build to fix the app.'
           : selected.revision ? 'Your source is saved. Start a preview to run your app again.' : 'Describe a change to continue building your app.';
     }
     node<HTMLButtonElement>('#build-start-preview').hidden = Boolean(url || selected.activeTurnId || !selected.revision);
     node<HTMLButtonElement>('#build-stop').hidden = !selected.container;
-    node<HTMLButtonElement>('#build-resume').hidden = !selected.activeTurnId || selected.turns?.at(-1)?.status !== 'queued';
+    node<HTMLButtonElement>('#build-resume').hidden = !selected.activeTurnId || selected.turns?.at(-1)?.status !== 'queued'
+      || Date.now() - Date.parse(selected.turns.at(-1)!.createdAt) < 15_000;
   }
 
   function renderApp(app: BuildApp) {
@@ -182,8 +204,60 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     if (document.activeElement !== name) name.value = app.name;
     node<HTMLElement>('#build-revision').textContent = app.revision ? `Revision ${app.revision}` : 'New app';
     const turn = app.turns?.at(-1);
-    status.textContent = app.activeTurnId ? turn?.stage || 'Waiting to build' : turn?.status === 'failed' ? 'Build needs attention' : 'Source saved to your account';
+    status.textContent = app.activeTurnId ? 'You can write your next change' : turn?.status === 'failed' ? 'Ask Build to try again' : 'Changes saved';
+    const lastActivity = turn?.activity?.at(-1);
+    progress.hidden = !app.activeTurnId || lastActivity?.type === 'tool' && lastActivity.status === 'running' && lastActivity.text === turn?.stage;
+    progress.textContent = app.activeTurnId ? turn?.stage || 'Connecting to Build…' : '';
+    messages.setAttribute('aria-busy', String(Boolean(app.activeTurnId)));
+    workspace.classList.toggle('is-building', Boolean(app.activeTurnId));
     renderConversation(app); renderPreview(); controls();
+    watchApp();
+  }
+
+  function disconnectStream() {
+    stopWatching?.(); stopWatching = null; watchedAppId = null;
+  }
+  function watchApp() {
+    if (disposed || document.hidden || !selected?.activeTurnId) { disconnectStream(); return; }
+    if (watchedAppId === selected.id) return;
+    disconnectStream(); clearTimeout(timer);
+    const id = selected.id;
+    watchedAppId = id;
+    stopWatching = client.watch(id, app => {
+      if (disposed || selected?.id !== id || busy) return;
+      const changed = selected.revision !== app.revision;
+      clearError(); renderApp(app);
+      if (changed && tabs[1].getAttribute('aria-selected') === 'true') void loadSource();
+      schedule();
+    }, () => {
+      if (disposed || selected?.id !== id) return;
+      disconnectStream(); schedule();
+    });
+  }
+
+  function renderPending(text: string) {
+    optimistic = { text, newApp: !selected };
+    disconnectStream();
+    if (!selected) {
+      home.hidden = true; workspace.hidden = false;
+      name.value = text.split(/\r?\n/)[0].slice(0, 64);
+      node<HTMLElement>('#build-revision').textContent = 'New app';
+      messages.replaceChildren(); conversationKey = '';
+      node<HTMLElement>('#build-logs').textContent = 'Sending your request…';
+      frame.hidden = true; frame.removeAttribute('src'); openPreview.hidden = true;
+      node<HTMLElement>('#build-preview-empty').hidden = false;
+      node<HTMLElement>('#build-preview-panel').classList.remove('has-preview');
+      node<HTMLElement>('#build-preview-description').textContent = 'Follow the live progress in the conversation.';
+      previewStatus.textContent = 'Getting started…';
+      for (const id of ['start-preview', 'stop', 'resume']) node<HTMLButtonElement>(`#build-${id}`).hidden = true;
+    }
+    const row = document.createElement('li'), label = document.createElement('span'), paragraph = document.createElement('p');
+    label.textContent = 'You'; paragraph.textContent = text; row.append(label, paragraph); messages.append(row);
+    messages.scrollTop = messages.scrollHeight;
+    progress.hidden = false; progress.textContent = 'Sending your request…';
+    status.textContent = '';
+    messages.setAttribute('aria-busy', 'true'); workspace.classList.add('is-building');
+    setTab(tabs[0]);
   }
 
   async function loadSource() {
@@ -223,7 +297,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
 
   function schedule() {
     clearTimeout(timer);
-    if (disposed || busy || !loaded || document.hidden) return;
+    if (disposed || busy || !loaded || document.hidden || stopWatching) return;
     const active = selected ? selected.activeTurnId : apps.some(app => app.activeTurnId);
     timer = setTimeout(() => void refresh(), active ? 2500 : 15000);
   }
@@ -248,20 +322,27 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     } finally { refreshing = false; if (current === version) schedule(); }
   }
 
-  async function mutate<T>(operation: () => Promise<T>, apply: (result: T) => void) {
+  async function mutate<T>(operation: () => Promise<T>, apply: (result: T) => void, pendingPrompt?: string) {
     if (busy || disposed) return;
     busy = true; const current = ++version;
     clearTimeout(timer); clearError(); controls();
+    if (pendingPrompt) renderPending(pendingPrompt);
     let succeeded = false;
     try {
       const result = await operation();
-      if (!disposed && current === version) { apply(result); succeeded = true; }
+      if (!disposed && current === version) { optimistic = null; apply(result); succeeded = true; }
     } catch (cause) {
       if (!disposed && current === version) reportError(cause, cause instanceof BuildAPIError && ['revision_conflict', 'build_busy'].includes(cause.code)
-        ? () => refresh() : () => mutate(operation, apply));
+        ? () => refresh() : () => mutate(operation, apply, pendingPrompt));
     } finally {
       if (!disposed && current === version) {
-        busy = false; controls(); schedule();
+        busy = false;
+        if (optimistic) {
+          const pending = optimistic; optimistic = null; conversationKey = '';
+          if (pending.newApp) { home.hidden = false; workspace.hidden = true; progress.hidden = true; }
+          else if (selected) renderApp(selected);
+        }
+        controls(); watchApp(); schedule();
         if (succeeded && document.activeElement === document.body) (selected ? update : prompt).focus();
       }
     }
@@ -281,7 +362,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     const text = prompt.value.trim(), key = submissionKey(JSON.stringify(['create', text]));
     void mutate(() => client.create(text, key), ({ app }) => {
       clearSubmission(key); prompt.value = ''; conversationKey = ''; setAppURL(app.id); renderApp(app); setTab(tabs[0]); update.focus();
-    });
+    }, text);
   });
   node<HTMLFormElement>('#build-update-form').addEventListener('submit', event => {
     event.preventDefault();
@@ -289,7 +370,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     const app = selected, text = update.value.trim(), key = submissionKey(JSON.stringify(['build', app.id, app.revision, text]));
     void mutate(() => client.turn(app, text, key), ({ app: next }) => {
       clearSubmission(key); update.value = ''; renderApp(next); update.focus();
-    });
+    }, text);
   });
   node<HTMLButtonElement>('#build-start-preview').addEventListener('click', () => {
     if (!selected) return;
@@ -323,6 +404,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   node<HTMLButtonElement>('#build-back').addEventListener('click', () => {
     if (busy || update.value.trim() && !window.confirm('Leave this app without sending your changes?')) return;
     version++; sourceVersion++; selected = null; source = null; update.value = '';
+    disconnectStream();
     frame.removeAttribute('src'); setAppURL(null); clearError();
     workspace.hidden = true; home.hidden = false; renderList(); prompt.focus();
     void refresh();
@@ -330,7 +412,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   for (const textarea of [prompt, update]) {
     textarea.addEventListener('input', controls);
     textarea.addEventListener('keydown', event => {
-      if (event.key !== 'Enter' || event.isComposing || !(event.metaKey || event.ctrlKey)) return;
+      if (event.key !== 'Enter' || event.isComposing || event.shiftKey || event.altKey) return;
       event.preventDefault(); textarea.form?.requestSubmit();
     });
   }
@@ -388,7 +470,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     if (listing.status === 'fulfilled') { apps = listing.value.apps; loaded = true; renderList(); }
     node<HTMLElement>('#build-availability').textContent = configuration.status === 'rejected' ? 'Could not check Build availability.'
       : !config?.available ? 'Build is unavailable right now. Your saved apps and source remain accessible.'
-        : `Frontend apps · ${config.dailyTurns} builds per day · AI included during beta. Sandbox runtime uses your prepaid balance.`;
+        : 'AI included during beta · Preview runtime uses your prepaid balance.';
     const failure = results.find(result => result.status === 'rejected');
     if (failure?.status === 'rejected') reportError(failure.reason, () => load(id));
     loadLocalBriefs(id);
@@ -402,11 +484,12 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     if (disposed || !(prompt.value.trim() || update.value.trim() || selected && name.value.trim() !== selected.name)) return;
     event.preventDefault(); event.returnValue = '';
   };
-  const visibility = () => { if (document.hidden) clearTimeout(timer); else { void refresh(); } };
+  const visibility = () => { if (document.hidden) { clearTimeout(timer); disconnectStream(); } else { void refresh(); } };
   window.addEventListener('beforeunload', beforeUnload);
   document.addEventListener('visibilitychange', visibility);
   function dispose() {
     disposed = true; version++; sourceVersion++; controller.abort(); clearTimeout(timer);
+    disconnectStream(); optimistic = null;
     apps = []; selected = null; source = null; config = null; pendingSubmission = null;
     prompt.value = ''; update.value = ''; name.value = ''; messages.replaceChildren(); list.replaceChildren();
     node<HTMLElement>('#build-local-list').replaceChildren(); code.textContent = ''; node<HTMLElement>('#build-logs').textContent = '';

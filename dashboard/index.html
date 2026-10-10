@@ -36,15 +36,16 @@
           <div id="build-home">
             <div class="build-start">
               <h2 id="build-prompt-label">What would you like to build?</h2>
-              <p class="build-description">Start with an idea for an app, a website, or an internal tool.</p>
+              <p class="build-description">Describe your app and watch it come together.</p>
               <form id="build-create-form" class="build-composer">
-                <textarea id="build-prompt" rows="4" maxlength="6000" required aria-labelledby="build-prompt-label" aria-describedby="build-availability" placeholder="An expense tracker with categories, monthly budgets, and charts…"></textarea>
+                <textarea id="build-prompt" rows="3" maxlength="6000" required aria-labelledby="build-prompt-label" aria-describedby="build-availability" placeholder="A simple hello world app…"></textarea>
                 <div class="build-composer-footer">
-                  <span class="build-shortcut" aria-hidden="true">Ctrl / ⌘ Enter</span>
+                  <span class="build-shortcut" aria-hidden="true">Enter to build · Shift + Enter for a new line</span>
                   <button id="build-create" class="button button-small" type="submit" disabled>Build app <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6" /></svg></button>
                 </div>
               </form>
               <div class="build-examples" aria-label="Example app ideas">
+                <button type="button" data-build-example="hello">Hello world</button>
                 <button type="button" data-build-example="expense"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4zM8 16v-4m4 4V8m4 8v-6" /></svg>Expense tracker</button>
                 <button type="button" data-build-example="portfolio"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 9h18m-14 5h4" /></svg>Portfolio website</button>
                 <button type="button" data-build-example="team"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16m6-12h3m-3 4h3m-3 4h3" /></svg>Team task board</button>
@@ -65,17 +66,17 @@
               <div class="build-workspace-actions">
                 <button id="build-resume" type="button" class="dashboard-retry" hidden>Resume build</button>
                 <button id="build-start-preview" type="button" class="dashboard-retry" hidden>Start preview</button>
-                <button id="build-stop" type="button" class="dashboard-retry" hidden>Stop sandbox</button>
-                <button id="build-export" type="button" class="dashboard-retry">Download source</button>
+                <details class="build-more"><summary>More</summary><div class="build-more-actions"><button id="build-export" type="button" class="dashboard-retry">Download source</button><button id="build-stop" type="button" class="dashboard-retry" hidden>Stop sandbox</button></div></details>
               </div>
             </div>
             <div class="build-workspace-panels">
               <section class="build-conversation" aria-labelledby="build-conversation-title">
-                <div class="build-panel-heading"><h2 id="build-conversation-title">Build</h2><span id="build-revision">New app</span></div>
+                <div class="build-panel-heading"><h2 id="build-conversation-title">Conversation</h2><span id="build-revision">New app</span></div>
                 <ol id="build-messages" aria-label="Build conversation"></ol>
+                <p id="build-progress" class="build-progress" role="status" hidden></p>
                 <form id="build-update-form" class="build-composer build-update-composer">
-                  <label for="build-update" class="visually-hidden">Describe a change to your app</label>
-                  <textarea id="build-update" rows="3" maxlength="6000" required placeholder="Add features, describe the design, or refine your idea…"></textarea>
+                  <label for="build-update" class="build-update-label">Ask for a change</label>
+                  <textarea id="build-update" rows="2" maxlength="6000" required placeholder="What would you like to change?"></textarea>
                   <div class="build-composer-footer"><span id="build-save-status" role="status"></span><button id="build-update-save" class="button button-small" type="submit" disabled>Send</button></div>
                 </form>
               </section>
@@ -96,7 +97,7 @@
                 <div id="build-logs-panel" class="build-code-panel" role="tabpanel" aria-labelledby="build-logs-tab" tabindex="0" hidden><pre id="build-logs">No build output yet.</pre></div>
               </section>
             </div>
-            <p class="build-runtime-note">Previews are temporary and may stop earlier when the sandbox is idle or its funding runs out. Stopping the sandbox keeps your source saved.</p>
+            <p class="build-runtime-note">Previews are temporary. Your source and conversation stay saved.</p>
           </section>
         </section>
         <dl id="container-usage" class="container-usage" aria-label="Account usage" hidden>

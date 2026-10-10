@@ -1,9 +1,11 @@
 import { API_ORIGIN } from './api-origin.ts';
 
+export type BuildActivity = { id: string; type: 'message' | 'tool'; text: string; status: 'running' | 'succeeded' | 'failed' };
 export type BuildTurn = {
   id: string; prompt: string; mode: 'build' | 'preview'; status: 'queued' | 'running' | 'succeeded' | 'failed';
   stage: string; summary: string | null; error: string | null; log: string; model: string;
   inputTokens: number; outputTokens: number; createdAt: string; finishedAt: string | null;
+  activity?: BuildActivity[];
 };
 export type BuildApp = {
   id: string; name: string; prompt: string; revision: number; activeTurnId: string | null;
@@ -80,6 +82,22 @@ export function createBuildClient(onUnauthenticated: () => void, signal?: AbortS
     stop: (id: string) => request<{ app: BuildApp }>(`${appPath(id)}/stop`, 'POST'),
     remove: (id: string) => request<{ deleted: true }>(appPath(id), 'DELETE'),
     source: (id: string) => request<BuildSource>(`${appPath(id)}/source`),
+    watch(id: string, onApp: (app: BuildApp) => void, onDisconnect: () => void) {
+      const events = new EventSource(`${API_ORIGIN}/build${appPath(id)}/events`, { withCredentials: true });
+      const stop = () => { events.close(); signal?.removeEventListener('abort', stop); };
+      events.addEventListener('app', event => {
+        if (signal?.aborted) return;
+        try {
+          const data = JSON.parse((event as MessageEvent).data);
+          if (data.app?.id !== id || !Array.isArray(data.app.turns)) throw new Error('Invalid build progress');
+          onApp(data.app as BuildApp);
+        } catch { stop(); onDisconnect(); }
+      });
+      events.onerror = () => { stop(); if (!signal?.aborted) onDisconnect(); };
+      signal?.addEventListener('abort', stop, { once: true });
+      if (signal?.aborted) stop();
+      return stop;
+    },
     async export(id: string): Promise<Blob> {
       let response: Response;
       try { response = await fetch(`${API_ORIGIN}/build${appPath(id)}/export`, { credentials: 'include', redirect: 'error', signal }); }
