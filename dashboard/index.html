@@ -4,12 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0d1014" />
-    <meta name="description" content="Your Mainbrella prepaid balance and containers." />
+    <meta name="description" content="Build apps and manage your Mainbrella projects, prepaid balance, and containers." />
     <meta name="robots" content="noindex" />
     <link rel="canonical" href="https://mainbrella.com/dashboard/" />
     <link rel="icon" href="/images/favicon.png" type="image/png" />
     <link rel="stylesheet" href="/mainbrella.css" />
     <link rel="stylesheet" href="/app.css" />
+    <link rel="stylesheet" href="/build.css" />
     <title>Dashboard · Mainbrella</title>
   </head>
   <body class="info-body sandbox-home app-body dashboard-body">
@@ -28,6 +29,63 @@
             <a id="subscription-manage" class="text-link" href="/pricing/">Balance and billing</a>
           </div>
           <p id="subscription-note" class="dashboard-status" hidden></p>
+        </section>
+        <section id="dashboard-build" class="build-dashboard" aria-label="Build workspace" hidden>
+          <p id="build-storage-error" class="dashboard-error" role="alert" hidden></p>
+          <div id="build-home">
+            <div class="build-start">
+              <h2 id="build-prompt-label">What would you like to build?</h2>
+              <p class="build-description">Start with an idea for an app, a website, or an internal tool.</p>
+              <form id="build-create-form" class="build-composer">
+                <textarea id="build-prompt" rows="4" maxlength="6000" required aria-labelledby="build-prompt-label" aria-describedby="build-availability" placeholder="An expense tracker with categories, monthly budgets, and charts…"></textarea>
+                <div class="build-composer-footer">
+                  <span class="build-shortcut" aria-hidden="true">Ctrl / ⌘ Enter</span>
+                  <button id="build-create" class="button button-small" type="submit" disabled>Create draft <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6" /></svg></button>
+                </div>
+              </form>
+              <div class="build-examples" aria-label="Example app ideas">
+                <button type="button" data-build-example="expense"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4zM8 16v-4m4 4V8m4 8v-6" /></svg>Expense tracker</button>
+                <button type="button" data-build-example="portfolio"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 9h18m-14 5h4" /></svg>Portfolio website</button>
+                <button type="button" data-build-example="team"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16m6-12h3m-3 4h3m-3 4h3" /></svg>Team task board</button>
+              </div>
+              <p id="build-availability" class="build-availability">AI building is coming soon. For now, create and refine an app brief.</p>
+            </div>
+            <section class="build-drafts" aria-labelledby="build-drafts-title">
+              <div class="build-drafts-heading"><h2 id="build-drafts-title">Your drafts</h2><span>Saved in this browser</span></div>
+              <p id="build-empty" class="dashboard-status">You haven't created any drafts.</p>
+              <ul id="build-draft-list" aria-label="App drafts"></ul>
+            </section>
+          </div>
+          <section id="build-workspace" aria-label="App draft" hidden>
+            <div class="build-workspace-heading">
+              <button id="build-back" type="button" class="build-back" aria-label="Back to drafts"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg></button>
+              <input id="build-draft-name" type="text" maxlength="80" aria-label="Draft name" autocomplete="off" />
+              <button id="build-export" type="button" class="dashboard-retry">Export brief</button>
+            </div>
+            <div class="build-workspace-panels">
+              <section class="build-conversation" aria-labelledby="build-conversation-title">
+                <div class="build-panel-heading"><h2 id="build-conversation-title">App brief</h2><span>Draft</span></div>
+                <ol id="build-messages" aria-label="Brief and updates"></ol>
+                <form id="build-update-form" class="build-composer build-update-composer">
+                  <label for="build-update" class="visually-hidden">Add to your app brief</label>
+                  <textarea id="build-update" rows="3" maxlength="6000" required placeholder="Add features, describe the design, or refine your idea…"></textarea>
+                  <div class="build-composer-footer"><span id="build-save-status" role="status"></span><button id="build-update-save" class="button button-small" type="submit" disabled>Add to brief</button></div>
+                </form>
+              </section>
+              <section class="build-preview" aria-label="App preview and brief">
+                <div class="build-panel-heading">
+                  <div class="build-preview-tabs" role="tablist" aria-label="Draft views">
+                    <button id="build-preview-tab" type="button" role="tab" aria-selected="true" aria-controls="build-preview-panel">Preview</button>
+                    <button id="build-brief-tab" type="button" role="tab" aria-selected="false" aria-controls="build-brief-panel" tabindex="-1">Brief</button>
+                  </div>
+                </div>
+                <div id="build-preview-panel" class="build-preview-panel" role="tabpanel" aria-labelledby="build-preview-tab" tabindex="0">
+                  <div class="build-preview-empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18m-14-2h.01M10 7h.01" /></svg><h3>Your app preview will appear here</h3><p>AI generation is coming soon. You can keep refining your brief in the meantime.</p></div>
+                </div>
+                <div id="build-brief-panel" class="build-brief-panel" role="tabpanel" aria-labelledby="build-brief-tab" tabindex="0" hidden><h3 id="build-brief-title"></h3><div id="build-brief-content"></div></div>
+              </section>
+            </div>
+          </section>
         </section>
         <dl id="container-usage" class="container-usage" aria-label="Account usage" hidden>
           <div><dt>Containers</dt><dd id="usage-containers">—</dd><dd id="usage-network-containers" class="usage-detail" hidden></dd><dd id="usage-concurrency" class="usage-detail"></dd></div>

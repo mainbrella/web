@@ -8,12 +8,15 @@ const shared = globalThis as typeof globalThis & {
   dashboardContainerOptions: { onData: (data: ContainerData) => void };
   dashboardLoads: number;
   dashboardDisposals: number;
+  dashboardBuildLoads: string[];
+  dashboardBuildDisposals: number;
 };
 registerHooks({ resolve(specifier, context, next) {
   const mocks: Record<string, string> = {
     './auth.ts': "export const API_ORIGIN='https://api.test';export const createAuthClient=()=>({readSession:()=>globalThis.dashboardSession()});",
     './containers-dashboard.ts': 'export const createContainersDashboard=options=>{globalThis.dashboardContainerOptions=options;return{load(){globalThis.dashboardLoads++},dispose(){globalThis.dashboardDisposals++},setImages(){},selectImage(){}}}',
     './images-dashboard.ts': 'export const createImagesDashboard=()=>({load(){},dispose(){globalThis.dashboardDisposals++}});',
+    './build-dashboard.ts': 'export const createBuildDashboard=()=>({load(id){globalThis.dashboardBuildLoads.push(id)},dispose(){globalThis.dashboardBuildDisposals++}});',
     './acquisition-analytics.ts': 'export const trackFunnel=()=>{};',
   };
   if (mocks[specifier]) return { url: `data:text/javascript,${encodeURIComponent(mocks[specifier])}`, shortCircuit: true };
@@ -49,6 +52,7 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
     dispatchEvent(event: any) { published.push(event); events.get(event.type)?.(event); } });
   shared.dashboardSession = async () => extra.signedOut ? null : { user: { id: 'owner' } };
   shared.dashboardLoads = 0; shared.dashboardDisposals = 0;
+  shared.dashboardBuildLoads = []; shared.dashboardBuildDisposals = 0;
   property('fetch', async (url: string, options: RequestInit) => {
     calls.push(new URL(url).pathname); assert.equal(options.credentials, 'include');
     if (extra.gate) await extra.gate;
@@ -116,4 +120,23 @@ test('new container ledger data supersedes an earlier funding snapshot', async t
       committedCents: 0, alert: null, overagesEnabled: false, invoicingPending: false } });
   release(); await tick();
   assert.equal(f.node('#subscription-level').textContent, 'Prepaid balance $34.56');
+});
+
+test('Build loads account drafts without loading infrastructure views', async t => {
+  const f = await fixture(t, { search: '?view=build' });
+  assert.equal(f.node('#dashboard-title').textContent, 'Build');
+  assert.equal(f.node('#dashboard-build').hidden, false);
+  assert.equal(f.node('#dashboard-resources').hidden, true);
+  assert.equal(f.node('#dashboard-overview').hidden, true);
+  assert.equal(shared.dashboardLoads, 0);
+  assert.deepEqual(shared.dashboardBuildLoads, ['owner']);
+  f.events.get('auth-change')?.({ detail: { user: null } });
+  assert.equal(shared.dashboardBuildDisposals, 1);
+  assert.equal(f.node('#dashboard-content').hidden, true);
+});
+
+test('Build stays behind session authentication', async t => {
+  const f = await fixture(t, { search: '?view=build', signedOut: true });
+  assert.deepEqual(shared.dashboardBuildLoads, []);
+  assert.equal(f.redirects[0], '/login/?returnTo=%2Fdashboard%2F%3Fview%3Dbuild');
 });

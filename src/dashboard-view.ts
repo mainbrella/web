@@ -3,7 +3,7 @@ import type { Container, ContainerData, MachineSize } from './types.ts';
 export type Lifecycle = 'ad_hoc' | 'production';
 export function dashboardView(search: string) {
   const view = new URLSearchParams(search).get('view');
-  return view === 'ad-hoc' || view === 'production' ? view : 'overview';
+  return view === 'ad-hoc' || view === 'production' || view === 'build' ? view : 'overview';
 }
 export const containerLifecycle = (container: Container): Lifecycle => container.lifecycle ?? 'ad_hoc';
 export const hourlyCost = (size: Pick<MachineSize, 'computeUnits'>) => size.computeUnits * 0.02;

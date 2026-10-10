@@ -54,7 +54,7 @@ const cookieDialog = `    <dialog class="cookie-consent" id="cookie-consent" ari
 
 function appChrome(path: string) {
   const pages: [string, string][] = [
-    ['Overview', '/dashboard/'], ['Ad Hoc', '/dashboard/?view=ad-hoc'],
+    ['Overview', '/dashboard/'], ['Build', '/dashboard/?view=build'], ['Ad Hoc', '/dashboard/?view=ad-hoc'],
     ['Production', '/dashboard/?view=production'], ['Projects', '/projects/'],
   ];
   return `<header class="site-header app-header wrap">

@@ -4,6 +4,7 @@ import type { User, PrepaidBalance, ContainerData } from './types.ts';
 import { formatBalance, readPrepaidBalance } from './prepaid-billing.ts';
 import { createImagesDashboard } from './images-dashboard.ts';
 import { createContainersDashboard } from './containers-dashboard.ts';
+import { createBuildDashboard } from './build-dashboard.ts';
 import { trackFunnel } from './acquisition-analytics.ts';
 
 const auth = createAuthClient();
@@ -21,14 +22,16 @@ let currentUser: User | null = null;
 let lastContainerBilling: ContainerData['billing'] = null;
 let dashboardTracked = false;
 const view = dashboardView(location.search);
-document.querySelector<HTMLElement>('#dashboard-title')!.textContent = view === 'overview' ? 'Overview' : view === 'production' ? 'Production' : 'Ad Hoc';
+document.querySelector<HTMLElement>('#dashboard-title')!.textContent = view === 'overview' ? 'Overview' : view === 'build' ? 'Build' : view === 'production' ? 'Production' : 'Ad Hoc';
 document.querySelector<HTMLElement>('#dashboard-overview')!.hidden = view !== 'overview';
+document.querySelector<HTMLElement>('#dashboard-build')!.hidden = view !== 'build';
+const build = view === 'build' ? createBuildDashboard() : null;
 for (const link of document.querySelectorAll<HTMLAnchorElement>('.app-navigation a')) {
   if (new URL(link.href).pathname !== '/dashboard/') continue;
   if (dashboardView(new URL(link.href).search) === view) link.setAttribute('aria-current', 'page');
   else link.removeAttribute('aria-current');
 }
-const containers = createContainersDashboard({ onUnauthenticated: goToLogin,
+const containers = view === 'build' ? null : createContainersDashboard({ onUnauthenticated: goToLogin,
   lifecycle: view === 'production' ? 'production' : 'ad_hoc', overview: view === 'overview',
   onLoadError() {
     document.querySelector<HTMLElement>('#overview-error')!.textContent = 'Could not load usage and workloads. Try again.';
@@ -56,11 +59,12 @@ const containers = createContainersDashboard({ onUnauthenticated: goToLogin,
     }
   },
 });
+if (view === 'build') document.querySelector<HTMLElement>('#dashboard-resources')!.hidden = true;
 
-document.querySelector<HTMLButtonElement>('#overview-retry')!.addEventListener('click', () => containers.load());
+document.querySelector<HTMLButtonElement>('#overview-retry')!.addEventListener('click', () => containers?.load());
 
-const images = createImagesDashboard({ onUnauthenticated: goToLogin,
-  onImagesChanged: containers.setImages, onSelectImage: containers.selectImage });
+const images = containers ? createImagesDashboard({ onUnauthenticated: goToLogin,
+  onImagesChanged: containers.setImages, onSelectImage: containers.selectImage }) : null;
 
 function goToLogin() {
   window.location.replace(`/login/?returnTo=${encodeURIComponent(location.pathname + location.search + location.hash)}`);
@@ -102,8 +106,9 @@ async function loadDashboard() {
     window.dispatchEvent(new CustomEvent('auth-change', { detail: { user: session.user } }));
     content.hidden = false;
     status.hidden = true;
-    containers.load();
-    images.load();
+    containers?.load();
+    images?.load();
+    build?.load(session.user.id);
     const fundingReadVersion = fundingVersion;
     const response = await fetch(`${API_ORIGIN}/billing/balance`, {
       credentials: 'include',
@@ -145,8 +150,9 @@ window.addEventListener('auth-change', (event) => {
     if (currentUser && event.detail.user.id !== currentUser.id) {
       version++;
       currentUser = null;
-      containers.dispose();
-      images.dispose();
+      containers?.dispose();
+      images?.dispose();
+      build?.dispose();
       content.hidden = true;
       window.location.reload();
     }
@@ -154,8 +160,9 @@ window.addEventListener('auth-change', (event) => {
   }
   currentUser = null;
   version++;
-  containers.dispose();
-  images.dispose();
+  containers?.dispose();
+  images?.dispose();
+  build?.dispose();
   content.hidden = true;
   goToLogin();
 });

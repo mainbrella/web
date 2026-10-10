@@ -47,6 +47,15 @@ take precedence. Profile remains available at `/profile/`, and the account menu
 links to the dashboard. The authenticated dashboard reads `/billing/balance` and
 shows prepaid funding alongside workloads. Failed status requests
 show an error with retry rather than reporting a zero balance.
+
+The **Build** tab at `/dashboard/?view=build` provides a prompt composer and a
+split brief/preview workspace. This first release supports creating, renaming,
+refining, deleting, and exporting app briefs. Drafts are saved in browser storage
+under the signed-in account, with a limit of 50 drafts and 100 brief entries per
+draft; they do not sync between devices. AI generation and live app previews are
+not connected yet, and the interface labels that availability explicitly. Build
+does not start containers or charge for AI or compute.
+
 Container listing, creation, and stopping use the session-authenticated
 `GET`, `POST`, and `DELETE /containers` backend API. Prepaid accounts allow 100 containers within 128 concurrent units, 10,000 starts per UTC month, 24-hour sessions and a 30-minute idle timeout. The $5 default monthly cap limits consumption independently of purchased balance. Legacy subscriptions
 grant tier-specific limits: Builder allows 5 concurrent containers, 1,000 starts
