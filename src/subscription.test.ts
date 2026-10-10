@@ -4,11 +4,15 @@ import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 import type { PrepaidBalance, User } from './types.ts';
 
-const mocks = globalThis as typeof globalThis & { billingTestSession: () => Promise<{ user: User } | null>; billingTracking: string[] };
+const mocks = globalThis as typeof globalThis & {
+  billingTestSession: () => Promise<{ user: User } | null>; billingTracking: string[];
+  billingLoadStripe: () => Promise<any>;
+};
 registerHooks({ resolve(specifier, context, next) {
   const modules: Record<string, string> = {
     './auth.ts': "export const API_ORIGIN='https://api.test'; export const createAuthClient=()=>({readSession:()=>globalThis.billingTestSession()});",
     './acquisition-analytics.ts': "export const trackFunnel=()=>{}; export const trackConfirmedPayment=id=>globalThis.billingTracking.push(id);",
+    '@stripe/stripe-js/pure': "export const loadStripe=()=>globalThis.billingLoadStripe();",
   };
   if (modules[specifier]) return { url: `data:text/javascript,${encodeURIComponent(modules[specifier])}`, shortCircuit: true };
   return next(specifier, context);
@@ -20,6 +24,11 @@ class Element {
   value = ''; checked = false; hidden = false; disabled = false; dataset: Record<string, string> = {}; textContent = '';
   listeners = new Map<string, (event: any) => unknown>();
   addEventListener(type: string, handler: (event: any) => unknown) { this.listeners.set(type, handler); }
+  removeEventListener(type: string) { this.listeners.delete(type); }
+  replaceChildren() {}
+  setAttribute() {}
+  reportValidity() { return true; }
+  validity = { valid: true };
   async click() { if (!this.disabled) await this.listeners.get('click')?.({}); }
   async submit() { await this.listeners.get('submit')?.({ preventDefault() {} }); }
   input() { this.listeners.get('input')?.({}); }
@@ -44,13 +53,47 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
   let mutationGate: Promise<void> | null = null;
   let readGate: Promise<void> | null = extra.readGate || null;
   let failRead = extra.failRead || false;
-  let checkoutUrl = 'https://checkout.stripe.com/c/pay/cs_test';
+  let checkoutData: any = { sessionId: 'cs_test', client_secret: 'cs_test_secret_inline', publishable_key: `pk_test_fixture_${sequence + 1}` };
+  let completionError: string | null = extra.completionError || null;
+  const stripeSession = { id: 'cs_test', email: 'owner@example.com', canConfirm: false, total: { total: { amount: '$20.00' } } };
+  const confirmations: any[] = [];
+  let sessionChanged: (session: any) => void = () => {};
+  const paymentEvents = new Map<string, (event?: any) => void>();
+  let mounted = false;
+  let destroyed = false;
+  let confirmGate: Promise<void> | null = null;
+  let confirmationError: string | null = null;
+  const actions = {
+    getSession: () => stripeSession,
+    updateEmail: async () => ({ type: 'success' }),
+    confirm: async (options: any) => {
+      confirmations.push(options);
+      if (confirmGate) await confirmGate;
+      if (confirmationError) return { type: 'error', error: { message: confirmationError } };
+      stripeSession.canConfirm = false;
+      sessionChanged(stripeSession);
+      return { type: 'success', session: stripeSession };
+    },
+  };
+  mocks.billingLoadStripe = async () => {
+    if (extra.stripeGate) await extra.stripeGate;
+    return { initCheckoutElementsSdk: () => ({
+      loadActions: async () => ({ type: 'success', actions }),
+      on: (_type: string, handler: (session: any) => void) => { sessionChanged = handler; },
+      createPaymentElement: () => ({
+        on: (type: string, handler: (event?: any) => void) => paymentEvents.set(type, handler),
+        mount: () => { mounted = true; paymentEvents.get('ready')?.(); },
+        destroy: () => { destroyed = true; },
+      }),
+    }) };
+  };
   const replace = (key: string, value: any) => {
     const descriptor = Object.getOwnPropertyDescriptor(globalThis, key);
     Object.defineProperty(globalThis, key, { value, configurable: true, writable: true });
     t.after(() => { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key); });
   };
   node('topup-amount').value = '20.00';
+  node('inline-checkout').hidden = true;
   replace('document', { getElementById: node, querySelectorAll: () => [] });
   replace('location', { search: extra.search || '', href: `https://mainbrella.com/pricing/${extra.search || ''}`, assign: (url: string) => redirects.push(url) });
   replace('history', { replaceState() {} });
@@ -73,9 +116,9 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
     }
     if (mutationGate) await mutationGate;
     if (fail) return Response.json({ error: fail }, { status: fail === 'unauthorized' ? 401 : 409 });
-    if (path === '/billing/topups') return Response.json({ sessionId: 'cs_test', url: checkoutUrl });
+    if (path === '/billing/topups') return Response.json(checkoutData);
     if (path === '/billing/topups/complete') {
-      if (extra.completionError) return Response.json({ error: extra.completionError }, { status: 409 });
+      if (completionError) return Response.json({ error: completionError }, { status: 409 });
       balance = wallet({ balanceCents: 3234, availableBalanceCents: 3000 });
       return Response.json({ balance });
     }
@@ -89,7 +132,13 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
   await tick();
   return { node, calls, redirects, storage, events, setFail(value: string | null) { fail = value; },
     setGate(value: Promise<void> | null) { mutationGate = value; }, setReadGate(value: Promise<void> | null) { readGate = value; },
-    setReadFailure(value: boolean) { failRead = value; }, setCheckoutUrl(value: string) { checkoutUrl = value; },
+    setReadFailure(value: boolean) { failRead = value; }, setCheckoutData(value: any) { checkoutData = value; },
+    setCompletionError(value: string | null) { completionError = value; },
+    setConfirmationError(value: string | null) { confirmationError = value; },
+    setConfirmGate(value: Promise<void> | null) { confirmGate = value; },
+    paymentReady() { stripeSession.canConfirm = true; sessionChanged(stripeSession); },
+    paymentLoadError() { paymentEvents.get('loaderror')?.({ error: { message: 'Unable to load card details.' } }); },
+    confirmations, isMounted: () => mounted, isDestroyed: () => destroyed,
     changeAccount(value: User | null) { events.get('auth-change')?.({ detail: { user: value } }); },
   };
 }
@@ -102,6 +151,7 @@ test('prepaid page shows balance, reserved funds and usage without opening a pay
   assert.equal(f.node('billing-usage').textContent, '$1.20');
   assert.equal(f.node('topup-submit').disabled, false);
   assert.equal(f.calls.some(call => call.body !== null), false);
+  assert.equal(f.isMounted(), false);
   assert.equal(f.calls.find(call => call.path === '/billing/balance')?.credentials, 'include');
 });
 
@@ -136,7 +186,9 @@ test('a lost checkout response retries the same saved request and never invents 
   f.setFail(null);
   await f.node('topup-form').submit();
   assert.deepEqual(f.calls.filter(call => call.path === '/billing/topups').map(call => call.body), [initial, initial]);
-  assert.deepEqual(f.redirects, ['https://checkout.stripe.com/c/pay/cs_test']);
+  await tick();
+  assert.deepEqual(f.redirects, []);
+  assert.equal(f.isMounted(), true);
   assert.equal(f.node('billing-balance').textContent, '$12.34');
 });
 
@@ -165,13 +217,18 @@ test('duplicate submit is blocked while checkout is being created', async t => {
   release(); await first;
 });
 
-test('checkout navigation requires Stripe HTTPS and rejects lookalike hosts', async t => {
+test('checkout requires an embedded session and never falls back to external navigation', async t => {
   const f = await fixture(t);
-  for (const url of ['https://checkout.stripe.com.evil.test/pay', 'http://checkout.stripe.com/pay', 'https://user@checkout.stripe.com/pay']) {
-    f.setCheckoutUrl(url);
+  for (const data of [
+    { sessionId: 'cs_test', url: 'https://checkout.stripe.com/c/pay/cs_test' },
+    { sessionId: 'cs_test', client_secret: 'cs_other_secret_inline', publishable_key: 'pk_test_inline' },
+    { sessionId: 'cs_test', client_secret: 'cs_test_secret_inline', publishable_key: '' },
+  ]) {
+    f.setCheckoutData(data);
     await f.node('topup-form').submit();
   }
   assert.deepEqual(f.redirects, []);
+  assert.equal(f.isMounted(), false);
   assert.equal(f.node('topup-submit').disabled, false);
 });
 
@@ -256,7 +313,7 @@ test('signing out while wallet loads cannot restore account data', async t => {
   assert.equal(f.node('billing-login').hidden, false);
 });
 
-test('switching accounts during top-up creation prevents stale checkout navigation', async t => {
+test('switching accounts during top-up creation prevents stale checkout mounting', async t => {
   const f = await fixture(t);
   let release!: () => void;
   f.setGate(new Promise(resolve => { release = resolve; }));
@@ -265,6 +322,7 @@ test('switching accounts during top-up creation prevents stale checkout navigati
   f.changeAccount({ id: 'next-owner' });
   release(); await payment; await tick();
   assert.deepEqual(f.redirects, []);
+  assert.equal(f.isMounted(), false);
   assert.equal(f.node('topup-amount').value, '20.00');
 });
 

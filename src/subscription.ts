@@ -2,7 +2,8 @@ import type { User, PrepaidBalance, PrepaidBillingConfig } from './types.ts';
 import { API_ORIGIN, createAuthClient } from './auth.ts';
 import { needsSignInCookies, signInCookieMessage } from './cookie-preferences.ts';
 import { trackConfirmedPayment, trackFunnel } from './acquisition-analytics.ts';
-import { dollarsToCents, formatBalance, readPrepaidBalance, stripeCheckoutUrl } from './prepaid-billing.ts';
+import { dollarsToCents, formatBalance, readPrepaidBalance } from './prepaid-billing.ts';
+import { mountStripeEmbeddedCheckout } from './payments/stripeEmbeddedCheckout.ts';
 
 const auth = createAuthClient();
 const element = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -19,6 +20,14 @@ const rechargeMaximum = element<HTMLInputElement>('recharge-maximum');
 const rechargeSave = element<HTMLButtonElement>('recharge-save');
 const refresh = element<HTMLButtonElement>('billing-refresh');
 const presets = [...document.querySelectorAll<HTMLButtonElement>('[data-topup-cents]')];
+const checkoutView = element('inline-checkout');
+const checkoutForm = element<HTMLFormElement>('checkout-form');
+const checkoutEmail = element<HTMLInputElement>('checkout-email');
+const checkoutBack = element<HTMLButtonElement>('checkout-back');
+const checkoutSlot = element('checkout-payment-slot');
+let cleanupCheckout: (() => void) | null = null;
+let checkoutVersion = 0;
+let checkoutProcessing = false;
 let user: User | null = null;
 let config: PrepaidBillingConfig | null = null;
 let balance: PrepaidBalance | null = null;
@@ -88,11 +97,27 @@ function applyBalance(value: unknown) {
   balance = readPrepaidBalance(value);
   window.dispatchEvent(new CustomEvent('billing-balance-change', { detail: { userId: user!.id, balance } }));
 }
+function setPaymentLoading(value: boolean) {
+  checkoutSlot.dataset.loading = String(value);
+  checkoutSlot.setAttribute('aria-busy', String(value));
+}
+function closeCheckout() {
+  checkoutVersion++;
+  cleanupCheckout?.();
+  cleanupCheckout = null;
+  checkoutView.hidden = true;
+  checkoutEmail.disabled = true;
+  if (checkoutProcessing) {
+    checkoutProcessing = false;
+    busy = false;
+    window.dispatchEvent(new CustomEvent('checkout-processing', { detail: { processing: false } }));
+  }
+}
 function render() {
   walletView.hidden = !user;
   login.hidden = Boolean(user) || loading;
   const ready = Boolean(user && balance && config?.configured && !loading && !busy);
-  topup.disabled = !ready;
+  topup.disabled = !ready || !checkoutView.hidden || Boolean(completionSession);
   cap.disabled = !ready;
   capSave.disabled = !ready;
   rechargeEnabled.disabled = !ready;
@@ -100,8 +125,9 @@ function render() {
   rechargeMaximum.disabled = !ready || !rechargeEnabled.checked;
   rechargeSave.disabled = !ready;
   refresh.disabled = !user || loading || busy;
-  presets.forEach(button => { button.disabled = !ready; });
-  amount.disabled = !ready;
+  presets.forEach(button => { button.disabled = !ready || !checkoutView.hidden || Boolean(completionSession); });
+  amount.disabled = !ready || !checkoutView.hidden || Boolean(completionSession);
+  checkoutBack.disabled = checkoutProcessing;
   element('billing-balance').textContent = balance ? formatBalance(balance.balanceCents) : '—';
   element('billing-available').textContent = balance ? formatBalance(balance.availableBalanceCents) : '—';
   element('billing-reserved').textContent = balance ? formatBalance(balance.reservedBalanceCents) : '—';
@@ -150,7 +176,7 @@ async function loadBalance(accountVersion = version) {
   if (accountVersion !== version || readVersion !== balanceReadVersion || !user) return;
   applyBalance(data.balance);
 }
-async function completePayment(accountVersion: number) {
+async function completePayment(accountVersion: number, retryInForm = false) {
   if (!completionSession || !user) return;
   const sessionId = completionSession;
   feedback(status, 'Confirming your payment…');
@@ -160,6 +186,7 @@ async function completePayment(accountVersion: number) {
     applyBalance(data.balance);
     if (!pendingTopup?.sessionId || pendingTopup.sessionId === sessionId) rememberPending(null);
     completionSession = null;
+    closeCheckout();
     const url = new URL(location.href);
     url.searchParams.delete('topup_session');
     url.searchParams.delete('topup_return');
@@ -171,13 +198,16 @@ async function completePayment(accountVersion: number) {
     if (accountVersion !== version || expired(error)) return;
     const pending = error instanceof BillingError && ['payment_pending', 'topup_pending', 'payment_not_complete'].includes(error.code);
     if (error instanceof BillingError && ['checkout_expired', 'topup_expired'].includes(error.code)) { rememberPending(null); completionSession = null; }
-    feedback(status, pending
+    const message = pending
       ? 'Payment is still pending. No funds have been added yet. Refresh to check again.'
-      : 'Could not confirm the payment. Refresh to check again before starting another payment.', true);
+      : 'Could not confirm the payment. Refresh to check again before starting another payment.';
+    feedback(status, message, true);
+    if (retryInForm) throw new Error(message);
   }
 }
 async function load(knownUser?: User | null) {
   const accountVersion = ++version;
+  closeCheckout();
   balanceReadVersion++;
   loading = true;
   busy = false;
@@ -219,9 +249,15 @@ async function load(knownUser?: User | null) {
 }
 
 presets.forEach(button => button.addEventListener('click', () => { amount.value = (Number(button.dataset.topupCents) / 100).toFixed(2); }));
+checkoutBack.addEventListener('click', () => {
+  if (checkoutProcessing) return;
+  closeCheckout();
+  render();
+  topup.focus();
+});
 element<HTMLFormElement>('topup-form').addEventListener('submit', async event => {
   event.preventDefault();
-  if (busy || loading || !user || !balance || !config?.configured) return;
+  if (busy || loading || !user || !balance || !config?.configured || !checkoutView.hidden || completionSession) return;
   const amountCents = dollarsToCents(amount.value);
   if (amountCents === null || amountCents < config.minTopupCents || amountCents > config.maxTopupCents) {
     feedback(element('topup-status'), `Enter an amount from ${formatBalance(config.minTopupCents)} to ${formatBalance(config.maxTopupCents)}, with up to two decimal places.`, true);
@@ -241,27 +277,63 @@ element<HTMLFormElement>('topup-form').addEventListener('submit', async event =>
   try {
     const data = await api('/billing/topups', { requestId: pendingTopup!.requestId, amountCents });
     if (accountVersion !== version || !user) return;
-    const url = stripeCheckoutUrl(data.url);
-    if (typeof data.sessionId !== 'string' || !data.sessionId) throw new Error('invalid_checkout');
+    if (typeof data.sessionId !== 'string' || !/^cs_[A-Za-z0-9_]+$/.test(data.sessionId)
+      || typeof data.client_secret !== 'string' || !data.client_secret.startsWith(`${data.sessionId}_secret_`)
+      || typeof data.publishable_key !== 'string' || !/^pk_(test|live)_\S+$/.test(data.publishable_key)) throw new Error('invalid_checkout');
     rememberPending({ ...pendingTopup!, sessionId: data.sessionId });
     trackFunnel('checkout_started', { plan: 'prepaid' });
-    location.assign(url);
+    checkoutView.hidden = false;
+    checkoutEmail.value = user.email || '';
+    checkoutEmail.disabled = false;
+    checkoutEmail.readOnly = false;
+    const submitLabel = `Pay ${formatBalance(amountCents)}`;
+    const submit = element<HTMLButtonElement>('checkout-submit');
+    submit.textContent = submitLabel;
+    element('checkout-total').textContent = `Due today: ${formatBalance(amountCents)}`;
+    setPaymentLoading(true);
+    feedback(element('topup-status'), '');
+    const mountVersion = ++checkoutVersion;
+    const current = () => accountVersion === version && mountVersion === checkoutVersion && Boolean(user);
+    cleanupCheckout = mountStripeEmbeddedCheckout({
+      container: element('checkout-payment'), form: checkoutForm,
+      submitButton: submit, statusElement: element('checkout-status'),
+      emailInput: checkoutEmail, totalElement: element('checkout-total'),
+      clientSecret: data.client_secret, publishableKey: data.publishable_key, submitLabel,
+      onReady: () => { if (current()) setPaymentLoading(false); },
+      onError: () => { if (current()) setPaymentLoading(false); },
+      onProcessing: processing => {
+        if (!current()) return;
+        checkoutProcessing = processing;
+        busy = processing;
+        checkoutEmail.disabled = processing;
+        window.dispatchEvent(new CustomEvent('checkout-processing', { detail: { processing } }));
+        render();
+      },
+      onComplete: async session => {
+        if (!current()) return;
+        if (session?.id !== data.sessionId) throw new Error('Could not verify this payment. Refresh to check your balance.');
+        completionSession = session.id;
+        await completePayment(accountVersion, true);
+        if (accountVersion === version) render();
+      },
+    });
+    element('checkout-title').focus();
   } catch (error) {
     if (accountVersion !== version || expired(error)) return;
     if (error instanceof BillingError && ['checkout_expired', 'topup_expired'].includes(error.code)) rememberPending(null);
     if (error instanceof BillingError && error.code === 'topup_already_complete') {
-      rememberPending(null);
-      try {
-        await loadBalance(accountVersion);
-        if (accountVersion !== version) return;
-        feedback(element('topup-status'), 'That payment is already complete. Your balance has been refreshed.');
-      } catch {
-        if (accountVersion !== version) return;
-        feedback(element('topup-status'), 'That payment is already complete. Refresh to check your balance.', true);
+      if (pendingTopup?.sessionId) {
+        completionSession = pendingTopup.sessionId;
+        await completePayment(accountVersion);
+      } else {
+        await loadBalance(accountVersion).catch(() => {});
+        if (accountVersion === version) feedback(element('topup-status'), 'That payment is already complete. Refresh to check your balance.', true);
       }
-    } else feedback(element('topup-status'), 'Could not open checkout. No balance was added. Retry to continue the same payment.', true);
-    busy = false;
-    render();
+    } else feedback(element('topup-status'), error instanceof BillingError && ['checkout_expired', 'topup_expired'].includes(error.code)
+      ? 'That checkout expired. Continue to payment to open a new form.'
+      : 'Could not open checkout. No balance was added. Retry to continue the same payment.', true);
+  } finally {
+    if (accountVersion === version) { busy = false; render(); }
   }
 });
 cap.addEventListener('input', () => { capDirty = true; });

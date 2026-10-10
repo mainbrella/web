@@ -117,6 +117,7 @@ export function mountStripeEmbeddedCheckout({
       const stripePromise = getStripePromise(publishableKey);
       if (!stripePromise) throw new Error("Stripe publishable key is missing.");
       const stripe = await stripePromise;
+      if (destroyed) return;
       if (!stripe || typeof stripe.initCheckoutElementsSdk !== "function") {
         throw new Error("Stripe checkout is unavailable.");
       }
@@ -254,8 +255,9 @@ export function mountStripeEmbeddedCheckout({
           redirect: "if_required",
           ...(!fixedEmail ? { email: emailInput.value.trim() } : {}),
         });
+        if (destroyed) return;
         if (result?.type === "error") {
-          throw new Error(result.error?.message || "Unable to activate subscription.");
+          throw new Error(result.error?.message || "Unable to complete payment.");
         }
         confirmedSession = result?.session || checkoutActions.getSession?.();
         emailInput.readOnly = true;
@@ -265,7 +267,7 @@ export function mountStripeEmbeddedCheckout({
     } catch (caught) {
       const error = caught instanceof Error ? caught : new Error("Unexpected error");
       if (destroyed) return;
-      const message = error?.message || "Unable to activate subscription.";
+      const message = error?.message || "Unable to complete payment.";
       submitButton.disabled = false;
       submitButton.textContent = confirmedSession ? "Retry confirmation" : submitLabel;
       setStatus(statusElement, message, "error");

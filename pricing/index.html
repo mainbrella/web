@@ -37,8 +37,34 @@
           <div class="topup-presets" aria-label="Top-up amounts"><button class="text-link billing-link" type="button" data-topup-cents="2000" disabled>$20</button><button class="text-link billing-link" type="button" data-topup-cents="5000" disabled>$50</button><button class="text-link billing-link" type="button" data-topup-cents="10000" disabled>$100</button></div>
         </form>
         <p id="topup-note" class="pricing-note">Minimum $5. Your balance carries forward. Checkout shows any applicable taxes before you pay.</p>
-        <p class="pricing-note">Payment is collected by Stripe. Funds become available after payment succeeds. By paying, you agree to the <a href="/terms/">Terms of Service</a>.</p>
         <p id="topup-status" class="pricing-note" role="status" aria-live="polite"></p>
+        <section id="inline-checkout" class="inline-checkout prepaid-checkout" aria-labelledby="checkout-title" hidden>
+          <div class="billing-heading"><h2 id="checkout-title" tabindex="-1">Payment details</h2><button id="checkout-back" class="text-link billing-link" type="button">Close payment form</button></div>
+          <form id="checkout-form">
+            <label for="checkout-email">Email for receipts</label>
+            <input id="checkout-email" name="email" type="email" autocomplete="email" required disabled />
+            <div id="checkout-payment-slot" class="checkout-payment-slot" data-loading="true" aria-busy="true">
+              <div id="checkout-payment" aria-label="Card details"></div>
+              <div class="checkout-payment-placeholder" aria-hidden="true">
+                <span class="checkout-placeholder-method"></span>
+                <span class="checkout-placeholder-label"></span>
+                <span class="checkout-placeholder-input"></span>
+                <div class="checkout-placeholder-row">
+                  <div><span class="checkout-placeholder-label"></span><span class="checkout-placeholder-input"></span></div>
+                  <div><span class="checkout-placeholder-label"></span><span class="checkout-placeholder-input"></span></div>
+                </div>
+                <div class="checkout-placeholder-row">
+                  <div><span class="checkout-placeholder-label"></span><span class="checkout-placeholder-input"></span></div>
+                  <div><span class="checkout-placeholder-label"></span><span class="checkout-placeholder-input"></span></div>
+                </div>
+              </div>
+            </div>
+            <p id="checkout-total" class="pricing-note" aria-live="polite"></p>
+            <p class="pricing-note">Payment is collected by Stripe. Funds become available after payment succeeds. By paying, you agree to the <a href="/terms/">Terms of Service</a>.</p>
+            <p id="checkout-status" class="pricing-note" role="status" aria-live="polite"></p>
+            <button id="checkout-submit" class="button button-small" type="submit" disabled>Pay</button>
+          </form>
+        </section>
         <section class="billing-settings" aria-labelledby="cap-title">
           <h2 id="cap-title">Monthly spending cap</h2>
           <form id="usage-limit-form" class="billing-form">

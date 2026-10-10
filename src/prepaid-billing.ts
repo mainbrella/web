@@ -27,11 +27,3 @@ export function dollarsToCents(value: string): number | null {
   return Number.isSafeInteger(cents) ? cents : null;
 }
 
-export function stripeCheckoutUrl(value: unknown): string {
-  if (typeof value !== 'string') throw new Error('invalid_checkout');
-  const url = new URL(value);
-  if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com' || url.port || url.username || url.password) {
-    throw new Error('invalid_checkout');
-  }
-  return url.href;
-}
