@@ -9,14 +9,15 @@ const attributionKey = 'mainbrella-acquisition';
 const attributionLifetime = 30 * 86_400_000;
 let configured = false;
 let accountId: string | null = null;
-let memoryAttribution: { at: number; entry: string; campaign: EventParameters } | null = null;
+let memoryAttribution: { at: number; entry: string; campaign: EventParameters; clickids?: EventParameters } | null = null;
+const clickIdKeys = ['gclid', 'fbclid', 'msclkid', 'ttclid'] as const;
 
 // Keep arbitrary query strings, credentials, emails and prompts out of analytics.
 export function campaignParameters(url: URL): EventParameters {
   const parameters: EventParameters = {};
   for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'creator']) {
     const value = url.searchParams.get(key);
-    if (value && /^[a-zA-Z0-9_-]{1,80}$/.test(value)) parameters[key] = value;
+    if (value && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$/.test(value)) parameters[key] = value;
   }
   return parameters;
 }
@@ -54,7 +55,12 @@ function attribution(): EventParameters {
   try { previous = stored(window.localStorage, attributionKey) || previous; } catch { /* Memory fallback. */ }
   const valid = previous && Number.isFinite(previous.at) && previous.at <= now
     && now - previous.at < attributionLifetime && typeof previous.entry === 'string';
-  const entry = valid && previous ? previous : { at: now, entry: window.location.pathname, campaign: current };
+  const clickids: EventParameters = {};
+  for (const key of clickIdKeys) {
+    const value = new URL(window.location.href).searchParams.get(key);
+    if (value && /^[a-zA-Z0-9_-]{1,256}$/.test(value)) clickids[key] = value;
+  }
+  const entry = valid && previous ? previous : { at: now, entry: window.location.pathname, campaign: current, clickids };
   memoryAttribution = entry;
   if (!valid) { try { remember(window.localStorage, attributionKey, entry); } catch { /* Memory fallback. */ } }
   // Revalidate persisted values rather than trusting browser storage as event data.
@@ -62,8 +68,34 @@ function attribution(): EventParameters {
   for (const [key, value] of Object.entries(entry.campaign || {})) {
     if (typeof value === 'string') campaign.searchParams.set(key, value);
   }
-  const entryPage = /^\/[a-zA-Z0-9/_-]*$/.test(entry.entry) ? entry.entry : '/';
+  const entryPage = /^\/(?!\/)[A-Za-z0-9/_-]{0,299}$/.test(entry.entry) ? entry.entry : '/';
   return { entry_page: entryPage, ...campaignParameters(campaign) };
+}
+
+// A backend acquisition record needs the same first-touch campaign as analytics,
+// plus click identifiers that must never be sent to GA or included in a URL.
+export function firstTouchAttribution() {
+  if (typeof window === 'undefined' || readConsent() !== 'accepted') return null;
+  try {
+    const values = attribution();
+    let saved = memoryAttribution;
+    try { saved = stored(window.localStorage, attributionKey) || saved; } catch { /* Getter blocked; the in-memory first touch is enough. */ }
+    const clickids: EventParameters = {};
+    for (const key of clickIdKeys) {
+      const value = saved?.clickids?.[key];
+      if (typeof value === 'string' && /^[a-zA-Z0-9_-]{1,256}$/.test(value)) clickids[key] = value;
+    }
+    return { entryPage: String(values.entry_page || '/'), campaign: { ...campaignParametersFrom(values), ...clickids } };
+  } catch { return null; }
+}
+
+function campaignParametersFrom(values: EventParameters) {
+  const campaign: EventParameters = {};
+  for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'creator']) {
+    const value = values[key];
+    if (typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$/.test(value)) campaign[key] = value;
+  }
+  return campaign;
 }
 
 function configure() {

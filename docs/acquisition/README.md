@@ -1,5 +1,7 @@
 # Mainbrella first twenty active users
 
+Current funnel: `/try/` starts with a public repository and has no email gate; running a project requires an account and at least $5 in prepaid balance. The backend records nine authoritative acquisition and lifecycle events in D1. Do not add a browser ad conversion for `lead.captured`; repository capture and authenticated linking are browser inputs, while paid events come from the server. The GA subscription and funnel metrics below are legacy diagnostics, not the source of truth for payment or lifecycle reporting. See the [backend acquisition event spine](../../../backend/docs/acquisition.md). The older monthly-plan copy below predates the prepaid switch.
+
 Run one acquisition experiment around a clear offer: a Linux computer for an AI agent, started by API, with commands, files, SSH, browser terminals, and web previews, from $5/month. Aim for twenty developers who run a real workload and return to run it again. Count paid subscriptions separately from coupon trials.
 
 The landing pages and browser funnel events are implemented. GA4 needs a web-stream measurement ID before it collects these events. Outreach, creator bookings, ad spending, and the managed remote-agent product remain work to do.

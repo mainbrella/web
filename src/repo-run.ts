@@ -5,6 +5,7 @@ import { repoSetupPrompt, validRepo } from './repo-run-prompt.ts';
 import { parseRepoRunConfig, stringifyRepoRunConfig, validateRepoRunConfig } from './repo-run-config.ts';
 import { streamRunOutput, type RunOutputStatus } from './repo-run-output.ts';
 import type { ContainerData } from './types.ts';
+import { captureRepository } from './acquisition-spine.ts';
 
 const element = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const form = element<HTMLFormElement>('run-form');
@@ -398,6 +399,7 @@ async function copyPrompt(existing = false) {
   const copiedVersion = promptVersion;
   const copiedRepo = repo.value;
   const copiedText = text.value;
+  if (validRepo(repo.value)) void captureRepository(repo.value, 'run_v1');
   button.disabled = true;
   note.textContent = '';
   try {
@@ -728,3 +730,4 @@ if (configId && !imported) {
   element('run-import-status').className = 'dashboard-error';
 }
 if (launchMode) void init();
+if (params.has('repo') && validRepo(repo.value)) void captureRepository(repo.value, 'run_v1');

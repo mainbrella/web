@@ -1,6 +1,6 @@
 import './cookie-consent.ts';
 import { readConsent } from './cookie-preferences.ts';
-import { syncFunnelConsent, trackFunnel } from './acquisition-analytics.ts';
+import { firstTouchAttribution, syncFunnelConsent, trackFunnel } from './acquisition-analytics.ts';
 
 const landingPages = ['/', '/try/', '/e2b-alternative/', '/daytona-alternative/', '/cloudflare-sandbox/'];
 const path = location.pathname.replace(/index\.html$/, '').replace(/\/?$/, '/');
@@ -30,6 +30,8 @@ function resume() {
 function start() {
   if (started || readConsent() !== 'accepted') return;
   started = true;
+  // Preserve the first touch for backend acquisition capture even when GA is unset.
+  firstTouchAttribution();
   trackFunnel('page_view');
   if (quickstart) trackFunnel('quickstart_view');
   if (landing || quickstart) resume();
