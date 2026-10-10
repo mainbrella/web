@@ -1,0 +1,22 @@
+.yaml-body .yaml-article h1 { font-size: 32px; line-height: 1.2; }
+.yaml-article .yaml-version { margin-top: 8px; color: var(--muted); font-size: 14px; }
+.yaml-article section { scroll-margin-top: 24px; }
+.yaml-example { margin-top: 24px; }
+.yaml-example h3 { font-size: 16px; letter-spacing: 0; }
+.yaml-example p { margin-top: 8px; color: var(--muted); font-size: 15px; }
+.yaml-example .docs-code { margin-bottom: 8px; }
+.yaml-example-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
+.yaml-example-actions button { min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; transition: border-color 180ms ease; }
+.yaml-example-actions button:hover { border-color: var(--muted); }
+.yaml-example-actions button:disabled { color: var(--muted); cursor: wait; }
+.yaml-example-actions span { color: var(--muted); font-size: 13px; }
+.yaml-article .yaml-example-note { margin-top: 16px; color: var(--muted); font-size: 13px; }
+.yaml-fields { min-width: 640px; }
+.yaml-fields .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.yaml-fields th:first-child { width: 144px; }
+.yaml-fields th:nth-child(2) { width: 156px; }
+.yaml-article .content-list li + li { margin-top: 8px; }
+@media (max-width: 700px) {
+  .yaml-body .yaml-article h1 { font-size: 28px; }
+  .yaml-body .docs-sidebar { display: none; }
+}

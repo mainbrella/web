@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mainbrella.com/schemas/launch-manifest-0.1.json",
+  "title": "Mainbrella Launch Manifest 0.1",
+  "description": "Canonical launch options for a public GitHub repository.",
+  "type": "object",
+  "properties": {
+    "repo": {
+      "type": "string",
+      "description": "Canonical GitHub owner/repository name.",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9-]{0,38}/(?!(?:\\.|\\.\\.)$)[A-Za-z0-9_.-]{1,100}$"
+    },
+    "ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[^\\u0000-\\u0020\\u007f]+$",
+      "description": "Commit, branch, or tag name without ASCII whitespace or control characters."
+    },
+    "catalogId": {
+      "type": "string",
+      "enum": ["node", "python", "rust", "go", "devops"]
+    },
+    "size": {
+      "type": "string",
+      "enum": ["lite", "small", "medium", "large", "xl"],
+      "default": "small"
+    },
+    "cwd": {
+      "type": "string",
+      "maxLength": 200,
+      "default": ".",
+      "description": "Repository-relative working directory with no dot or parent path segments.",
+      "oneOf": [
+        { "const": "." },
+        {
+          "pattern": "^[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*$",
+          "not": { "pattern": "(?:^|/)\\.{1,2}(?:/|$)" }
+        }
+      ]
+    },
+    "setupCommand": {
+      "$ref": "#/$defs/command"
+    },
+    "startCommand": {
+      "$ref": "#/$defs/command"
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 1024,
+      "maximum": 65535
+    }
+  },
+  "required": ["repo"],
+  "additionalProperties": false,
+  "dependentRequired": {
+    "startCommand": ["port"],
+    "port": ["startCommand"]
+  },
+  "$defs": {
+    "command": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "allOf": [
+        { "pattern": "\\S" },
+        { "not": { "pattern": "\\u0000" } }
+      ],
+      "description": "Non-whitespace shell command, at most 4096 characters, with no NUL character."
+    }
+  }
+}

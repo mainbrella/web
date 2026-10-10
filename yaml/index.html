@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0d1014">
+    <meta name="description" content="The Mainbrella Launch Manifest: an open YAML specification for preparing, launching, and previewing public GitHub repositories. Read draft 0.1, examples, and the JSON Schema.">
+    <meta property="og:title" content="Mainbrella Launch Manifest · YAML specification">
+    <meta property="og:description" content="A small YAML recipe that tells a runner how to prepare, launch, and preview a public GitHub repository. For developers and AI agents.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://mainbrella.com/yaml/">
+    <link rel="canonical" href="https://mainbrella.com/yaml/">
+    <link rel="icon" href="/images/favicon.png" type="image/png">
+    <link rel="stylesheet" href="/mainbrella.css">
+    <link rel="stylesheet" href="/yaml.css">
+    <title>Mainbrella Launch Manifest · YAML specification</title>
+  </head>
+  <body class="info-body sandbox-home yaml-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="docs-layout wrap">
+      <aside class="docs-sidebar">
+        <nav aria-label="YAML specification">
+          <a href="#overview">Overview</a>
+          <a href="#examples">Examples</a>
+          <a href="#fields">Fields</a>
+          <a href="#execution">Execution</a>
+          <a href="#validation">Validation &amp; versioning</a>
+        </nav>
+      </aside>
+      <article class="docs-article yaml-article">
+        <header id="overview">
+          <h1>Mainbrella Launch Manifest</h1>
+          <p class="yaml-version">Draft 0.1 · Supported by Mainbrella today</p>
+          <p>An open YAML recipe to prepare, launch, and preview a public GitHub repository. For developers and AI agents.</p>
+          <div class="recipe-links">
+            <a href="/try/">Try a repository</a>
+            <a href="/schemas/launch-manifest-0.1.json" download>Download JSON Schema</a>
+          </div>
+        </header>
+
+        <section id="examples" aria-labelledby="examples-title">
+          <h2 id="examples-title">Examples</h2>
+          <p>Choose the repository in <a href="/run/">Run a repository</a>, then paste its YAML at the configuration step.</p>
+
+          <div class="yaml-example">
+            <h3 id="python-title">Static website · Python</h3>
+            <p>Serve <a href="https://github.com/mdn/beginner-html-site-styled/tree/6c7a360ddb4a0d75be06044bf8a914f260ff10c7">MDN’s example website</a> with Python’s built-in HTTP server.</p>
+            <pre class="docs-code" tabindex="0" aria-labelledby="python-title"><code id="python-example" data-launch-example>repo: mdn/beginner-html-site-styled
+ref: 6c7a360ddb4a0d75be06044bf8a914f260ff10c7
+catalogId: python
+size: lite
+cwd: .
+startCommand: |-
+  exec python3 -m http.server 8080 --bind 0.0.0.0
+port: 8080</code></pre>
+            <div class="yaml-example-actions">
+              <button type="button" data-copy-example="python-example" aria-describedby="python-copy-status" hidden>Copy YAML</button>
+              <span id="python-copy-status" role="status"></span>
+            </div>
+          </div>
+
+          <div class="yaml-example">
+            <h3 id="node-title">Install, build, preview · Node</h3>
+            <p>Build <a href="https://github.com/mainbrella/web/tree/7ea2144684b53795fd03bafb4a5523c867fd5de7">this website</a> using its committed npm lockfile, then serve the result with Vite. Setup finishes before the server starts.</p>
+            <pre class="docs-code" tabindex="0" aria-labelledby="node-title"><code id="node-example" data-launch-example>repo: mainbrella/web
+ref: 7ea2144684b53795fd03bafb4a5523c867fd5de7
+catalogId: node
+size: small
+cwd: .
+setupCommand: |-
+  set -Eeuo pipefail
+  npm ci
+  npm run build
+startCommand: |-
+  exec ./node_modules/.bin/vite preview --host 0.0.0.0 --port 4173 --strictPort
+port: 4173</code></pre>
+            <div class="yaml-example-actions">
+              <button type="button" data-copy-example="node-example" aria-describedby="node-copy-status" hidden>Copy YAML</button>
+              <span id="node-copy-status" role="status"></span>
+            </div>
+          </div>
+
+          <div class="yaml-example">
+            <h3 id="terminal-title">Terminal only · Go</h3>
+            <p>Open the <a href="https://github.com/cli/cli/tree/ec5b512045db67e5a2a4ff4a1b02660b2fb24390">GitHub CLI source</a> in a Go machine to explore or build from the terminal. Omitting both <code>startCommand</code> and <code>port</code> requests a shell without a web preview.</p>
+            <pre class="docs-code" tabindex="0" aria-labelledby="terminal-title"><code id="terminal-example" data-launch-example>repo: cli/cli
+ref: ec5b512045db67e5a2a4ff4a1b02660b2fb24390
+catalogId: go
+size: lite</code></pre>
+            <div class="yaml-example-actions">
+              <button type="button" data-copy-example="terminal-example" aria-describedby="terminal-copy-status" hidden>Copy YAML</button>
+              <span id="terminal-copy-status" role="status"></span>
+            </div>
+          </div>
+          <p class="yaml-example-note">These examples are pinned to source commits and checked against the format. Execution in a Mainbrella machine has not been verified.</p>
+        </section>
+
+        <section id="fields" aria-labelledby="fields-title">
+          <h2 id="fields-title">Field reference</h2>
+          <p>A manifest is one mapping. Only <code>repo</code> is required. Omit unused fields rather than giving them <code>null</code> or empty values. Unknown fields are rejected.</p>
+          <div class="docs-table-scroll" tabindex="0" role="region" aria-label="Launch manifest field reference">
+            <table class="docs-table yaml-fields">
+              <caption class="visually-hidden">Mainbrella Launch Manifest draft 0.1 fields</caption>
+              <thead><tr><th scope="col">Field</th><th scope="col">Type / default</th><th scope="col">Meaning and constraints</th></tr></thead>
+              <tbody>
+                <tr><th scope="row"><code>repo</code></th><td>string · required</td><td>Public GitHub repository as <code>owner/repository</code>. Owner: 1–39 letters, digits, or hyphens, beginning with a letter or digit. Repository: 1–100 letters, digits, underscores, dots, or hyphens; cannot be <code>.</code> or <code>..</code>. Mainbrella also accepts GitHub HTTPS URLs on import.</td></tr>
+                <tr><th scope="row"><code>ref</code></th><td>string · default branch</td><td>Commit, branch, or tag; 1–200 characters without ASCII whitespace or control characters. Prefer a full immutable commit SHA for repeatable launches.</td></tr>
+                <tr><th scope="row"><code>catalogId</code></th><td>string · inferred</td><td><code>node</code>, <code>python</code>, <code>rust</code>, <code>go</code>, or <code>devops</code>. Mainbrella suggests a runtime from manifests in <code>cwd</code>; ambiguous projects fall back to Node. This selects a runtime family, not a pinned image version.</td></tr>
+                <tr><th scope="row"><code>size</code></th><td>string · <code>small</code></td><td><code>lite</code>, <code>small</code>, <code>medium</code>, <code>large</code>, or <code>xl</code>. Choose enough memory for installation and builds as well as the running app.</td></tr>
+                <tr><th scope="row"><code>cwd</code></th><td>string · <code>.</code></td><td>Directory relative to <code>/workspace/repo</code>; at most 200 characters. Use <code>.</code> or slash-separated names containing letters, digits, underscores, dots, or hyphens, such as <code>apps/web</code>. Absolute paths, empty segments, and <code>.</code> / <code>..</code> path segments are rejected.</td></tr>
+                <tr><th scope="row"><code>setupCommand</code></th><td>string · skipped</td><td>Bash script to install dependencies and build. Nonempty after trimming; at most 4,096 characters after trimming, with no NUL character. Use a literal block scalar (<code>|-</code>) to preserve newlines.</td></tr>
+                <tr><th scope="row"><code>startCommand</code></th><td>string · omitted</td><td>Bash script that starts the HTTP server in the foreground. Same string rules as <code>setupCommand</code>. Requires <code>port</code>.</td></tr>
+                <tr><th scope="row"><code>port</code></th><td>integer · omitted</td><td>HTTP preview port from 1024 to 65535. Requires <code>startCommand</code>. The app must listen on this exact port and bind to <code>0.0.0.0</code>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>For a monorepo, set <code>cwd: apps/web</code> when the install and start scripts belong in that directory. If dependencies must be installed at the repository root, explicitly change directories in <code>setupCommand</code>; the start script still begins in <code>cwd</code>.</p>
+        </section>
+
+        <section id="execution" aria-labelledby="execution-title">
+          <h2 id="execution-title">What a runner does</h2>
+          <ol class="content-list">
+            <li>Validate the mapping, resolve the repository and ref, and select the runtime and size.</li>
+            <li>Clone the resolved commit to <code>/workspace/repo</code>.</li>
+            <li>Run <code>setupCommand</code>, when supplied, from <code>cwd</code>. Continue only if it succeeds.</li>
+            <li>Run <code>startCommand</code>, when supplied, from <code>cwd</code> in a separate Bash process. Keep the server running and check HTTP readiness at <code>/</code> on <code>port</code>.</li>
+            <li>Provide a terminal and, for a ready HTTP server, an optional preview link.</li>
+          </ol>
+          <p>Setup and start share files, but shell exports and directory changes from setup do not carry into start. Put required environment variables in each script. Use the repository’s lockfile and check its build prerequisites; a runtime selection alone does not guarantee every native compiler or system package.</p>
+          <p>In Mainbrella, setup has a 15-minute limit and startup checks readiness for about 60 seconds. The server runs in its own tmux session and writes to <code>/workspace/.mainbrella-preview.log</code>. A failed setup or start leaves the terminal available for repair.</p>
+          <p>Preview links last at most 15 minutes and do not extend the machine’s lifetime. The preview proxy strips cookies and Authorization headers, so cookie sessions and bearer-authenticated apps need another access method. See the <a href="/references/public-repository-launches.md">full launch contract</a> for platform behavior.</p>
+        </section>
+
+        <section id="validation" aria-labelledby="validation-title">
+          <h2 id="validation-title">For developers and tool builders</h2>
+          <p>YAML and JSON represent the same data. Use one document with unique keys, scalar strings, and an integer port. YAML aliases and custom tags are unsupported. Comments are welcome; they do not become launch data.</p>
+          <p>The <a href="/schemas/launch-manifest-0.1.json">draft 0.1 JSON Schema</a> validates canonical data: normalize a GitHub URL to <code>owner/repository</code> and trim scripts first. JSON Schema checks the mapping; the YAML parser must also reject duplicate keys, multiple documents, aliases, and unsupported tags. Mainbrella’s <a href="https://github.com/mainbrella/web/blob/7ea2144684b53795fd03bafb4a5523c867fd5de7/src/repo-run-config.ts">parser and validator</a> implement these import rules.</p>
+          <p>To enable schema hints in a compatible editor, put this comment at the top of your YAML file:</p>
+          <pre class="docs-code" tabindex="0" aria-label="YAML editor schema comment"><code># yaml-language-server: $schema=https://mainbrella.com/schemas/launch-manifest-0.1.json</code></pre>
+          <p>Save a recipe as <code>mainbrella.yaml</code> if you like, then paste its contents into Mainbrella. Draft 0.1 is a launch request, so it includes <code>repo</code> even when saved inside that repository. Mainbrella does not automatically discover this file.</p>
+          <p>The version belongs to the specification and schema URL. Do not add <code>schemaVersion</code> or <code>$schema</code> as a mapping field. Changes to this contract will get a new schema version rather than silently changing 0.1.</p>
+          <p>This is an openly documented Mainbrella format, available for other tools to implement. Mainbrella is its current runner. A repository-owned manifest that references Dockerfiles, Compose services, or Dev Containers is a future extension; those fields are not part of draft 0.1. Existing project definitions can inform the commands you write today.</p>
+          <p>Keep credentials, tokens, and launch IDs out of recipes. A manifest describes commands to review; importing it does not authorize execution. In Mainbrella, running starts only after you sign in, review the configuration, and choose <strong>Run repository</strong>.</p>
+          <div class="recipe-links"><a href="/try/">Run your first repository</a><a href="/docs/agent-setup/">Set up your agent</a></div>
+        </section>
+      </article>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/yaml.ts"></script>
+    <script type="module" src="/src/account-menu.ts"></script>
+  </body>
+</html>
