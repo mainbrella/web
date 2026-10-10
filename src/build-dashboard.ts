@@ -1,8 +1,15 @@
-import { BuildAPIError, buildErrorMessage, createBuildClient, safeBuildPreviewURL, type BuildActivity, type BuildImage, type BuildApp, type BuildConfig, type BuildSource, type BuildTurn, type BuildModelOptions } from './build-api.ts';
+import { BuildAPIError, buildErrorMessage, createBuildClient, safeBuildPreviewURL, type BuildActivity, type BuildImage, type BuildApp, type BuildConfig, type BuildSource, type BuildTurn, type BuildModel, type BuildModelOptions } from './build-api.ts';
 import { buildExamples, createBuildDraftStore } from './build-drafts.ts';
 import { buildBriefQuestions, formatBuildBriefPrompt, readBuildBriefPrompt } from './build-brief.ts';
 
 type Clarification = { prompt: string; answers: [string, string]; step: 0 | 1 };
+
+export function selectBuildModelOptions(models: BuildModel[], defaultModel: string | undefined, options: BuildModelOptions): BuildModelOptions {
+  const previous = models.find(model => model.id === options.model);
+  const model = previous ?? models.find(model => model.id === defaultModel) ?? models[0];
+  if (!model) return {};
+  return { model: model.id, effort: previous && model.efforts.includes(options.effort ?? '') ? options.effort : model.defaultEffort };
+}
 
 export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated: () => void }) {
   const host = document.querySelector<HTMLElement>('#dashboard-build')!;
@@ -92,19 +99,20 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     togglePreview.setAttribute('aria-expanded', String(expanded));
   }
 
-  const effortLabel = (value: string) => ({ none: 'Off', on: 'On', always: 'Always on', unsupported: 'Not supported', default: 'Model default', xhigh: 'Extra high' } as Record<string, string>)[value] ?? value.charAt(0).toUpperCase() + value.slice(1);
+  const effortLabel = (value: string) => ({ none: 'Off', on: 'On', always: 'Always on', unsupported: 'Not supported', default: 'Model default', max: 'Extra high', xhigh: 'Extra high' } as Record<string, string>)[value] ?? value.charAt(0).toUpperCase() + value.slice(1);
   function modelName(id: string) { return config?.models?.find(model => model.id === id)?.name ?? id; }
   function renderModelOptions() {
     const models = config?.models ?? (config ? [{ id: config.model, name: config.model, efforts: ['default'], defaultEffort: 'default' }] : []);
-    const model = models.find(item => item.id === modelOptions.model) ?? models.find(item => item.id === config?.model) ?? models[0];
-    modelOptions = model ? { model: model.id, effort: model.efforts.includes(modelOptions.effort ?? '') ? modelOptions.effort : model.defaultEffort } : {};
+    modelOptions = selectBuildModelOptions(models, config?.model, modelOptions);
+    const model = models.find(item => item.id === modelOptions.model);
     for (const select of modelSelects) {
-      select.replaceChildren(...models.map(item => new Option(item.name, item.id)));
+      select.replaceChildren(...models.map(item => new Option(item.description ? `${item.name} · ${item.description}` : item.name, item.id)));
       select.value = modelOptions.model ?? '';
     }
     for (const select of effortSelects) {
       select.replaceChildren(...(model?.efforts ?? []).map(value => new Option(effortLabel(value), value)));
       select.value = modelOptions.effort ?? '';
+      select.closest('label')!.hidden = (model?.efforts.length ?? 0) < 2;
     }
   }
   function rememberModelOptions() {

@@ -16,7 +16,7 @@ export type BuildApp = {
   preview: { id: string; url: string; expiresAt: number } | null;
   createdAt: string; updatedAt: string; turns?: BuildTurn[];
 };
-export type BuildModel = { id: string; name: string; efforts: string[]; defaultEffort: string };
+export type BuildModel = { id: string; name: string; description?: string; efforts: string[]; defaultEffort: string };
 export type BuildModelOptions = { model?: string; effort?: string };
 export type BuildConfig = { available: boolean; model: string; models?: BuildModel[]; maxApps: number; dailyTurns: number; aiBilling: 'included' | 'prepaid'; aiMarkupPercent: number; computeUnitHourlyCents: number; size: 'small' };
 export type BuildSource = { revision: number; files: Record<string, string> };
