@@ -115,6 +115,31 @@ test('source export preserves binary ZIP bytes and reports API failures', async 
   await assert.rejects(client.export(app.id), cause => cause instanceof BuildAPIError && cause.code === 'app_not_found');
 });
 
+test('diagnostics reads the authenticated turn journal and preserves API errors and cancellation', async t => {
+  const appId = app.id, turnId = '67c16cc6-15d5-4ec8-9656-809314ec33c0';
+  const diagnostics = { schemaVersion: 1, turnId, status: 'failed', error: 'build_check_failed', log: '', failureOperationId: 'compile-0', operations: [], billing: [] };
+  const controller = new AbortController(), requests: { url: string; options: RequestInit }[] = [];
+  t.mock.method(globalThis, 'fetch', async (url: string, options: RequestInit) => {
+    requests.push({ url, options }); return Response.json(diagnostics);
+  });
+  const client = createBuildClient(() => assert.fail('no session expiry'), controller.signal);
+  assert.deepEqual(await client.diagnostics(appId, turnId), diagnostics);
+  assert.equal(requests[0].url, `http://localhost:8787/build/apps/${appId}/turns/${turnId}/diagnostics`);
+  assert.equal(requests[0].options.credentials, 'include');
+  assert.equal(requests[0].options.signal, controller.signal);
+
+  let signedOut = 0;
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ error: 'not_authenticated' }, { status: 401 }));
+  await assert.rejects(createBuildClient(() => { signedOut++; }).diagnostics(appId, turnId), cause => cause instanceof BuildAPIError && cause.code === 'not_authenticated');
+  assert.equal(signedOut, 1);
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ error: 'turn_not_found' }, { status: 404 }));
+  await assert.rejects(client.diagnostics(appId, turnId), cause => cause instanceof BuildAPIError && cause.code === 'turn_not_found');
+  controller.abort();
+  const cancelled = new DOMException('Request aborted', 'AbortError');
+  t.mock.method(globalThis, 'fetch', async () => { throw cancelled; });
+  await assert.rejects(client.diagnostics(appId, turnId), error => error === cancelled);
+});
+
 test('live progress uses the authenticated app stream and closes on cancellation or disconnect', t => {
   class Events {
     static instances: Events[] = [];

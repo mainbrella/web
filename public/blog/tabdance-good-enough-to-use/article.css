@@ -1,0 +1,45 @@
+.tabdance-followup code { overflow-wrap: anywhere; }
+.tabdance-followup .docs-code code { overflow-wrap: normal; }
+.tabdance-followup .article-figure a { display: block; }
+.tabdance-followup .article-figure a:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 4px;
+}
+.tabdance-followup .drop-example { margin: 28px 0; }
+.tabdance-followup .drop-example figcaption { color: var(--ink); font-size: 18px; }
+.tabdance-followup .drop-example .docs-code { margin: 12px 0; }
+.tabdance-followup .drop-example p { margin-top: 12px; font-size: 17px; }
+.tabdance-followup .shortcut-table {
+  width: 100%;
+  margin: 24px 0;
+  border-collapse: collapse;
+  font-size: 17px;
+  line-height: 1.5;
+}
+.tabdance-followup .shortcut-table th,
+.tabdance-followup .shortcut-table td {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.tabdance-followup .shortcut-table th:first-child,
+.tabdance-followup .shortcut-table td:first-child { width: 36%; padding-right: 16px; }
+.tabdance-followup kbd { font: inherit; white-space: nowrap; }
+@media (max-width: 600px) {
+  .tabdance-followup .shortcut-table { font-size: 16px; }
+  .tabdance-followup .shortcut-table th:first-child,
+  .tabdance-followup .shortcut-table td:first-child { width: 42%; padding-right: 12px; }
+  .tabdance-followup .drop-example figcaption { font-size: 17px; }
+}
+.tabdance-followup .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

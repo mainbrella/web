@@ -2,6 +2,22 @@ import { API_ORIGIN } from './api-origin.ts';
 
 export type BuildActivity = { id: string; type: 'message' | 'tool'; text: string; status: 'proposed' | 'running' | 'skipped' | 'blocked' | 'succeeded' | 'failed' | 'unknown'; explanation?: string | null };
 export type BuildImage = { id: string; toolId: string; label: string; path: string };
+export type BuildOperation = {
+  turn_id: string; operation_id: string; attempt_id: string; schema_version: number; deployment_version: string | null;
+  kind: 'text' | 'image' | 'tool' | 'command' | 'source' | 'billing' | 'cleanup' | 'limit'; label: string;
+  status: 'proposed' | 'skipped' | 'blocked' | 'succeeded' | 'failed' | 'unknown'; explanation?: string | null;
+  dispatch_attempted: number | null; created_at: number; started_at: number | null; updated_at: number; finished_at: number | null;
+  evidence: Record<string, unknown>; result: unknown | null; source: Record<string, string> | null;
+};
+export type BuildBillingRecord = {
+  id: string; user_id: string; app_id: string; turn_id: string; model: string; reserved_micro_usd: number;
+  cost_micro_usd: number | null; usage_json: string | null; status: 'reserved' | 'running' | 'reported' | 'settled';
+  created_at: number; reported_at: number | null;
+};
+export type BuildDiagnostics = {
+  schemaVersion: 1; turnId: string; status: BuildTurn['status']; error: string | null; errorExplanation?: string | null;
+  log: string; failureOperationId: string | null; operations: BuildOperation[]; billing: BuildBillingRecord[];
+};
 export type BuildTurn = {
   id: string; prompt: string; mode: 'build' | 'preview'; status: 'queued' | 'running' | 'succeeded' | 'failed';
   stage: string; summary: string | null; error: string | null; log: string; model: string; effort?: string | null;
@@ -45,7 +61,7 @@ export function buildErrorMessage(code: string, details?: string | null): string
     build_turn_limit: 'This app has reached its 100-build limit. Export its source to keep working on it.',
     app_not_found: 'This app is no longer available.',
     container_not_running: 'The sandbox stopped. Your source is saved; start a new preview or ask for a change.',
-    build_budget_exceeded: 'The build reached its limit. Your edits are saved; try a smaller change or ask to fix the build.',
+    build_budget_exceeded: 'The build stopped before verification finished. See the operation journal for the limit and the last check.',
     model_response_incomplete: 'The model response was incomplete. Your source is saved; try again.',
     invalid_model_response: 'The model returned an invalid response. Your source is saved; try again.',
     build_inference_timeout: 'The model took too long to respond. Your source is saved; try again.',
@@ -110,6 +126,7 @@ export function createBuildClient(onUnauthenticated: () => void, signal?: AbortS
     stop: (id: string) => request<{ app: BuildApp }>(`${appPath(id)}/stop`, 'POST'),
     remove: (id: string) => request<{ deleted: true }>(appPath(id), 'DELETE'),
     source: (id: string) => request<BuildSource>(`${appPath(id)}/source`),
+    diagnostics: (appId: string, turnId: string) => request<BuildDiagnostics>(`${appPath(appId)}/turns/${encodeURIComponent(turnId)}/diagnostics`),
     imageURL: (appId: string, imageId: string) => /^[a-f0-9-]{36}$/.test(appId) && /^[a-f0-9-]{36}$/.test(imageId)
       ? `${API_ORIGIN}/build${appPath(appId)}/images/${imageId}` : null,
     watch(id: string, onApp: (app: BuildApp) => void, onDisconnect: () => void) {
