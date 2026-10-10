@@ -54,12 +54,20 @@ The full-screen workspace opens with two skippable questions about app type and
 visual style. Questions do not start a sandbox; their answers are included in the
 initial build prompt and shown in the saved build brief. Unsubmitted answers survive
 same-tab reloads. The conversation fills the workspace while building, then opens a
-wide preview alongside it. On smaller screens, switch between the conversation and
+wide preview alongside it. Build uses one 44px header with app controls; product
+navigation, help and billing remain in the Build dropdown. Preview tabs and controls
+share one row. On smaller screens, switch between the conversation and
 preview. Preview controls support desktop/mobile sizing and refresh.
 Assistant text and grouped file activity stream through
 the session-authenticated `/build/apps/<id>/events` SSE endpoint. Progress is retained
 in D1, survives reloads, and reconnects without resubmitting the build. Status polling
-recovers if streaming disconnects. Use the live preview or browse its source in Code. Apps, source,
+recovers if streaming disconnects. For apps that benefit from imagery, the builder
+generates an original JPEG with Workers AI FLUX before writing large source files.
+Image progress and thumbnails appear directly in the conversation. Assets are saved
+with the app, copied into previews under `/generated/`, and included in ZIP exports
+under `public/generated/`. The builder uses generated assets instead of stock-image
+URLs. Image failures can fall back to CSS without blocking the app build. Use the live
+preview or browse its source in Code. Apps, source,
 conversations, and successful revisions are saved to the account independently of
 the sandbox. The UI supports iterative changes, renaming, queued-build resumption,
 restarting previews, stopping sandboxes, deletion, and ZIP source export. An app
@@ -69,7 +77,10 @@ response. Previous browser-only briefs remain available as prompt inputs.
 
 Availability comes from `/build/config`; saved apps remain accessible when building
 is disabled. Deploy backend migration `024_build_activity.sql` and the updated API/
-Workflow before this frontend to enable streamed model output. The current backend allows 50 apps, 100 turns per app, 10 turns per UTC
+Workflow before this frontend to enable streamed model output. Image generation also
+requires migration `025_build_images.sql`; local startup applies it automatically.
+Local Codex mode retains the Workers AI binding for images while Codex writes code.
+The current backend allows 50 apps, 100 turns per app, 10 turns per UTC
 day, and one active build per account. AI is included during beta; Small Ad Hoc
 sandboxes use prepaid compute billing. Preview links last at most 30 minutes and
 can stop earlier with the sandbox's idle or funding deadline. This release does

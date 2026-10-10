@@ -3,7 +3,7 @@ import { API_ORIGIN, createAuthClient } from './auth.ts';
 import { formatBalance, readPrepaidBalance } from './prepaid-billing.ts';
 
 const auth = createAuthClient();
-const nav = document.querySelector<HTMLElement>('.site-header nav')!;
+const nav = document.querySelector<HTMLElement>('.site-header > nav')!;
 const login = nav?.querySelector<HTMLElement>('.login-link')!;
 
 if (nav) {

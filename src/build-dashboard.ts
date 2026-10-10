@@ -1,4 +1,4 @@
-import { BuildAPIError, buildErrorMessage, createBuildClient, safeBuildPreviewURL, type BuildApp, type BuildConfig, type BuildSource, type BuildTurn } from './build-api.ts';
+import { BuildAPIError, buildErrorMessage, createBuildClient, safeBuildPreviewURL, type BuildActivity, type BuildImage, type BuildApp, type BuildConfig, type BuildSource, type BuildTurn } from './build-api.ts';
 import { buildExamples, createBuildDraftStore } from './build-drafts.ts';
 import { buildBriefQuestions, formatBuildBriefPrompt, readBuildBriefPrompt } from './build-brief.ts';
 
@@ -6,7 +6,7 @@ type Clarification = { prompt: string; answers: [string, string]; step: 0 | 1 };
 
 export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated: () => void }) {
   const host = document.querySelector<HTMLElement>('#dashboard-build')!;
-  const node = <T extends HTMLElement>(selector: string) => host.querySelector<T>(selector)!;
+  const node = <T extends HTMLElement>(selector: string) => (host.querySelector<T>(selector) ?? document.querySelector<T>(selector))!;
   const home = node<HTMLElement>('#build-home');
   const workspace = node<HTMLElement>('#build-workspace');
   const panels = node<HTMLElement>('.build-workspace-panels');
@@ -60,7 +60,26 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   let previewPreference: boolean | null = null;
   let mobileView: 'conversation' | 'preview' = 'conversation';
 
+  const heading = node<HTMLElement>('.build-workspace-heading');
+  const header = document.querySelector<HTMLElement>('.app-header')!;
+  const navigation = document.querySelector<HTMLElement>('.app-navigation')!;
+  const menu = document.createElement('details'), menuToggle = document.createElement('summary'), menuPanel = document.createElement('div');
+  menu.className = 'build-navigation'; menuToggle.textContent = 'Build'; menuToggle.setAttribute('aria-label', 'Build and account navigation');
+  menuPanel.className = 'build-navigation-panel';
+  menuPanel.append(navigation, document.querySelector<HTMLElement>('.dashboard-subscription')!);
+  // Keep the existing navigation and billing controls in one compact header.
+  const accountNav = header.querySelector<HTMLElement>('nav')!;
+  for (const link of accountNav.querySelectorAll<HTMLAnchorElement>(':scope > a')) navigation.append(link);
+  menu.append(menuToggle, menuPanel); header.querySelector('.brand')!.after(menu, heading);
+  node<HTMLElement>('.build-more-actions').prepend(node<HTMLButtonElement>('#build-start-preview'), node<HTMLButtonElement>('#build-resume'));
+  header.classList.add('build-header');
+  const closeNavigation = (event: MouseEvent) => { if (!menu.contains(event.target as Node)) menu.open = false; };
+  document.addEventListener('click', closeNavigation);
+  menu.addEventListener('keydown', event => { if (event.key === 'Escape') { menu.open = false; menuToggle.focus(); } });
+  navigation.addEventListener('click', () => { menu.open = false; });
+
   function layout() {
+    heading.hidden = workspace.hidden;
     const visible = previewPreference ?? Boolean(selected?.revision || selected?.preview);
     panels.classList.toggle('has-preview', visible);
     panels.dataset.mobileView = mobileView;
@@ -80,7 +99,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     send.setAttribute('aria-label', busy ? 'Sending message' : 'Send message');
     for (const input of [prompt, update]) input.disabled = locked;
     name.disabled = locked || Boolean(clarification);
-    for (const button of host.querySelectorAll<HTMLButtonElement>('.build-workspace-heading button, .build-draft-open, .build-draft-delete')) button.disabled = locked;
+    for (const button of [...heading.querySelectorAll<HTMLButtonElement>('button'), ...host.querySelectorAll<HTMLButtonElement>('.build-draft-open, .build-draft-delete')]) button.disabled = locked;
     node<HTMLButtonElement>('#build-stop').disabled = locked || Boolean(selected?.activeTurnId);
     node<HTMLButtonElement>('#build-start-preview').disabled = locked || !available;
     node<HTMLButtonElement>('#build-resume').disabled = locked || !config?.available;
@@ -316,6 +335,34 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     return row;
   }
 
+  function imageRow(appId: string, image: BuildImage | undefined, activity: BuildActivity | undefined, existing?: HTMLElement) {
+    const row = existing ?? document.createElement('li'); row.className = 'build-image-message';
+    const url = image && client.imageURL(appId, image.id);
+    const label = image?.label ?? activity?.text ?? '';
+    if (existing && row.dataset.imageLabel === label && (image ? row.dataset.imageId === image.id : row.dataset.imageState === activity?.status)) return row;
+    row.dataset.imageId = image?.id ?? ''; row.dataset.imageState = activity?.status ?? ''; row.dataset.imageLabel = label;
+    const figure = document.createElement('figure'), caption = document.createElement('figcaption');
+    if (url && image) {
+      const link = document.createElement('a'), img = document.createElement('img');
+      link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.setAttribute('aria-label', `Open generated image: ${image.label}`);
+      img.alt = image.label; img.width = 768; img.height = 512; img.decoding = 'async'; img.loading = 'lazy'; img.src = url;
+      caption.textContent = image.label;
+      const feedback = document.createElement('span'); feedback.className = 'build-image-feedback'; feedback.textContent = 'Loading image…';
+      img.addEventListener('load', () => { feedback.hidden = true; });
+      img.addEventListener('error', () => { feedback.textContent = 'Image unavailable. Open the image to try again.'; });
+      link.append(img); figure.append(link, caption, feedback);
+    } else {
+      const pending = activity?.status === 'running';
+      if (pending) {
+        const placeholder = document.createElement('div'); placeholder.className = 'build-image-pending'; placeholder.setAttribute('aria-hidden', 'true'); figure.append(placeholder);
+      }
+      caption.textContent = pending ? `${activity!.text.replace(/^Generate /, 'Generating ')}…` : 'Could not generate this image. Build can continue.';
+      caption.setAttribute('role', 'status'); figure.append(caption);
+    }
+    row.replaceChildren(figure);
+    return row;
+  }
+
   function renderConversation(app: BuildApp) {
     const key = JSON.stringify(app.turns);
     if (key === conversationKey) return;
@@ -338,6 +385,18 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       message(`user-${turn.id}`, 'You', turn.mode === 'preview' ? 'Restart the preview from saved source.' : readBuildBriefPrompt(turn.prompt).prompt, 'build-message-user');
       for (const item of turn.activity ?? []) {
         if (item.type === 'message') message(`${turn.id}-${item.id}`, 'Build', item.text, item.status === 'running' && app.activeTurnId === turn.id ? 'build-message-streaming' : '');
+      }
+      const imageTools = (turn.activity ?? []).filter(item => item.type === 'tool' && item.text.startsWith('Generate '));
+      const imageIds = new Set(imageTools.map(item => item.id));
+      for (const tool of imageTools) {
+        const key = `image-${turn.id}-${tool.id}`, image = turn.images?.find(image => image.toolId === tool.id);
+        const row = imageRow(app.id, image, { ...tool, status: tool.status === 'running' && turn.status === 'failed' ? 'failed' : tool.status }, existing.get(key));
+        row.dataset.messageKey = key; rows.push(row);
+      }
+      for (const image of turn.images ?? []) {
+        if (imageIds.has(image.toolId)) continue;
+        const key = `image-${turn.id}-${image.toolId}`, row = imageRow(app.id, image, undefined, existing.get(key));
+        row.dataset.messageKey = key; rows.push(row);
       }
       const activityKey = `activity-${turn.id}`, activity = activityRow(turn, existing.get(activityKey));
       activity.dataset.messageKey = activityKey; rows.push(activity);
@@ -367,6 +426,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       openPreview.href = url;
       if (frame.getAttribute('src') !== url) frame.src = url;
       previewStatus.textContent = `Temporary preview · expires ${new Date(preview!.expiresAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+      openPreview.title = previewStatus.textContent;
     } else {
       frame.removeAttribute('src'); openPreview.removeAttribute('href');
       const turn = selected.turns?.at(-1);
@@ -724,6 +784,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     window.removeEventListener('beforeunload', beforeUnload);
     document.removeEventListener('visibilitychange', visibility);
     mobile.removeEventListener('change', resizeWorkspace);
+    document.removeEventListener('click', closeNavigation);
   }
   controls();
   return { load, dispose };

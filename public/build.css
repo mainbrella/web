@@ -1,11 +1,21 @@
 /* Build workspace: one quiet surface for the prompt, then a focused editor. */
 .app-body:has(.dashboard-main[data-view="build"]) { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
-.app-body:has(.dashboard-main[data-view="build"]) .app-header { flex-shrink: 0; width: 100%; max-width: none; min-height: 56px; padding: 4px 16px; border-bottom: 1px solid var(--line); }
+.app-body:has(.dashboard-main[data-view="build"]) .app-header { position: relative; z-index: 10; justify-content: flex-start; flex-shrink: 0; gap: 8px; width: 100%; max-width: none; min-height: 44px; padding: 0 12px; border-bottom: 1px solid var(--line); }
 .app-body:has(.dashboard-main[data-view="build"]) .brand { min-height: 44px; }
-.app-body:has(.dashboard-main[data-view="build"]) .brand img { width: 28px; height: 28px; }
-.app-body:has(.dashboard-main[data-view="build"]) .brand span { font-size: 18px; }
-.app-body:has(.dashboard-main[data-view="build"]) .app-navigation { position: absolute; top: 4px; left: 200px; right: 240px; width: auto; max-width: none; margin: 0; padding: 0; gap: 24px; border: 0; }
-.app-body:has(.dashboard-main[data-view="build"]) .app-navigation a { min-height: 48px; font-size: 13px; }
+.app-body:has(.dashboard-main[data-view="build"]) .brand img { width: 24px; height: 24px; }
+.app-body:has(.dashboard-main[data-view="build"]) .brand span { display: none; }
+.app-body:has(.dashboard-main[data-view="build"]) .app-header > nav { flex-shrink: 0; gap: 4px; margin-left: auto; }
+.app-body:has(.dashboard-main[data-view="build"]) .app-navigation { position: static; display: flex; flex-direction: column; width: auto; max-width: none; margin: 0; padding: 0; gap: 0; border: 0; }
+.app-body:has(.dashboard-main[data-view="build"]) .app-navigation a { min-height: 44px; padding: 8px 12px; border-radius: 4px; font-size: 13px; }
+.app-body:has(.dashboard-main[data-view="build"]) .app-navigation a:hover, .app-body:has(.dashboard-main[data-view="build"]) .app-navigation a[aria-current="page"] { background: var(--surface); }
+.app-body:has(.dashboard-main[data-view="build"]) .app-navigation a::after { display: none; }
+.build-navigation { position: relative; flex-shrink: 0; }
+.build-navigation > summary { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 8px; color: var(--muted); font-size: 12px; cursor: pointer; list-style: none; }
+.build-navigation > summary::-webkit-details-marker { display: none; }
+.build-navigation > summary::after { content: '⌄'; }
+.build-navigation > summary:hover { color: var(--ink); }
+.build-navigation > summary:focus-visible { outline: 2px solid var(--blue); outline-offset: -3px; }
+.build-navigation-panel { position: absolute; z-index: 20; top: 100%; left: 0; width: 248px; max-width: calc(100vw - 24px); padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
 .app-body .dashboard-main[data-view="build"] {
   display: flex;
   flex: 1;
@@ -13,7 +23,7 @@
   width: 100%;
   max-width: none;
   min-height: 0;
-  padding: 0 16px 12px;
+  padding: 0 8px 8px;
 }
 .dashboard-main[data-view="build"] #dashboard-content { display: flex; flex: 1; flex-direction: column; min-height: 0; margin-top: 0; }
 .dashboard-main[data-view="build"] > #dashboard-title {
@@ -24,9 +34,11 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
-.dashboard-main[data-view="build"] .dashboard-subscription { flex-shrink: 0; margin: 0; }
-.dashboard-main[data-view="build"] .dashboard-plan-row { min-height: 32px; }
-.dashboard-main[data-view="build"] #subscription-note { margin-top: 2px; }
+.build-header .dashboard-subscription { margin: 4px 0 0; padding: 8px 12px; border-top: 1px solid var(--line); }
+.build-header .dashboard-plan-row { display: flex; flex-direction: column; align-items: flex-start; gap: 0; margin: 0; }
+.build-header #subscription-level { font-size: 12px; }
+.build-header #subscription-manage { display: flex; align-items: center; min-height: 44px; font-size: 12px; }
+.build-header #subscription-note { margin-top: 4px; font-size: 12px; }
 .build-dashboard { display: flex; flex: 1; flex-direction: column; min-height: 0; margin: 0; }
 #build-home { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 24px; }
 #build-workspace { display: flex; flex: 1; flex-direction: column; min-height: 0; }
@@ -70,19 +82,20 @@
 #build-local-list .build-draft-open { display: block; width: 100%; min-height: 44px; overflow-wrap: anywhere; }
 
 /* Workspace heading and the conversation-first default. */
-.build-workspace-heading { display: flex; flex-shrink: 0; align-items: center; gap: 10px; min-height: 44px; margin-bottom: 8px; }
-.build-workspace-actions { display: flex; flex-wrap: wrap; align-items: center; flex-shrink: 0; gap: 6px; margin-left: auto; }
+.build-workspace-heading { display: flex; flex: 1; align-items: center; gap: 4px; min-width: 0; min-height: 44px; margin: 0; }
+.build-workspace-actions { display: flex; align-items: center; flex-shrink: 0; gap: 4px; margin-left: auto; }
 .build-workspace-actions button { min-height: 44px; }
+.build-header .build-workspace-actions .dashboard-retry { padding: 0 8px; border-color: transparent; background: transparent; font-size: 12px; }
 .build-more { position: relative; }
-.build-more summary { display: flex; align-items: center; justify-content: center; min-width: 56px; min-height: 44px; padding: 8px; border-radius: 6px; color: var(--muted); font-size: 13px; cursor: pointer; list-style: none; }
+.build-more summary { display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 8px; border-radius: 6px; color: var(--muted); font-size: 12px; cursor: pointer; list-style: none; }
 .build-more summary::-webkit-details-marker { display: none; }
 .build-more summary:hover, .build-more[open] summary { background: var(--surface); color: var(--ink); }
 .build-more summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .build-more-actions { position: absolute; z-index: 5; top: calc(100% + 4px); right: 0; display: flex; flex-direction: column; width: 180px; padding: 4px; border: 1px solid var(--control-border); border-radius: 8px; background: var(--paper); }
 .build-more-actions button { width: 100%; text-align: left; }
-.build-back { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); }
+.build-back { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted); }
 .build-back:hover { background: var(--surface); color: var(--ink); }
-.app-body #build-draft-name { width: min(100%, 340px); min-width: 0; min-height: 40px; padding: 6px 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--ink); font-weight: 500; }
+.app-body #build-draft-name { flex: 1; width: 0; max-width: 340px; min-width: 0; min-height: 36px; padding: 4px 6px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--ink); font-size: 13px; font-weight: 500; text-overflow: ellipsis; }
 #build-draft-name:hover, #build-draft-name:focus { border-color: var(--line); }
 .build-workspace-heading .dashboard-retry { flex-shrink: 0; }
 .build-workspace-panels { display: flex; flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
@@ -108,6 +121,12 @@
 .build-message-streaming p::after { display: inline-block; width: 6px; height: 14px; margin-left: 4px; background: var(--muted); vertical-align: -2px; content: ''; animation: build-caret 900ms steps(2, start) infinite; }
 @keyframes build-caret { to { opacity: 0; } }
 .build-message-error p { color: #ffb4ab; }
+.build-image-message figure { width: min(100%, 420px); margin: 0; }
+.build-image-message a { display: block; border-radius: 8px; overflow: hidden; }
+.build-image-message a:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.build-image-message img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; background: var(--surface); }
+.build-image-pending { aspect-ratio: 3 / 2; border-radius: 8px; background: var(--surface); animation: build-pulse 1.4s ease-in-out infinite; }
+.build-image-message figcaption, .build-image-feedback { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; }
 .build-progress { display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-height: 36px; padding: 0 0 8px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .build-progress::before { flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: var(--blue); content: ''; animation: build-pulse 1.4s ease-in-out infinite; }
 @keyframes build-pulse { 50% { opacity: .35; } }
@@ -173,7 +192,7 @@
 .build-update-composer .build-composer-footer > span { font-size: 12px; }
 
 /* Preview, source and logs retain their existing tabs and controls. */
-.build-preview { display: none; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.build-preview { position: relative; display: none; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 .build-workspace-panels.has-preview { display: grid; grid-template-columns: minmax(320px, 380px) minmax(0, 1fr); gap: 12px; }
 .build-workspace-panels.has-preview .build-conversation { width: auto; max-width: none; padding: 0 4px 8px 0; }
 .build-workspace-panels.has-preview .build-preview { display: flex; animation: build-enter 180ms ease both; }
@@ -185,9 +204,9 @@
 .build-device-controls { display: flex; gap: 4px; }
 .build-preview-controls .build-icon-button { width: 44px; min-width: 44px; height: 44px; border-color: transparent; }
 .build-preview-controls .build-icon-button[aria-pressed="true"] { background: var(--surface); color: var(--ink); }
-.build-preview-toolbar { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; flex-wrap: wrap; gap: 4px 12px; min-height: 40px; padding: 6px 12px; border-bottom: 1px solid var(--line); background: var(--paper); font-size: 11px; }
-.build-preview-toolbar > span { color: var(--muted); }
-.build-preview-toolbar a { min-height: 28px; font-size: 12px; }
+.build-preview-toolbar { position: absolute; top: 0; right: 164px; display: flex; align-items: center; min-height: 44px; font-size: 11px; }
+.build-preview-toolbar > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.build-preview-toolbar a { display: flex; align-items: center; min-height: 44px; font-size: 11px; }
 .build-preview-panel { display: grid; place-items: center; flex: 1; min-height: 0; padding: 20px; }
 .build-preview-panel.has-preview { display: flex; padding: 0; background: #fff; }
 #build-preview-panel.is-mobile { justify-content: center; background: var(--surface); }
@@ -204,11 +223,6 @@
 #build-storage-error, #build-retry { margin-bottom: 12px; }
 
 @media (max-width: 900px) {
-  .app-body:has(.dashboard-main[data-view="build"]) .app-navigation { position: static; flex-shrink: 0; flex-wrap: nowrap; width: 100%; min-height: 44px; padding: 0 16px; gap: 24px; overflow-x: auto; border-bottom: 1px solid var(--line); }
-  .app-body:has(.dashboard-main[data-view="build"]) .app-navigation a { flex-shrink: 0; min-height: 44px; }
-  .build-workspace-heading { flex-wrap: wrap; }
-  .app-body #build-draft-name { flex: 1; width: auto; }
-  .build-workspace-actions { margin-left: auto; }
   .build-workspace-panels.has-preview { display: flex; gap: 0; }
   .build-workspace-panels.has-preview .build-conversation,
   .build-workspace-panels.has-preview .build-preview { flex: 1; width: 100%; min-height: 0; }
@@ -218,7 +232,12 @@
   .build-workspace-panels.has-preview[data-mobile-view="preview"] .build-preview { display: flex; }
 }
 @media (max-width: 500px) {
-  .app-body .dashboard-main[data-view="build"] { padding: 0 12px 12px; }
+  .app-body .dashboard-main[data-view="build"] { padding: 0 4px 4px; }
+  .app-body:has(.dashboard-main[data-view="build"]) .app-header { gap: 0; padding: 0 4px; }
+  .app-body:has(.dashboard-main[data-view="build"]) .app-header:has(.build-workspace-heading:not([hidden])) > .brand { display: none; }
+  .build-navigation > summary { justify-content: center; width: 44px; padding: 0; font-size: 0; }
+  .build-navigation > summary::after { content: '☰'; font-size: 16px; }
+  .build-header .account-toggle { gap: 4px; padding: 0 4px; font-size: 11px; }
   #build-home { padding: 0 0 16px; }
   .dashboard-main[data-view="build"] .dashboard-plan-row { flex-wrap: wrap; gap: 4px 12px; }
   .build-start { margin-top: 32px; margin-bottom: 28px; }
@@ -233,10 +252,8 @@
   .build-drafts-heading > span { font-size: 11px; }
   .build-draft-open { grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .build-draft-open .build-draft-meta { grid-column: 1; grid-row: 3; margin-top: 4px; font-size: 11px; }
-  .build-workspace-heading { gap: 6px; margin-bottom: 8px; }
-  .app-body #build-draft-name { max-width: calc(100% - 56px); font-size: 15px; }
-  .build-workspace-actions { gap: 4px; }
-  .build-workspace-actions .dashboard-retry { padding-right: 8px; padding-left: 8px; }
+  .app-body #build-draft-name { font-size: 12px; }
+  .build-workspace-actions { gap: 0; }
   .build-more summary { min-width: 44px; padding: 8px 4px; }
   .build-conversation { padding: 0 2px 8px; }
   #build-messages { padding: 12px 0; }
@@ -250,10 +267,12 @@
   .build-preview-tabs { gap: 12px; }
   .build-preview-tabs button { font-size: 12px; }
   .build-preview-controls { gap: 2px; }
+  .build-device-controls { display: none; }
+  .build-preview-toolbar { right: 58px; }
   .build-preview-panel { min-height: 0; padding: 16px; }
   .build-code-panel { padding: 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .build-composer, .build-question-option, .build-style-option, .build-activity > summary::after { transition: none; }
-  .build-progress::before, .build-message-streaming p::after, .build-questions:not([hidden]), .build-preview { animation: none; }
+  .build-progress::before, .build-message-streaming p::after, .build-image-pending, .build-questions:not([hidden]), .build-preview { animation: none; }
 }

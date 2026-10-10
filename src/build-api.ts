@@ -1,11 +1,13 @@
 import { API_ORIGIN } from './api-origin.ts';
 
 export type BuildActivity = { id: string; type: 'message' | 'tool'; text: string; status: 'running' | 'succeeded' | 'failed' };
+export type BuildImage = { id: string; toolId: string; label: string; path: string };
 export type BuildTurn = {
   id: string; prompt: string; mode: 'build' | 'preview'; status: 'queued' | 'running' | 'succeeded' | 'failed';
   stage: string; summary: string | null; error: string | null; log: string; model: string;
   inputTokens: number; outputTokens: number; createdAt: string; finishedAt: string | null;
   activity?: BuildActivity[];
+  images?: BuildImage[];
 };
 export type BuildApp = {
   id: string; name: string; prompt: string; revision: number; activeTurnId: string | null;
@@ -82,6 +84,8 @@ export function createBuildClient(onUnauthenticated: () => void, signal?: AbortS
     stop: (id: string) => request<{ app: BuildApp }>(`${appPath(id)}/stop`, 'POST'),
     remove: (id: string) => request<{ deleted: true }>(appPath(id), 'DELETE'),
     source: (id: string) => request<BuildSource>(`${appPath(id)}/source`),
+    imageURL: (appId: string, imageId: string) => /^[a-f0-9-]{36}$/.test(appId) && /^[a-f0-9-]{36}$/.test(imageId)
+      ? `${API_ORIGIN}/build${appPath(appId)}/images/${imageId}` : null,
     watch(id: string, onApp: (app: BuildApp) => void, onDisconnect: () => void) {
       const events = new EventSource(`${API_ORIGIN}/build${appPath(id)}/events`, { withCredentials: true });
       const stop = () => { events.close(); signal?.removeEventListener('abort', stop); };
