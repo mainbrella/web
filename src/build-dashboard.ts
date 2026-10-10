@@ -1,4 +1,4 @@
-import { BuildAPIError, buildErrorMessage, createBuildClient, safeBuildPreviewURL, type BuildActivity, type BuildImage, type BuildApp, type BuildConfig, type BuildSource, type BuildTurn, type BuildModel, type BuildModelOptions, type BuildDiagnostics } from './build-api.ts';
+import { BuildAPIError, buildErrorMessage, createBuildClient, safeBuildPreviewURL, type BuildActivity, type BuildImage, type BuildApp, type BuildConfig, type BuildSource, type BuildTurn, type BuildModel, type BuildModelOptions, type BuildDiagnostics, type BuildVersion } from './build-api.ts';
 import { buildExamples, createBuildDraftStore } from './build-drafts.ts';
 import { buildBriefQuestions, formatBuildBriefPrompt, readBuildBriefPrompt } from './build-brief.ts';
 import { cleanDiagnosticOutput, failureOperations, formatBuildDiagnostics, operationExplanation, operationOutput } from './build-diagnostics.ts';
@@ -49,7 +49,10 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   const openPreview = node<HTMLAnchorElement>('#build-open-preview');
   const file = node<HTMLSelectElement>('#build-file');
   const code = node<HTMLElement>('#build-code');
-  const tabs = ['preview', 'code', 'logs'].map(id => node<HTMLButtonElement>(`#build-${id}-tab`));
+  const tabs = ['preview', 'code', 'history', 'logs'].map(id => node<HTMLButtonElement>(`#build-${id}-tab`));
+  const historyStatus = node<HTMLElement>('#build-history-status');
+  const historyList = node<HTMLOListElement>('#build-history-list');
+  let historyVersion = 0;
   const questions = node<HTMLFormElement>('#build-questions');
   const questionTitle = node<HTMLElement>('#build-question-title');
   const customAnswer = node<HTMLInputElement>('#build-question-custom');
@@ -156,6 +159,8 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     node<HTMLButtonElement>('#build-stop').disabled = locked || Boolean(selected?.activeTurnId);
     node<HTMLButtonElement>('#build-start-preview').disabled = locked || !available;
     node<HTMLButtonElement>('#build-resume').disabled = locked || !config?.available;
+    node<HTMLButtonElement>('#build-repository').hidden = !selected?.versionId;
+    for (const button of historyList.querySelectorAll<HTMLButtonElement>('button')) button.disabled = locked || active || !config?.available;
     for (const select of modelSelects) select.disabled = locked || !config?.models || modelSelects[0].options.length < 2;
     for (const select of effortSelects) select.disabled = locked || !config?.models || select.options.length < 2;
     retry.disabled = locked;
@@ -573,7 +578,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       rows.push(row);
     }
     for (const turn of app.turns ?? []) {
-      message(`user-${turn.id}`, 'You', turn.mode === 'preview' ? 'Restart the preview from saved source.' : readBuildBriefPrompt(turn.prompt).prompt, 'build-message-user');
+      message(`user-${turn.id}`, 'You', turn.mode === 'preview' ? 'Restart the preview from saved source.' : turn.mode === 'restore' ? 'Restore a saved version.' : readBuildBriefPrompt(turn.prompt).prompt, 'build-message-user');
       const imageIds = new Set<string>();
       for (const item of turn.activity ?? []) {
         if (item.type === 'message') message(`${turn.id}-${item.id}`, 'Build', item.text, item.status === 'running' && app.activeTurnId === turn.id ? 'build-message-streaming' : '');
@@ -640,6 +645,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   }
 
   function renderApp(app: BuildApp) {
+    const historyChanged = selected?.id !== app.id || selected?.versionId !== app.versionId || selected?.verifiedVersionId !== app.verifiedVersionId;
     selected = app; remember(app);
     home.hidden = true; workspace.hidden = false;
     if (document.activeElement !== name) name.value = app.name;
@@ -655,6 +661,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     inference.hidden = !buildTurn;
     inference.textContent = buildTurn ? `${app.activeTurnId === buildTurn.id ? 'Building with' : 'Last build:'} ${modelName(buildTurn.model)}${buildTurn.effort ? ` · ${effortLabel(buildTurn.effort)} effort` : ''}` : '';
     renderConversation(app); renderPreview(); controls();
+    if (historyChanged && node<HTMLButtonElement>('#build-history-tab').getAttribute('aria-selected') === 'true') void loadHistory();
     watchApp();
   }
 
@@ -744,8 +751,78 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       node<HTMLElement>(`#${button.getAttribute('aria-controls')}`).hidden = !active;
     }
     if (tab.id === 'build-code-tab') void loadSource();
+    if (tab.id === 'build-history-tab') void loadHistory();
     if (tab.id === 'build-logs-tab' && selected?.turns?.length) void loadDiagnostics(selected.turns.at(-1)!);
     if (focus) tab.focus();
+  }
+
+  async function loadHistory() {
+    if (!selected || disposed) return;
+    const appId = selected.id, current = ++historyVersion;
+    historyList.replaceChildren(); historyStatus.textContent = 'Loading versions…';
+    node<HTMLElement>('#build-history-panel').setAttribute('aria-busy', 'true');
+    try {
+      const result = await client.versions(appId);
+      if (disposed || selected?.id !== appId || current !== historyVersion) return;
+      historyStatus.textContent = result.versions.length ? '' : config?.versionHistory ? 'Your next build will save the first version.' : 'Version history is unavailable.';
+      for (const saved of result.versions) {
+        const row = document.createElement('li'), details = document.createElement('details'), summary = document.createElement('summary');
+        const title = document.createElement('span'), meta = document.createElement('span'), changes = document.createElement('div');
+        title.className = 'build-version-title'; title.textContent = saved.message;
+        meta.className = 'build-version-meta';
+        const state = saved.id === result.verifiedVersionId ? 'Last working version' : saved.verified ? 'Build checked' : 'Checkpoint';
+        meta.textContent = `${saved.commitId.slice(0, 8)} · ${new Date(saved.createdAt).toLocaleString()} · ${state}${saved.id === result.versionId ? ' · Current' : ''}`;
+        summary.append(title, meta); changes.className = 'build-version-changes'; details.append(summary, changes);
+        let loading = false, loaded = false;
+        details.addEventListener('toggle', async () => {
+          if (!details.open || loading || loaded) return;
+          loading = true; changes.textContent = 'Loading changes…'; details.setAttribute('aria-busy', 'true');
+          try {
+            const detail = await client.version(appId, saved.id);
+            if (disposed || selected?.id !== appId || current !== historyVersion) return;
+            changes.replaceChildren();
+            if (!detail.changes.length) changes.textContent = 'No file changes.';
+            for (const change of detail.changes) {
+              const fileChanges = document.createElement('details'), label = document.createElement('summary');
+              label.textContent = `${change.type === 'added' ? 'Added' : change.type === 'deleted' ? 'Deleted' : 'Changed'} ${change.path}`;
+              fileChanges.append(label);
+              for (const [name, text] of [['Before', change.before], ['After', change.after]] as const) if (text !== null) {
+                const heading = document.createElement('p'), content = document.createElement('pre');
+                heading.textContent = name; content.textContent = text; fileChanges.append(heading, content);
+              }
+              if (change.before === null && change.after === null) { const note = document.createElement('p'); note.textContent = 'Image file'; fileChanges.append(note); }
+              changes.append(fileChanges);
+            }
+            loaded = true;
+          } catch (cause) {
+            if (disposed || selected?.id !== appId || current !== historyVersion) return;
+            changes.replaceChildren();
+            const note = document.createElement('p'), retry = document.createElement('button');
+            note.textContent = buildErrorMessage(cause instanceof BuildAPIError ? cause.code : 'network');
+            retry.type = 'button'; retry.className = 'dashboard-retry'; retry.textContent = 'Retry';
+            retry.addEventListener('click', () => { details.open = false; queueMicrotask(() => { details.open = true; }); });
+            changes.append(note, retry);
+          } finally { loading = false; details.setAttribute('aria-busy', 'false'); }
+        });
+        const restore = document.createElement('button'); restore.type = 'button'; restore.className = 'dashboard-retry'; restore.textContent = 'Restore';
+        restore.setAttribute('aria-label', `Restore ${saved.message}`);
+        restore.addEventListener('click', () => restoreVersion(saved));
+        row.append(details, restore); historyList.append(row);
+      }
+      controls();
+    } catch (cause) {
+      if (disposed || selected?.id !== appId || current !== historyVersion) return;
+      historyStatus.textContent = 'Could not load versions.'; reportError(cause, loadHistory);
+    } finally {
+      if (current === historyVersion) node<HTMLElement>('#build-history-panel').setAttribute('aria-busy', 'false');
+    }
+  }
+  function restoreVersion(saved: BuildVersion) {
+    if (!selected || busy || selected.activeTurnId || !window.confirm(`Restore version ${saved.commitId.slice(0, 8)}? This creates a new version and restarts the preview. Your history will remain available.`)) return;
+    const app = selected, key = submissionKey(JSON.stringify(['restore', app.id, app.revision, saved.id]));
+    void mutate(() => client.restore(app, saved.id, key), ({ app: next }) => {
+      clearSubmission(key); source = null; sourceVersion++; renderApp(next); setTab(tabs[0]);
+    });
   }
 
   function schedule() {
@@ -896,6 +973,15 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       const url = URL.createObjectURL(blob), link = document.createElement('a');
       link.href = url; link.download = `${app.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'app'}-source.zip`;
       link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); status.textContent = 'Source downloaded';
+    });
+  });
+  node<HTMLButtonElement>('#build-repository').addEventListener('click', () => {
+    if (!selected) return;
+    const app = selected;
+    void mutate(() => client.export(app.id, true), blob => {
+      const url = URL.createObjectURL(blob), link = document.createElement('a');
+      link.href = url; link.download = `${app.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'app'}.bundle`;
+      link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); status.textContent = 'Repository downloaded. Open it with git clone -b main <file>.bundle app';
     });
   });
   node<HTMLButtonElement>('#build-back').addEventListener('click', () => {

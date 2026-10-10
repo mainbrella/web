@@ -19,7 +19,7 @@ export type BuildDiagnostics = {
   log: string; failureOperationId: string | null; operations: BuildOperation[]; billing: BuildBillingRecord[];
 };
 export type BuildTurn = {
-  id: string; prompt: string; mode: 'build' | 'preview'; status: 'queued' | 'running' | 'succeeded' | 'failed';
+  id: string; prompt: string; mode: 'build' | 'preview' | 'restore'; status: 'queued' | 'running' | 'succeeded' | 'failed';
   stage: string; summary: string | null; error: string | null; log: string; model: string; effort?: string | null;
   inputTokens: number | null; outputTokens: number | null; createdAt: string; finishedAt: string | null;
   errorExplanation?: string | null; failureOperationId?: string | null;
@@ -29,13 +29,16 @@ export type BuildTurn = {
 };
 export type BuildApp = {
   id: string; name: string; prompt: string; revision: number; activeTurnId: string | null;
+  versionId?: string | null; verifiedVersionId?: string | null;
   container: { id: string; createdAt: string; expiresAt: string } | null;
   preview: { id: string; url: string; expiresAt: number } | null;
   createdAt: string; updatedAt: string; turns?: BuildTurn[];
 };
 export type BuildModel = { id: string; name: string; description?: string; efforts: string[]; defaultEffort: string };
 export type BuildModelOptions = { model?: string; effort?: string };
-export type BuildConfig = { available: boolean; model: string; models?: BuildModel[]; maxApps: number; aiBilling: 'included' | 'prepaid'; aiMarkupPercent: number; computeUnitHourlyCents: number; size: 'small' };
+export type BuildConfig = { available: boolean; versionHistory?: boolean; model: string; models?: BuildModel[]; maxApps: number; aiBilling: 'included' | 'prepaid'; aiMarkupPercent: number; computeUnitHourlyCents: number; size: 'small' };
+export type BuildVersion = { id: string; commitId: string; parentVersionId: string | null; message: string; verified: boolean; createdAt: string };
+export type BuildVersionDetail = { version: BuildVersion; files: Record<string, string>; changes: { path: string; type: 'added' | 'modified' | 'deleted'; before: string | null; after: string | null }[] };
 export type BuildSource = { revision: number; files: Record<string, string> };
 export class BuildAPIError extends Error {
   constructor(public code: string, public details?: string) { super(buildErrorMessage(code, details)); }
@@ -70,6 +73,8 @@ export function buildErrorMessage(code: string, details?: string | null): string
     preview_start_failed: 'The app built, but its preview could not start. Try again.',
     invalid_request: 'Check your app name or prompt and try again.',
     source_limit: 'This app has reached the source size limit. Try a smaller change.',
+    build_git_unavailable: 'Could not save the Git version. Your working source is retained; try again.',
+    version_not_found: 'This saved version is unavailable. Refresh version history and try again.',
     build_command_timeout: 'A build command took too long. Your source is saved; try again.',
     build_runtime_unavailable: 'The sandbox could not start. Check your balance and try again.',
     build_failed: 'The build could not finish. Your source is saved; try again.',
@@ -125,6 +130,9 @@ export function createBuildClient(onUnauthenticated: () => void, signal?: AbortS
     stop: (id: string) => request<{ app: BuildApp }>(`${appPath(id)}/stop`, 'POST'),
     remove: (id: string) => request<{ deleted: true }>(appPath(id), 'DELETE'),
     source: (id: string) => request<BuildSource>(`${appPath(id)}/source`),
+    versions: (id: string) => request<{ versions: BuildVersion[]; versionId: string | null; verifiedVersionId: string | null }>(`${appPath(id)}/versions`),
+    version: (id: string, versionId: string) => request<BuildVersionDetail>(`${appPath(id)}/versions/${encodeURIComponent(versionId)}`),
+    restore: (app: BuildApp, versionId: string, key: string) => request<{ app: BuildApp }>(`${appPath(app.id)}/restore`, 'POST', { versionId, revision: app.revision }, key),
     diagnostics: (appId: string, turnId: string) => request<BuildDiagnostics>(`${appPath(appId)}/turns/${encodeURIComponent(turnId)}/diagnostics`),
     imageURL: (appId: string, imageId: string) => /^[a-f0-9-]{36}$/.test(appId) && /^[a-f0-9-]{36}$/.test(imageId)
       ? `${API_ORIGIN}/build${appPath(appId)}/images/${imageId}` : null,
@@ -144,9 +152,9 @@ export function createBuildClient(onUnauthenticated: () => void, signal?: AbortS
       if (signal?.aborted) stop();
       return stop;
     },
-    async export(id: string): Promise<Blob> {
+    async export(id: string, repository = false): Promise<Blob> {
       let response: Response;
-      try { response = await fetch(`${API_ORIGIN}/build${appPath(id)}/export`, { credentials: 'include', redirect: 'error', signal }); }
+      try { response = await fetch(`${API_ORIGIN}/build${appPath(id)}/${repository ? 'repository' : 'export'}`, { credentials: 'include', redirect: 'error', signal }); }
       catch (error) { if (signal?.aborted) throw error; throw new BuildAPIError('network'); }
       if (response.status === 401) onUnauthenticated();
       if (!response.ok) {

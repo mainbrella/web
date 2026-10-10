@@ -69,7 +69,7 @@
                 <button id="build-toggle-preview" type="button" class="dashboard-retry" aria-controls="build-preview" aria-expanded="false" hidden>Show preview</button>
                 <button id="build-resume" type="button" class="dashboard-retry" hidden>Resume build</button>
                 <button id="build-start-preview" type="button" class="dashboard-retry" hidden>Start preview</button>
-                <details class="build-more"><summary>More</summary><div class="build-more-actions"><button id="build-export" type="button" class="dashboard-retry">Download source</button><button id="build-stop" type="button" class="dashboard-retry" hidden>Stop sandbox</button></div></details>
+                <details class="build-more"><summary>More</summary><div class="build-more-actions"><button id="build-export" type="button" class="dashboard-retry">Download source</button><button id="build-repository" type="button" class="dashboard-retry" hidden>Download Git repository</button><button id="build-stop" type="button" class="dashboard-retry" hidden>Stop sandbox</button></div></details>
               </div>
             </div>
             <div class="build-workspace-panels">
@@ -110,6 +110,7 @@
                   <div class="build-preview-tabs" role="tablist" aria-label="App views">
                     <button id="build-preview-tab" type="button" role="tab" aria-selected="true" aria-controls="build-preview-panel">Preview</button>
                     <button id="build-code-tab" type="button" role="tab" aria-selected="false" aria-controls="build-code-panel" tabindex="-1">Code</button>
+                    <button id="build-history-tab" type="button" role="tab" aria-selected="false" aria-controls="build-history-panel" tabindex="-1">History</button>
                     <button id="build-logs-tab" type="button" role="tab" aria-selected="false" aria-controls="build-logs-panel" tabindex="-1">Logs</button>
                   </div>
                   <div class="build-preview-controls">
@@ -126,6 +127,7 @@
                   <iframe id="build-preview-frame" title="Generated app preview" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads" referrerpolicy="no-referrer" hidden></iframe>
                 </div>
                 <div id="build-code-panel" class="build-code-panel" role="tabpanel" aria-labelledby="build-code-tab" tabindex="0" hidden><label for="build-file">Source file</label><select id="build-file"></select><pre id="build-code"></pre></div>
+                <div id="build-history-panel" class="build-history-panel" role="tabpanel" aria-labelledby="build-history-tab" tabindex="0" hidden><p id="build-history-status" role="status"></p><ol id="build-history-list"></ol></div>
                 <div id="build-logs-panel" class="build-code-panel" role="tabpanel" aria-labelledby="build-logs-tab" tabindex="0" hidden><pre id="build-logs">No build output yet.</pre></div>
               </section>
             </div>
