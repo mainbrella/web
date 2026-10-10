@@ -59,7 +59,7 @@ function appChrome(path: string) {
   ];
   return `<header class="site-header app-header wrap">
     <a class="brand" href="/" aria-label="Mainbrella home"><img src="/images/logo.png" alt="" width="44" height="44" /><span>mainbrella</span></a>
-    <nav aria-label="Main navigation"><a href="/docs/">Docs</a></nav>
+    <nav aria-label="Main navigation"><a href="/docs/">Docs</a><a href="/contact/">Help</a></nav>
   </header>
   <nav class="app-navigation wrap" aria-label="Product navigation">
     ${pages.map(item => link(item, path)).join('\n    ')}
