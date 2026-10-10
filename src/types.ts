@@ -56,6 +56,7 @@ export interface PrepaidBillingConfig {
   configured: boolean;
   minTopupCents: number;
   maxTopupCents: number;
+  storage?: import('./storage-billing-data.ts').StorageBilling['pricing'];
 }
 export interface ContainerData {
   billing?: UsageBilling | null;

@@ -33,9 +33,9 @@
         <dl id="balance-summary" class="container-usage balance-summary" aria-label="Balance summary">
           <div><dt>Current balance</dt><dd id="history-balance">—</dd></div>
           <div><dt>Available</dt><dd id="history-available">—</dd></div>
-          <div><dt>Reserved for runtime</dt><dd id="history-reserved">—</dd></div>
+          <div><dt>Reserved funds</dt><dd id="history-reserved">—</dd></div>
         </dl>
-        <p class="balance-reservation-note">Reserved funds cover future runtime. Only elapsed runtime reduces your balance; unused reservations are released after a confirmed stop.</p>
+        <p class="balance-reservation-note">Reservations cover future runtime, build AI, and funded storage retention. Charges reduce your balance as usage settles.</p>
 
         <section class="history-section" aria-labelledby="history-breakdown-label">
           <h2 id="history-breakdown-label">Balance breakdown</h2>
@@ -45,9 +45,24 @@
             <div><dt>Consumed</dt><dd id="history-used" class="history-number">—</dd></div>
             <div><dt>Current balance</dt><dd id="history-reconciled" class="history-number">—</dd></div>
           </dl>
-          <p id="history-rounding" class="history-note">Runtime costs are shown to four decimal places. Your balance is rounded down to the nearest cent.</p>
+          <p id="history-rounding" class="history-note">Usage costs are shown to four decimal places. Fractional charges accumulate; your balance is rounded down to the nearest cent.</p>
           <p id="history-as-of" class="dashboard-status history-as-of"></p>
           <p id="history-activity" class="dashboard-status history-activity"></p>
+        </section>
+
+        <section id="history-storage-section" class="history-section" aria-labelledby="history-storage-label" hidden>
+          <h2 id="history-storage-label">Storage and Git</h2>
+          <p class="history-note">Storage continues to use your balance while files and Git history are retained, even when your app is stopped.</p>
+          <p id="history-storage-pricing" class="history-note"></p>
+          <p id="history-storage-empty" class="dashboard-status" hidden>You have no retained project files.</p>
+          <div id="history-storage-scroll" class="history-table-scroll" tabindex="0" role="region" aria-label="Storage and Git table">
+            <table class="history-table history-storage-table">
+              <caption class="visually-hidden">Project storage size, charges, and estimated monthly retention cost</caption>
+              <thead><tr><th scope="col">Project</th><th scope="col" class="history-number">Stored size</th><th scope="col" class="history-number">Charged this month</th><th scope="col" class="history-number">Estimated monthly storage</th></tr></thead>
+              <tbody id="history-storage"></tbody>
+            </table>
+          </div>
+          <p class="history-note">Storage uses daily peaks. Estimates exclude shared free-tier and invoice rounding adjustments. Egress is free. If funding cannot renew, writes stop and exports remain available through the funded date; retained source and Git history are then deleted.</p>
         </section>
 
         <section class="history-section" aria-labelledby="history-resources-label">

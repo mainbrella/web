@@ -107,6 +107,26 @@ async function fixture(t: TestContext, options: { signedOut?: boolean; sessionEr
 
 const contents = (element: Element): string => [element.textContent, ...element.children.map(contents)].join(' ');
 
+test('Storage and Git renders compact usage details, funded dates and signed invoice credits, then clears on sign-out', async t => {
+  const f = await fixture(t);
+  f.respond(() => Response.json(history({ storage: { month: '2026-10', maxBytes: 2000000000000,
+    pricing: { mode: 'charge', markupBps: 2000, chargeFrom: now - 86400000, retentionDays: 7, storageUsdPerGbMonth: 0.015, classAUsdPerMillion: 4.5, classBUsdPerMillion: 0.36 },
+    projects: [{ appId: 'example', name: '<script>Example app</script>', storedBytes: 1000000000000, sourceAssetsBytes: 500000000000, historyBytes: 500000000000,
+      chargedCents: 600, estimatedMonthlyCents: 1800, cloudflareCents: 500, markupCents: 100, adjustmentCents: -100,
+      reads: 300, writes: 20, fundedThrough: now + 86400000, writesBlocked: true }] } })));
+  await f.node('#history-refresh').click(); await f.flush();
+  assert.equal(f.node('#history-storage-section').hidden, false);
+  assert.match(contents(f.node('#history-storage')), /1 TB/);
+  assert.match(contents(f.node('#history-storage')), /18\.0000/);
+  assert.match(contents(f.node('#history-storage')), /500 GB/);
+  assert.match(contents(f.node('#history-storage')), /-\$1\.0000/);
+  assert.match(contents(f.node('#history-storage')), /Writes paused/);
+  assert.match(f.node('#history-storage-pricing').textContent, /0\.018\/GB-month/);
+  f.changeAccount(null); await f.flush();
+  assert.equal(f.node('#history-storage-section').hidden, true);
+  assert.equal(f.node('#history-storage').children.length, 0);
+});
+
 test('the page explains balance changes, allocated resources and older unattributed usage', async t => {
   const f = await fixture(t);
   assert.equal(f.calls[0].url.pathname, '/billing/history');

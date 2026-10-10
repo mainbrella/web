@@ -3,6 +3,7 @@ import type { User } from './types.ts';
 import { formatBalance } from './prepaid-billing.ts';
 import { formatRuntime, formatRuntimeCost, readBalanceHistory } from './balance-history-data.ts';
 import type { BalanceFunding, BalanceHistory, BalanceResource } from './balance-history-data.ts';
+import { formatStorageBytes, type StorageBilling, type StorageProject } from './storage-billing-data.ts';
 
 const auth = createAuthClient();
 const main = document.querySelector<HTMLElement>('#main')!;
@@ -72,6 +73,8 @@ function clearSnapshot() {
   content.hidden = true;
   resourceRows.replaceChildren();
   fundingRows.replaceChildren();
+  document.querySelector<HTMLElement>('#history-storage-section')!.hidden = true;
+  document.querySelector<HTMLElement>('#history-storage')!.replaceChildren();
   resourceTable.hidden = true;
   fundingTable.hidden = true;
   resourceScroll.hidden = true;
@@ -121,10 +124,11 @@ function renderSummary(data: BalanceHistory) {
   const activeCount = data.activeResources.filter(resource => resource.active).length;
   setText('history-activity', activeCount > 0
     ? `${activeCount} allocated ${activeCount === 1 ? 'resource is' : 'resources are'} consuming ${formatBalance(data.currentHourlyCents)}/hour.`
-    : 'No resources are currently consuming balance.');
+    : 'No containers are currently consuming balance.');
   if (data.totals.inferenceUsedCents) {
     document.querySelector<HTMLElement>('#history-activity')!.append(` Build AI has consumed ${formatRuntimeCost(data.totals.inferenceUsedCents)}.`);
   }
+  if (data.totals.storageUsedCents) document.querySelector<HTMLElement>('#history-activity')!.append(` Storage and Git have consumed ${formatRuntimeCost(data.totals.storageUsedCents)}.`);
 
   const unattributed = document.querySelector<HTMLElement>('#history-unattributed')!;
   const hasUnattributed = data.totals.unattributedUsedCents > 0;
@@ -228,6 +232,41 @@ function renderFundings(data: BalanceHistory) {
   fundingsMore.textContent = requestKind === 'fundings' ? 'Loading…' : defaultMoreText.fundings;
 }
 
+function storageRow(project: StorageProject, mode: StorageBilling['pricing']['mode']) {
+  const row = element('tr', 'history-storage-row');
+  const identity = element('td', 'history-storage-project', project.name ?? 'Deleted project');
+  const details = element('details', 'history-storage-details');
+  details.append(element('summary', undefined, 'Usage details'));
+  const list = element('dl');
+  for (const [label, value] of [
+    ['Source, assets and diagnostics', formatStorageBytes(project.sourceAssetsBytes)], ['Git history', formatStorageBytes(project.historyBytes)],
+    ['Reads / writes and listings', `${project.reads.toLocaleString('en-US')} / ${project.writes.toLocaleString('en-US')}`],
+    ['Cloudflare cost (provisional)', formatRuntimeCost(project.cloudflareCents)], ['Markup (provisional)', formatRuntimeCost(project.markupCents)],
+    ['Invoice adjustments', formatRuntimeCost(project.adjustmentCents)],
+    ['Funded through', project.fundedThrough === null ? mode === 'charge' ? 'Not funded' : 'Billing has not started' : dateTime(project.fundedThrough)],
+  ]) {
+    const group = element('div'); group.append(element('dt', undefined, label), element('dd', undefined, value)); list.append(group);
+  }
+  details.append(list); identity.append(details);
+  if (project.writesBlocked) identity.append(element('span', 'history-resource-meta', 'Writes paused — export before the funded date'));
+  row.append(identity, element('td', 'history-number', formatStorageBytes(project.storedBytes)),
+    element('td', 'history-number', formatRuntimeCost(project.chargedCents)), element('td', 'history-number', formatRuntimeCost(project.estimatedMonthlyCents)));
+  return row;
+}
+
+function renderStorage(data: BalanceHistory) {
+  const storage = data.storage;
+  document.querySelector<HTMLElement>('#history-storage-section')!.hidden = !storage || storage.pricing.mode === 'off';
+  if (!storage) return;
+  const pricing = storage.pricing, multiplier = 1 + pricing.markupBps / 10000;
+  const timing = pricing.mode === 'meter' ? 'Metering only; no storage deductions yet.'
+    : pricing.chargeFrom !== null && pricing.chargeFrom > data.asOf ? `Deductions begin ${dateTime(pricing.chargeFrom)}.` : 'Daily deductions are provisional until the monthly invoice is reconciled.';
+  setText('history-storage-pricing', `${timing} Storage: $${(pricing.storageUsdPerGbMonth * multiplier).toFixed(3)}/GB-month; writes and listings: $${(pricing.classAUsdPerMillion * multiplier).toFixed(2)}/million; reads: $${(pricing.classBUsdPerMillion * multiplier).toFixed(3)}/million. Includes ${pricing.markupBps / 100}% markup.`);
+  document.querySelector<HTMLElement>('#history-storage')!.replaceChildren(...storage.projects.map(project => storageRow(project, pricing.mode)));
+  document.querySelector<HTMLElement>('#history-storage-empty')!.hidden = storage.projects.length > 0;
+  document.querySelector<HTMLElement>('#history-storage-scroll')!.hidden = storage.projects.length === 0;
+}
+
 function render(data: BalanceHistory) {
   snapshot = data;
   content.hidden = false;
@@ -237,6 +276,7 @@ function render(data: BalanceHistory) {
   renderSummary(data);
   renderResources(data);
   renderFundings(data);
+  renderStorage(data);
 }
 
 function showRequestError(kind: RequestKind, stale: boolean, historyChanged = false) {

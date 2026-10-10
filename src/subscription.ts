@@ -1,4 +1,5 @@
 import type { User, PrepaidBalance, PrepaidBillingConfig } from './types.ts';
+import { readStorageBilling } from './storage-billing-data.ts';
 import { API_ORIGIN, createAuthClient } from './auth.ts';
 import { needsSignInCookies, signInCookieMessage } from './cookie-preferences.ts';
 import { trackConfirmedPayment, trackFunnel } from './acquisition-analytics.ts';
@@ -82,6 +83,10 @@ class BillingError extends Error {
 function readConfig(value: unknown): PrepaidBillingConfig | null {
   if (!value || typeof value !== 'object') return null;
   const data = value as PrepaidBillingConfig;
+  if (data.storage) {
+    try { readStorageBilling({ month: new Date().toISOString().slice(0, 7), maxBytes: 1, pricing: data.storage, projects: [] }); }
+    catch { return null; }
+  }
   return typeof data.configured === 'boolean'
     && Number.isSafeInteger(data.minTopupCents) && data.minTopupCents >= 500
     && Number.isSafeInteger(data.maxTopupCents) && data.maxTopupCents >= data.minTopupCents ? data : null;
@@ -146,6 +151,19 @@ function renderRepoFunding() {
   login.href = `/login/?returnTo=${encodeURIComponent(destination.pathname + destination.search + destination.hash)}`;
 }
 function render() {
+  const storageSection = document.getElementById('storage-pricing-section');
+  if (storageSection) {
+    const storage = config?.storage;
+    storageSection.hidden = !storage || storage.mode === 'off';
+    if (storage) {
+      const multiplier = 1 + storage.markupBps / 10000;
+      element('storage-published-rate').textContent = `$${(storage.storageUsdPerGbMonth * multiplier).toFixed(3)}/GB-month`;
+      element('storage-published-writes').textContent = `$${(storage.classAUsdPerMillion * multiplier).toFixed(2)}/million`;
+      element('storage-published-reads').textContent = `$${(storage.classBUsdPerMillion * multiplier).toFixed(3)}/million`;
+      element('storage-published-status').textContent = storage.mode === 'meter' ? `Metering only; no storage deductions yet. Proposed rates include ${storage.markupBps / 100}% markup.`
+        : `Rates include ${storage.markupBps / 100}% markup. Deductions begin ${new Date(storage.chargeFrom!).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'UTC' })} (UTC).`;
+    }
+  }
   renderRepoFunding();
   walletView.hidden = !user;
   login.hidden = Boolean(user) || loading;
@@ -439,7 +457,7 @@ async function saveSettings(body: unknown, target: HTMLElement, success: string)
     feedback(target, code === 'payment_method_required'
       ? 'Add balance first to save a payment method, then enable automatic recharge.'
       : ['spend_limit_below_usage', 'spend_limit_below_committed', 'spend_limit_below_committed_usage'].includes(code)
-      ? 'Your cap must cover compute already used or reserved this month.'
+      ? 'Your cap must cover usage already used or reserved this month.'
       : 'Could not save these settings. Your inputs are preserved; try again.', true);
   } finally {
     if (accountVersion === version) { busy = false; render(); }

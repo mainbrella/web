@@ -26,9 +26,9 @@
         <div class="billing-heading"><h2 id="balance-title">Prepaid balance</h2><a class="text-link" href="/balance/">Balance history</a><button id="billing-refresh" class="text-link billing-link" type="button" disabled>Refresh</button></div>
         <dl class="balance-list">
           <div><dt>Current balance</dt><dd id="billing-balance">—</dd></div>
-          <div><dt>Available for new runtime</dt><dd id="billing-available">—</dd></div>
-          <div><dt>Reserved for running machines</dt><dd id="billing-reserved">—</dd></div>
-          <div><dt>Compute used this UTC month</dt><dd id="billing-usage">—</dd></div>
+          <div><dt>Available balance</dt><dd id="billing-available">—</dd></div>
+          <div><dt>Reserved funds</dt><dd id="billing-reserved">—</dd></div>
+          <div><dt>Usage this UTC month</dt><dd id="billing-usage">—</dd></div>
         </dl>
         <p class="pricing-note" id="billing-runtime" hidden></p>
         <form id="topup-form" class="billing-form">
@@ -84,10 +84,10 @@
         <section class="billing-settings" aria-labelledby="cap-title">
           <h2 id="cap-title">Monthly spending cap</h2>
           <form id="usage-limit-form" class="billing-form">
-            <div><label for="usage-spend-limit">Compute cap (USD)</label><input id="usage-spend-limit" type="number" inputmode="decimal" min="5" max="1000" step="0.01" required disabled aria-describedby="usage-cap-note usage-status" /></div>
+            <div><label for="usage-spend-limit">Spending cap (USD)</label><input id="usage-spend-limit" type="number" inputmode="decimal" min="5" max="1000" step="0.01" required disabled aria-describedby="usage-cap-note usage-status" /></div>
             <button id="usage-save" class="button button-small" type="submit" disabled>Save cap</button>
           </form>
-          <p id="usage-cap-note" class="pricing-note">Limits compute used each UTC month, from $5 to $1,000. Raising the cap does not add funds. Compute stops when funded runtime or the cap runs out.</p>
+          <p id="usage-cap-note" class="pricing-note">Limits compute, build AI, and storage usage each UTC month, from $5 to $1,000. Raising the cap does not add funds. Storage renewal and growth require funding within the cap.</p>
           <p id="usage-status" class="pricing-note" role="status" aria-live="polite"></p>
         </section>
         <section class="billing-settings" aria-labelledby="recharge-title">
@@ -98,7 +98,7 @@
               <div><label for="recharge-amount">Recharge amount (USD)</label><input id="recharge-amount" type="number" inputmode="decimal" min="5" max="1000" step="0.01" value="20.00" disabled /></div>
               <div><label for="recharge-maximum">Monthly recharge maximum (USD)</label><input id="recharge-maximum" type="number" inputmode="decimal" min="5" max="1000" step="0.01" value="100.00" disabled /></div>
             </div>
-            <p id="recharge-consent" class="pricing-note">By saving with recharge enabled, you authorize future charges to your saved card for the recharge amount when funding runs low, up to your recharge maximum each UTC month. You can disable recharge at any time. The compute spending cap applies separately.</p>
+            <p id="recharge-consent" class="pricing-note">By saving with recharge enabled, you authorize future charges to your saved card for the recharge amount when funding runs low, up to your recharge maximum each UTC month. You can disable recharge at any time. The spending cap applies separately.</p>
             <button id="recharge-save" class="button button-small" type="submit" disabled>Save recharge</button>
           </form>
           <p id="recharge-payment-status" class="pricing-note" role="status" hidden></p>
@@ -126,11 +126,25 @@
         <p>Runtime is reserved before machines run; stopping releases unused funding. Production launches require at least 24 hours of funding for the resulting fleet. Existing production machines stop when their funded runtime ends and can resume after funding is restored.</p>
         <a class="text-link" href="/docs/limits/">Full machine and platform limits →</a>
       </section>
+      <section id="storage-pricing-section" class="pricing-explanation" aria-labelledby="storage-pricing-title" hidden>
+        <h2 id="storage-pricing-title">Storage and Git</h2>
+        <p id="storage-published-status"></p>
+        <div class="docs-table-scroll" role="region" aria-label="Storage pricing" tabindex="0">
+          <table class="docs-table"><thead><tr><th scope="col">Usage</th><th scope="col">USD</th></tr></thead><tbody>
+            <tr><th scope="row">Retained storage</th><td id="storage-published-rate">—</td></tr>
+            <tr><th scope="row">Writes and listings</th><td id="storage-published-writes">—</td></tr>
+            <tr><th scope="row">Reads and metadata</th><td id="storage-published-reads">—</td></tr>
+            <tr><th scope="row">R2 egress</th><td>Free</td></tr>
+          </tbody></table>
+        </div>
+        <p>Storage continues to use your balance while files and Git history are retained, even when your app is stopped. Daily peak usage is deducted daily and reconciled against the actual shared Cloudflare invoice, including free-tier and billing-unit adjustments.</p>
+        <p>Seven days of retention are reserved before storage grows. If funding cannot renew, writes stop and you can export through the funded date. Retained source and Git history are then deleted. See project sizes, charges, and funded dates in <a href="/balance/">balance history</a>.</p>
+      </section>
       <section class="pricing-explanation" aria-labelledby="billing-questions-title">
         <h2 id="billing-questions-title">Billing questions</h2>
         <div class="purchase-questions">
           <details><summary>Does my balance expire each month?</summary><p>No. Unused prepaid funds carry forward. There is no monthly subscription or charge unless you explicitly enable automatic recharge.</p></details>
-          <details><summary>How do reservations and the spending cap work?</summary><p>Your current balance includes funding reserved for running machines. Available funding excludes those reservations. Only elapsed runtime is charged; stopping releases unused funds. Your monthly compute cap is an additional limit, independent of your balance and automatic recharge maximum.</p></details>
+          <details><summary>How do reservations and the spending cap work?</summary><p>Your current balance includes reservations for runtime, build AI, and funded storage retention. Available funding excludes those reservations. Stopping a machine releases unused runtime funding; retained files continue to use storage. Your monthly spending cap is an additional limit, independent of your balance and automatic recharge maximum.</p></details>
           <details><summary>Do files persist when a workspace stops?</summary><p>Save a workspace before stopping to restore its filesystem into a fresh container. Ordinary stop discards unsaved changes. Keep independent backups; see <a href="/docs/containers/#workspaces">saved workspaces</a> and <a href="/docs/files/">file transfer</a>.</p></details>
           <details><summary>Is there an SLA or priority support?</summary><p>Self-service compute includes no uptime SLA, guaranteed support response time, or automatic service credits. Review the <a href="/trust/">trust center</a> and <a href="/status/">service status</a>, or <a href="/contact/">contact Andrew</a> about your requirements.</p></details>
         </div>

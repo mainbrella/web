@@ -43,6 +43,14 @@
 .history-period-detail { white-space: normal; }
 .history-resource-row .history-number { min-width: 80px; }
 .history-fundings-table td:last-child { min-width: 160px; }
+.history-storage-table { table-layout: fixed; }
+.history-storage-table th:first-child { width: 40%; }
+.history-storage-details summary { display: flex; align-items: center; min-height: 44px; width: fit-content; cursor: pointer; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.history-storage-details summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.history-storage-details dl { margin: 0; font-size: 11px; }
+.history-storage-details dl > div { margin: 4px 0 8px; }
+.history-storage-details dt { color: var(--muted); }
+.history-storage-details dd { margin: 2px 0 0; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 700px) {
   .balance-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
@@ -70,6 +78,11 @@
   .history-funding-row td:nth-child(2)::before { content: "Credit added"; }
   .history-funding-row td:nth-child(3)::before { content: "Credit removed"; }
   .history-funding-row td:last-child { color: var(--muted); font-size: 11px; }
+  .history-storage-project { grid-column: 1 / -1; }
+  .history-storage-row td:nth-child(2)::before { content: "Stored size"; }
+  .history-storage-row td:nth-child(3)::before { content: "Charged this month"; }
+  .history-storage-row td:nth-child(4)::before { content: "Estimated monthly storage"; }
+  .history-storage-details dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 16px; }
 }
 
 @media (max-width: 390px) {
