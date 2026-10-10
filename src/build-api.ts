@@ -46,7 +46,7 @@ export function buildErrorMessage(code: string, details?: string | null): string
     invalid_build_effort: 'Choose a supported effort for this model and try again.',
     subscription_required: 'Add prepaid balance to build and run apps.',
     insufficient_balance: 'Your prepaid balance is too low to continue. Add balance and try again.',
-    spend_limit_exceeded: 'Your spending limit has been reached. Increase the limit to continue building.',
+    spend_limit_exceeded: 'Your Mainbrella monthly spending limit cannot cover this request. Increase the limit in Billing to continue building.',
     build_billing_unavailable: 'Could not check your prepaid balance. Try again shortly.',
     build_billing_reconciliation_required: 'An AI request needs billing reconciliation. Your source is saved; contact support.',
     build_operation_reconciliation_required: 'An operation has an unknown result. Execution stopped so it can be inspected safely.',

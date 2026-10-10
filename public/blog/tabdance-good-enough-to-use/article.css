@@ -1,5 +1,12 @@
 .tabdance-followup code { overflow-wrap: anywhere; }
 .tabdance-followup .docs-code code { overflow-wrap: normal; }
+.tabdance-followup .article-logo {
+  display: block;
+  width: 160px;
+  max-width: 100%;
+  height: auto;
+  margin: 24px 0;
+}
 .tabdance-followup .article-figure a { display: block; }
 .tabdance-followup .article-figure a:focus-visible {
   outline: 2px solid var(--blue);
@@ -9,7 +16,8 @@
 .tabdance-followup .drop-example figcaption { color: var(--ink); font-size: 18px; }
 .tabdance-followup .drop-example .docs-code { margin: 12px 0; }
 .tabdance-followup .drop-example p { margin-top: 12px; font-size: 17px; }
-.tabdance-followup .shortcut-table {
+.tabdance-followup .shortcut-table,
+.tabdance-followup .selection-table {
   width: 100%;
   margin: 24px 0;
   border-collapse: collapse;
@@ -17,17 +25,23 @@
   line-height: 1.5;
 }
 .tabdance-followup .shortcut-table th,
-.tabdance-followup .shortcut-table td {
+.tabdance-followup .shortcut-table td,
+.tabdance-followup .selection-table th,
+.tabdance-followup .selection-table td {
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
 }
+.tabdance-followup .selection-table tbody th { font-weight: 400; }
+.tabdance-followup .selection-table th:first-child { width: 44%; padding-right: 16px; }
 .tabdance-followup .shortcut-table th:first-child,
 .tabdance-followup .shortcut-table td:first-child { width: 36%; padding-right: 16px; }
 .tabdance-followup kbd { font: inherit; white-space: nowrap; }
 @media (max-width: 600px) {
-  .tabdance-followup .shortcut-table { font-size: 16px; }
+  .tabdance-followup .article-logo { width: 144px; }
+  .tabdance-followup .shortcut-table,
+  .tabdance-followup .selection-table { font-size: 16px; }
   .tabdance-followup .shortcut-table th:first-child,
   .tabdance-followup .shortcut-table td:first-child { width: 42%; padding-right: 12px; }
   .tabdance-followup .drop-example figcaption { font-size: 17px; }

@@ -52,6 +52,7 @@ export function operationExplanation(op: BuildOperation): string | null {
   const details = text(failure.details);
   if (details) return details;
   const code = text(failure.code);
+  if (code === 'spend_limit_exceeded') return "Your Mainbrella account's monthly spending limit could not cover this request and existing reservations. No request was sent to Cloudflare.";
   if (code === 'build_budget_exceeded') return 'The build stopped before verification finished. See the operation journal for the limit and the last check.';
   if (code) return `The operation failed (${code.replaceAll('_', ' ')}).`;
   if (op.status === 'unknown') return 'Execution may have started, but no definitive result was retained.';

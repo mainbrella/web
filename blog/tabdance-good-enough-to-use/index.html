@@ -29,18 +29,10 @@
         <h1>TabDance is good enough to use</h1>
         <p class="article-meta"><time datetime="2026-10-10">October 10, 2026</time> · Andrew Arrow</p>
 
-        <p>TabDance is now good enough to use. The macOS app has live workspaces and tabs, Command-K keeps an unfinished command while clearing older output, and copying survives a terminal redraw. You can build it from source.</p>
-        <p>In <a href="/blog/tabdance-terminal-feel/">the first article</a>, my Command-K, <code>cat file.txt</code>, Command-A copying habit led from cmux and Rio to studying Apple Terminal’s executable. TabDance was a small AppKit prototype with a real shell and two tests. The <a href="https://github.com/andrewarrow/TabDance/compare/045d83cdefd6dfbefcdcd416eaf16be355894290...1ac4e614ddadad91b752cbe5e0b65c0e624a86f2">changes since that snapshot</a> put those everyday operations alongside the workspace layout I wanted.</p>
+        <img class="article-logo" src="/images/blog/tabdance-good-enough-to-use/logo.png" width="1254" height="1254" alt="TabDance logo: three colorful terminal windows connected by curved ribbons." decoding="async" fetchpriority="high" />
 
-        <figure class="article-figure">
-          <a href="/images/blog/tabdance-good-enough-to-use/workspaces.png" aria-label="View the full TabDance screenshot">
-            <picture>
-              <source media="(max-width: 600px)" srcset="/images/blog/tabdance-good-enough-to-use/workspaces-mobile.png" width="1280" height="704" />
-              <img src="/images/blog/tabdance-good-enough-to-use/workspaces.png" width="1920" height="704" alt="TabDance’s actual AppKit window: TabDance, mainbrella, and scratch workspaces in the left rail; TabDance, Sources, and Tests tabs across the top; a green-on-black shell printing alpha, beta, and gamma below." decoding="async" fetchpriority="high" />
-            </picture>
-          </a>
-          <figcaption>The current TabDance views, rendered from isolated demo directories and a controlled shell running <code>cat demo.txt</code>. All five tabs have live shell processes. <a href="/images/blog/tabdance-good-enough-to-use/workspaces.png">Open the full screenshot.</a></figcaption>
-        </figure>
+        <p>TabDance is now good enough to use. Command-K keeps the command you’re editing, copying survives a terminal redraw, and each tab keeps its shell when you switch workspaces. You can build the macOS app from source.</p>
+        <p>In <a href="/blog/tabdance-terminal-feel/">the first article</a>, my Command-K, <code>cat file.txt</code>, Command-A copying habit led from cmux and Rio to studying Apple Terminal’s executable. TabDance was a small AppKit prototype with a real shell. The <a href="https://github.com/andrewarrow/TabDance/compare/045d83cdefd6dfbefcdcd416eaf16be355894290...1ac4e614ddadad91b752cbe5e0b65c0e624a86f2">changes since that snapshot</a> put those everyday operations alongside the workspace layout I wanted.</p>
 
         <h2 id="build">Build it on your Mac</h2>
         <p>You’ll need macOS 13 or later and Xcode 16 or later, with its command-line tools selected. From a terminal:</p>
@@ -48,44 +40,62 @@
 cd TabDance
 ./build-app.sh
 open dist/TabDance.app</code></pre>
-        <p>Or open <code>TabDance.xcodeproj</code>, select the TabDance scheme, and press Command-R. On the first Xcode build, allow SwiftTerm’s build information plugin when prompted. The <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/build-app.sh">build script</a> uses the checked-in project and produces an ad-hoc signed app for Apple silicon and Intel Macs. XcodeGen is only needed if you change the project generator’s configuration.</p>
-        <p>The app starts your account’s login shell, so your usual shell setup comes with it. It uses Swift 6, AppKit, and <a href="https://github.com/migueldeicaza/SwiftTerm/tree/464df5207fc2432e16c9a23abe538187196daf5f">SwiftTerm 1.19.0</a>, the only external package dependency. Each shell is attached to a pseudoterminal (PTY), which lets the app exchange terminal input and output with it. SwiftTerm handles that connection, terminal emulation, and rendering; TabDance adds the workspace UI and the local editing behavior. The Apple Terminal inspection remains research material in the repository. The app is original Swift code.</p>
+        <p>Or open <code>TabDance.xcodeproj</code>, select the TabDance scheme, and press Command-R. Allow SwiftTerm’s build information plugin if Xcode prompts you. The <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/build-app.sh">build script</a> produces an ad-hoc signed app for Apple silicon and Intel Macs.</p>
+        <p>The app starts your account’s login shell, so your usual shell setup comes with it. Each shell runs through a pseudoterminal (PTY), the connection through which terminal programs exchange input and output. <a href="https://github.com/migueldeicaza/SwiftTerm/tree/464df5207fc2432e16c9a23abe538187196daf5f">SwiftTerm 1.19.0</a> supplies the terminal emulator and rendering; TabDance adds the AppKit workspace UI and its own clearing and copying behavior.</p>
 
         <h2 id="live-tabs">A tab switch keeps the shell</h2>
         <p>Start a server in one tab, open another for edits, then switch workspaces. The server should keep running. Returning should put you back in the tab you last selected in that workspace.</p>
-        <p>TabDance gives each tab a stable UUID and keeps a separate live session for it. A workspace stores an ordered list of tabs and its selected tab’s identity. Switching changes which terminal view is visible and receives keyboard focus; the other sessions remain alive. Dragging a tab changes its position in the list while its shell stays attached to the same identity. The <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/Tests/TerminalLabTests/WindowTests.swift">window tests</a> check that switching and reordering preserve shell process IDs.</p>
+
+        <figure class="article-figure">
+          <a href="/images/blog/tabdance-good-enough-to-use/workspaces.png" aria-label="View the full TabDance screenshot">
+            <picture>
+              <source media="(max-width: 600px)" srcset="/images/blog/tabdance-good-enough-to-use/workspaces-mobile.png" width="1280" height="704" />
+              <img src="/images/blog/tabdance-good-enough-to-use/workspaces.png" width="1920" height="704" alt="TabDance’s workspace sidebar and tab bar beside a shell printing alpha, beta, and gamma." loading="lazy" decoding="async" />
+            </picture>
+          </a>
+          <figcaption>The AppKit views in a controlled demo: three workspaces, five live shells, and <code>cat demo.txt</code> in the selected tab. <a href="/images/blog/tabdance-good-enough-to-use/workspaces.png">View the full screenshot.</a></figcaption>
+        </figure>
+
+        <p>Each tab owns a live session, identified by a UUID. Switching tabs changes which terminal view is visible and has keyboard focus; the <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/Tests/TerminalLabTests/WindowTests.swift">other shells keep running</a>. Dragging a tab changes its position without changing its session. Each workspace remembers its selected tab, so switching back returns there.</p>
         <p>There was a smaller continuity problem in the UI itself. A background session can update its title or working directory while you’re clicking a tab. The original refresh rebuilt every tab view. If that happened between mouse-down and mouse-up, the object holding the click disappeared.</p>
-        <p>The <a href="https://github.com/andrewarrow/TabDance/commit/08be3c8e35a5835a6ff75f2b9c3be66a9af47a44">fix</a> compares the ordered tab IDs. If they haven’t changed, it updates the existing labels and styles in place. It also leaves the tab bar’s scroll position alone during background metadata updates. A regression test presses a tab, feeds a title and directory update from another session, then releases the mouse and checks that the intended shell gets focus. Keeping the right shell isn’t sufficient if its button moves out from under the click.</p>
-        <p>Workspaces and tabs can both be dragged into a new order. Tabs stay within their workspace and window; the tab bar shows an insertion marker and scrolls near an edge. At widths below 600 points, the workspace rail collapses and a workspace menu remains available.</p>
+        <p>The <a href="https://github.com/andrewarrow/TabDance/commit/08be3c8e35a5835a6ff75f2b9c3be66a9af47a44">fix</a> compares the ordered tab IDs. If they haven’t changed, it updates the existing labels and styles in place. Background updates also leave the tab bar’s scroll position alone. The regression test reproduces the mouse-down, metadata update, mouse-up sequence.</p>
+        <p>You can drag workspaces into a new order too. Tabs stay within their workspace and window; an insertion marker shows where they’ll land. Below 600 points of window width, the sidebar collapses and a workspace menu remains available.</p>
 
         <h2 id="clear">Command-K keeps the line you’re editing</h2>
-        <p>The important case is an unfinished command. If a prompt and command wrap across two rows, clearing the old output should keep both rows and leave the cursor at the same place in the command.</p>
+        <p>If a prompt and unfinished command wrap across two rows, clearing the old output should keep both rows and leave the cursor at the same place in the command.</p>
 
         <figure class="article-figure">
           <picture>
             <source media="(max-width: 600px)" srcset="/images/blog/tabdance-good-enough-to-use/clear-wrapped-line-mobile.svg" width="390" height="686" />
             <img src="/images/blog/tabdance-good-enough-to-use/clear-wrapped-line.svg" width="880" height="410" alt="Schematic of a wrapped command before and after Command-K. Old output and scrollback disappear; both rows of the logical command move together to the top, with the cursor in the same column on its continuation row." loading="lazy" decoding="async" />
           </picture>
-          <figcaption>A schematic with a 20-column terminal. Wrapping joins the two command rows into one logical line. The cursor moves upward with that line; its position within the command stays the same.</figcaption>
+          <figcaption>A schematic of a 20-column terminal. Command-K moves both rows of the wrapped command together; the cursor stays at the same place within the command.</figcaption>
         </figure>
 
         <p>The <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/Sources/TerminalCore/TabDanceTerminalView.swift">clear operation</a> walks backward and forward from the cursor’s row using the buffer’s wrapping flags. That identifies the whole logical line, including a continuation below the cursor. It moves those rows to the top, erases the rows beneath them, removes scrollback, and restores the cursor relative to the retained line.</p>
         <p>It does this inside the terminal emulator. The scroll and erase sequences go directly into SwiftTerm’s parser; no Control-L is written to the shell. That keeps the result independent of how the foreground program handles Control-L. Moving existing rows also preserves their colors and metadata rather than reconstructing the command as plain text.</p>
-        <p>The distinction shows up in the tests: old output disappears from Select All, a partial command survives, a wrapped line retains its color, and no user input is sent. Clearing an alternate screen also leaves the normal buffer and bracketed-paste mode intact. These are specific behavior checks; exact newline parity and typing latency against Apple Terminal remain unmeasured.</p>
+        <p>Old output also disappears from <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/Tests/TerminalLabTests/TerminalBehaviorTests.swift">Select All</a>. Clearing an alternate screen leaves the normal buffer alone and preserves bracketed-paste mode, which lets a program recognize pasted text.</p>
 
         <h2 id="copy">Copy remembers the selection</h2>
         <p>Terminal programs redraw. Select <code>hello</code>, let the program erase that row, and Copy still ought to give you <code>hello</code>. TabDance stores a text snapshot when a selection is made and copies from that snapshot before falling back to the current cells:</p>
         <pre class="docs-code"><code><span class="code-keyword">public var</span> copyText: String? {
     selectedTextSnapshot ?? getSelection()
 }</code></pre>
-        <p>Selecting nonempty text also copies it to the clipboard automatically. A screen redraw can invalidate the visible selection without discarding its saved string. Explicit input, a new mouse-down, or Command-K clears the snapshot. The <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/Tests/TerminalLabTests/TerminalBehaviorTests.swift">regression test</a> selects <code>hello</code>, feeds carriage return and erase-line, and checks both sides: the live buffer no longer contains the word, but Copy still does.</p>
-        <p>There’s a subtle boundary here. User typing and the terminal’s protocol replies both send bytes to the PTY. A program asking for the cursor position can trigger a reply without any user action. Treating that reply as typing would discard the selection and confuse the activity indicator. TabDance handles the two delegate paths separately: user input clears the snapshot and notifies the monitor; parser replies go straight to the process.</p>
-        <p>Held keys now repeat through AppKit too. The app registers <code>ApplePressAndHoldEnabled = false</code>, allowing terminal input to use macOS’s repeat delay and rate. Tests send initial and repeated events for letters, Backspace, and an arrow key and check the resulting bytes.</p>
+        <p>Selecting nonempty text also copies it to the clipboard automatically. A <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/Tests/TerminalLabTests/TerminalBehaviorTests.swift">redraw can erase the selected cells</a> while the saved string remains:</p>
+        <table class="selection-table">
+          <caption class="sr-only">Copy before and after an erase-line redraw</caption>
+          <thead><tr><th scope="col">Moment</th><th scope="col">Screen text</th><th scope="col">Copy returns</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">After selecting</th><td><code>hello</code></td><td><code>hello</code></td></tr>
+            <tr><th scope="row">After erase-line</th><td>Empty</td><td><code>hello</code></td></tr>
+          </tbody>
+        </table>
+        <p>Typing or pasting, a new mouse-down, or Command-K discards the snapshot. But a program asking for the cursor position also sends bytes back to the PTY, without any user action. Treating that reply as typing would discard the selection and confuse the activity indicator. TabDance keeps the two paths separate: user input clears the snapshot and notifies the monitor; parser replies go straight to the process.</p>
 
         <h2 id="directories">The next tab starts where you are</h2>
-        <p>After <code>cd</code>, Command-T should open a shell in that directory—even if you press it before the next background poll. A shell can announce its current directory with OSC 7, an escape sequence carrying a file URL. TabDance accepts local directory updates and also polls the shell’s working directory through macOS’s <code>libproc</code>.</p>
-        <p>Polling alone leaves a timing gap. Immediately before creating a tab or workspace, TabDance queries the selected shell’s current directory again. The test changes directory in a real shell without sending OSC 7, waits for that command to finish, creates a tab, and checks the new shell’s directory. The new tab needn’t wait for its label to catch up.</p>
-        <p>File drops use a similarly concrete rule: insert paths and let the user finish the command. Drop local files or folders onto terminal content, or onto a tab label to select and focus that tab. TabDance inserts absolute paths with shell-special characters escaped, separated by spaces and followed by a space. It doesn’t press Enter.</p>
+        <p>After <code>cd</code>, Command-T should open a shell in that directory—even if you press it before the next background poll. A shell can announce its current directory with OSC 7, an escape sequence carrying a file URL. TabDance also polls the directory through macOS’s <code>libproc</code> interface, so shells that don’t send OSC 7 still work.</p>
+        <p>Polling alone leaves a timing gap. Immediately before creating a tab or workspace, TabDance <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/Sources/TerminalLab/TerminalWindowController.swift">queries the selected shell’s current directory again</a>. The new shell needn’t wait for its label to catch up.</p>
+        <p>File drops insert paths and let you finish the command. Drop local files or folders onto terminal content, or onto a tab label to select and focus that tab. TabDance inserts absolute paths with shell-special characters escaped, separated by spaces and followed by a space. It doesn’t press Enter.</p>
 
         <figure class="drop-example">
           <figcaption>Drop <code>annual report.txt</code> onto a pending <code>cat </code> command:</figcaption>
@@ -93,12 +103,12 @@ open dist/TabDance.app</code></pre>
           <p>The cursor is still waiting. You can add another path or press Return.</p>
         </figure>
 
-        <p>If the receiving program enables bracketed paste, the drop is wrapped in paste-start and paste-end sequences. Filenames containing control characters are rejected. The drop tests use spaces, an apostrophe, shell punctuation, and Unicode, then ask both <code>/bin/sh</code> and <code>/bin/zsh</code> to parse the inserted text and compare the resulting arguments with the original paths.</p>
+        <p>If the receiving program enables bracketed paste, the drop is wrapped in paste-start and paste-end sequences. Filenames containing control characters are rejected.</p>
 
         <h2 id="activity">A running Codex process isn’t always busy</h2>
         <p>A workspace can have a Codex process open while nothing is happening. Showing a spinner for the process’s entire lifetime would make the indicator useless.</p>
-        <p>TabDance looks for Codex beneath each shell in the local process tree, matches its session transcript by working directory and process start time, and reads new events incrementally from newline-delimited JSON (JSONL). Submitting a prompt can start the indicator while it waits for the task-start event; <code>task_started</code>, <code>task_complete</code>, and <code>turn_aborted</code> then drive its state. Old completion events are checked against the submission time so a previous turn can’t stop the current indicator.</p>
-        <p>Control-C clears it immediately and suppresses late events until the next submission. Newlines inside bracketed paste don’t count as submitted prompts. This is a <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/Sources/TerminalCore/CodexActivityMonitor.swift">local monitor of Codex’s transcript format</a>; other commands don’t get this activity tracking, and changes to that format may require an update.</p>
+        <p>The indicator follows task events in <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/Sources/TerminalCore/CodexActivityMonitor.swift">Codex’s local session transcript</a>. TabDance finds the Codex process under each shell, then matches the transcript using its working directory and process start time. It reads new JSONL events—JSON objects, one per line—as they’re appended. Submitting a prompt can start the indicator; task-start, completion, and abort events then update it. Completion events are checked against the submission time to filter out older turns.</p>
+        <p>Control-C clears the indicator immediately and suppresses late events until the next submission. Newlines inside bracketed paste don’t count as submitted prompts. Other commands don’t get this activity tracking, and changes to Codex’s transcript format may require an update.</p>
 
         <h2 id="use">Try it against your own habits</h2>
         <p>These are the shortcuts to start with. The <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/README.md#keyboard-shortcuts">README</a> has the full list, including numbered tab selection and keyboard reordering.</p>
@@ -114,15 +124,15 @@ open dist/TabDance.app</code></pre>
             <tr><td><kbd>⌘B</kbd></td><td>Toggle the workspace sidebar</td></tr>
           </tbody>
         </table>
-        <p>The primary window saves workspace order, tab directories and titles, and selections to <code>~/Library/Application Support/TabDance/workspaces.json</code>. Reopening starts fresh shells in those directories. Running processes and terminal output aren’t restored; secondary windows don’t overwrite the primary layout.</p>
-        <p>There are no profiles, search, or preferences yet. The terminal appearance is fixed: Menlo at 20 points, green text on opaque black, and a fixed ANSI palette. Command-W closes a tab immediately and Command-Q quits immediately; explicitly closing a window asks for confirmation when sessions are active. The app runs local shells without the macOS App Sandbox and is <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/LICENSE">GPLv3</a>.</p>
+        <p>Reopening TabDance restores the primary window’s workspace order, tab directories and titles, and selections. It starts fresh shells in those directories; running processes and terminal output aren’t restored. Held keys use macOS’s repeat delay and rate.</p>
+        <p>There are no profiles, search, or preferences yet. The terminal appearance is fixed: Menlo at 20 points, green text on black, and a fixed ANSI palette. Exact copied-newline behavior and typing latency haven’t been measured against Apple Terminal.</p>
+        <p>Command-W closes a tab and Command-Q quits without prompting. Explicitly closing a window asks for confirmation when sessions are active.</p>
         <p>I’m still starting with the same boring file:</p>
         <pre class="docs-code"><code>printf 'alpha\nbeta\ngamma\n' &gt; /tmp/tabdance-selection.txt
 <span class="code-comment"># Press Command-K, then run:</span>
 cat /tmp/tabdance-selection.txt
 <span class="code-comment"># Press Command-A, Command-C, and inspect the pasted text.</span></code></pre>
-        <p>Then try an unfinished wrapped command, a selection erased by a redraw, and a quick <code>cd</code> followed by Command-T. Those cases are now implemented, with tests behind them. They’re also small enough to tell me exactly where your habits and TabDance still disagree.</p>
-        <p class="source-note">This article describes <a href="https://github.com/andrewarrow/TabDance/tree/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2">commit 1ac4e61</a>. On October 10, 2026, <code>swift test</code> passed 28 XCTest cases and nine Swift Testing cases on an Apple silicon Mac: PTY behavior, workspace state, window interactions, terminal behavior, and Codex activity. Run the same suite from the repository root, or use Command-U in Xcode. About TabDance displays the build’s Git SHA when reporting an issue.</p>
+        <p>Then try an unfinished wrapped command, a selection erased by a redraw, and a quick <code>cd</code> followed by Command-T. They’re small enough to tell me exactly where your habits and TabDance still disagree.</p>
       </article>
     </main>
     <!-- site-footer -->
