@@ -60,6 +60,16 @@
               </div>
             </div>
             <p id="checkout-total" class="pricing-note" aria-live="polite"></p>
+            <details class="checkout-promotion">
+              <summary>Promotion code</summary>
+              <label for="checkout-promotion-code">Promotion code</label>
+              <div class="checkout-promotion-controls">
+                <input id="checkout-promotion-code" name="promotion_code" type="text" autocomplete="off" aria-describedby="checkout-promotion-status" disabled />
+                <button class="button" id="checkout-promotion-apply" type="button" disabled>Apply</button>
+                <button class="text-link" id="checkout-promotion-remove" type="button" hidden>Remove</button>
+              </div>
+              <p class="pricing-note" id="checkout-promotion-status" role="status" aria-live="polite"></p>
+            </details>
             <p class="pricing-note">Payment is collected by Stripe. Funds become available after payment succeeds. By paying, you agree to the <a href="/terms/">Terms of Service</a>.</p>
             <p id="checkout-status" class="pricing-note" role="status" aria-live="polite"></p>
             <button id="checkout-submit" class="button button-small" type="submit" disabled>Pay</button>

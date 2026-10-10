@@ -3,7 +3,7 @@
   "source": "mainbrella/backend",
   "licenseSha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
   "files": {
-    "API.md": "23edc56d089984033291394b209b791c67a121b905a644106383dd278dc526da",
+    "API.md": "e69c8887d6661dbdff6c8e240d77e94d13213f780551a6f71ce29d3cec8d7902",
     "SKILL.md": "30cd4bb332817f348821d06046dce5b3d27a2fd470411a590cafd25232a40c06",
     "sdk/javascript.md": "fe3d0b60864f7fe5c405ea44ac5f6955e7072ee6a168388585e79292b7f37188",
     "sdk/python.md": "658f27e8165e2821e171a176d0ddab4ac48448963a4a6d9f3c0585dc2cb1fcbe",
@@ -16,7 +16,7 @@
     "references/http-command-execution.md": "3601a3387449ffee905686c48a33391349537733eca7b166f563647209b40c3d",
     "references/http-files.md": "67c15010906cad18c50a424c1eb2cd188b6ef3886a0cf058db027ec010800cdc",
     "references/filesystem-metadata-and-directories.md": "6268bfb7d061fb0d6e3d1ce376f49c84630e650828bb0ea57f545ed33e1f74ff",
-    "references/browser-billing-endpoints.md": "a63e33d17bdcac5aec02f8cd1716400257736919712c6d5cee908e193a4c1a6e",
+    "references/browser-billing-endpoints.md": "230e654779467efe567b0657f9049dd16ab4f39225a1b69e0faefaa3a521e915",
     "references/errors-and-retry-behavior.md": "bacdd10c3d0cc6015297374fec5ee589a6fbfa09b7c5d3f9194c34f7ef29c782",
     "references/card-free-trial-coupons.md": "82a6ce927af289530984a300999a4840fa72c954d405874cf870da9072caa939",
     "references/capability-discovery.md": "fa4b2359c8f0ba97192a7d09e839580da38c01b2a52a2c5ff174527402123c01",
@@ -31,11 +31,11 @@
     "references/machine-sizes-and-compute-allowance.md": "7fe87215db0cf734f9a18934e3ae655c43bfb321e90b9436cc8d78f583051187",
     "references/saved-workspaces-and-portable-export.md": "55f5728d3190141dc05dbfefff2a7258e8b5bdeb8e45b92ecddef05cd70b580d",
     "references/public-repository-launches.md": "cf4b7a5a9d936084b53a9db8ec89764899a0b036dac7a2c8f2ca111c78102063",
-    "references/prepaid-billing.md": "fc7a8946116492fd194eb9b0e79ef7a0c8def5f41a552ba314f97fa9bed44bb7",
+    "references/prepaid-billing.md": "76059851d3db5773b5bb84ade83760844175e4046e9d1d5dddef47cb729aa0a6",
     "references/javascript-sdk.md": "fe3d0b60864f7fe5c405ea44ac5f6955e7072ee6a168388585e79292b7f37188",
     "references/python-sdk.md": "658f27e8165e2821e171a176d0ddab4ac48448963a4a6d9f3c0585dc2cb1fcbe",
     "references/index.md": "c81147da26e55da9915df5a565e7224bc59f4ecfdadef6a1016fe82cfed4eb1e",
     "scripts/mainbrella-deploy-static.mjs": "c16e216de0839f889865172e47f45898890e6941e502bd89795e2fef77c549ec",
-    "llms-full.txt": "87adbe9f837352fbe0d91c28fa1c5be5c07fc9c9ac78fcbacbb9a66dd141a2b0"
+    "llms-full.txt": "7fa3fa29c206995b7a91553659c2a6a570a379bc752e57cd59693d7e60e19653"
   }
 }

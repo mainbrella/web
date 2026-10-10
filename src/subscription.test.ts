@@ -22,6 +22,7 @@ class Element {
   [key: string]: any;
   constructor(public id: string) {}
   value = ''; checked = false; hidden = false; disabled = false; dataset: Record<string, string> = {}; textContent = '';
+  prevented = false;
   listeners = new Map<string, (event: any) => unknown>();
   addEventListener(type: string, handler: (event: any) => unknown) { this.listeners.set(type, handler); }
   removeEventListener(type: string) { this.listeners.delete(type); }
@@ -32,6 +33,11 @@ class Element {
   async click() { if (!this.disabled) await this.listeners.get('click')?.({}); }
   async submit() { await this.listeners.get('submit')?.({ preventDefault() {} }); }
   input() { this.listeners.get('input')?.({}); }
+  async key(key: string) {
+    const event = { key, prevented: false, preventDefault() { this.prevented = true; } };
+    await this.listeners.get('keydown')?.(event);
+    this.prevented = event.prevented;
+  }
   focus() {}
 }
 const wallet = (extra: Partial<PrepaidBalance> = {}): PrepaidBalance => ({
@@ -56,7 +62,7 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
   let checkoutData: any = { sessionId: 'cs_test', client_secret: 'cs_test_secret_inline', publishable_key: `pk_test_fixture_${sequence + 1}` };
   let completionError: string | null = extra.completionError || null;
   const topupErrors: string[] = [...(extra.topupErrors || [])];
-  const stripeSession = { id: 'cs_test', email: 'owner@example.com', canConfirm: false, total: { total: { amount: '$20.00' } } };
+  const stripeSession = { id: 'cs_test', email: 'owner@example.com', canConfirm: false, total: { total: { amount: '$20.00', minorUnitsAmount: 2000 } }, discountAmounts: [] as any[] };
   const confirmations: any[] = [];
   let sessionChanged: (session: any) => void = () => {};
   const paymentEvents = new Map<string, (event?: any) => void>();
@@ -67,6 +73,22 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
   const actions = {
     getSession: () => stripeSession,
     updateEmail: async () => ({ type: 'success' }),
+    applyPromotionCode: async (code: string) => {
+      if (extra.promotionGate) await extra.promotionGate;
+      if (code !== 'SAVE5' && code !== 'FREE') return { type: 'error', error: { message: 'That promotion code is invalid.' } };
+      stripeSession.total.total.amount = code === 'FREE' ? '$0.00' : '$15.00';
+      stripeSession.total.total.minorUnitsAmount = code === 'FREE' ? 0 : 1500;
+      stripeSession.discountAmounts = [{ promotionCode: { code } }];
+      sessionChanged(stripeSession);
+      return { type: 'success' };
+    },
+    removePromotionCode: async () => {
+      stripeSession.total.total.amount = '$20.00';
+      stripeSession.total.total.minorUnitsAmount = 2000;
+      stripeSession.discountAmounts = [];
+      sessionChanged(stripeSession);
+      return { type: 'success' };
+    },
     confirm: async (options: any) => {
       confirmations.push(options);
       if (confirmGate) await confirmGate;
@@ -141,6 +163,7 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
     setConfirmationError(value: string | null) { confirmationError = value; },
     setConfirmGate(value: Promise<void> | null) { confirmGate = value; },
     paymentReady(complete = true) { stripeSession.canConfirm = complete; sessionChanged(stripeSession); },
+    setPromotionGate(value: Promise<void> | null) { extra.promotionGate = value; },
     paymentLoadError() { paymentEvents.get('loaderror')?.({ error: { message: 'Unable to load card details.' } }); },
     confirmations, isMounted: () => mounted, isDestroyed: () => destroyed,
     changeAccount(value: User | null) { events.get('auth-change')?.({ detail: { user: value } }); },
@@ -307,6 +330,87 @@ test('Pay explains incomplete card details and enables as Stripe validates the f
   assert.equal(f.node('checkout-status').textContent, 'Complete your card details to enable payment.');
   await f.node('checkout-form').submit();
   assert.equal(f.confirmations.length, 0);
+});
+
+test('Stripe promotion codes update the prepaid total and can be removed', async t => {
+  const f = await fixture(t);
+  await f.node('topup-form').submit(); await tick();
+  const code = f.node('checkout-promotion-code');
+  code.value = 'SAVE5'; code.input();
+  assert.equal(f.node('checkout-promotion-apply').disabled, false);
+  await code.key('Enter');
+  assert.equal(code.prevented, true);
+  assert.equal(f.node('checkout-total').textContent, 'Due today: $15.00');
+  assert.equal(f.node('checkout-submit').textContent, 'Pay $15.00');
+  assert.equal(f.node('checkout-promotion-remove').hidden, false);
+  assert.equal(f.confirmations.length, 0);
+  await f.node('checkout-promotion-remove').click();
+  assert.equal(f.node('checkout-total').textContent, 'Due today: $20.00');
+  assert.equal(f.node('checkout-submit').textContent, 'Pay $20.00');
+  assert.equal(f.node('checkout-promotion-remove').hidden, true);
+});
+
+test('promotion controls stay disabled while Stripe loads and after a payment load error', async t => {
+  let release!: () => void;
+  const f = await fixture(t, { stripeGate: new Promise<void>(resolve => { release = resolve; }) });
+  await f.node('topup-form').submit();
+  assert.equal(f.node('checkout-promotion-code').disabled, true);
+  assert.equal(f.node('checkout-promotion-apply').disabled, true);
+  release(); await tick();
+  assert.equal(f.node('checkout-promotion-code').disabled, false);
+  f.paymentLoadError();
+  assert.equal(f.node('checkout-promotion-code').disabled, true);
+  assert.equal(f.node('checkout-promotion-apply').disabled, true);
+});
+
+test('invalid Stripe promotion code stays inline and preserves the entered code', async t => {
+  const f = await fixture(t);
+  await f.node('topup-form').submit(); await tick();
+  const code = f.node('checkout-promotion-code');
+  code.value = 'NOPE'; code.input();
+  await f.node('checkout-promotion-apply').click();
+  assert.equal(code.value, 'NOPE');
+  assert.equal(f.node('checkout-promotion-status').textContent, 'That promotion code is invalid.');
+  assert.equal(f.node('checkout-promotion-status').dataset.state, 'error');
+  assert.equal(f.node('checkout-total').textContent, 'Due today: $20.00');
+});
+
+test('promotion update disables payment and duplicate applies until Stripe finishes', async t => {
+  let release!: () => void;
+  const f = await fixture(t, { promotionGate: new Promise<void>(resolve => { release = resolve; }) });
+  await f.node('topup-form').submit(); await tick();
+  const code = f.node('checkout-promotion-code');
+  code.value = 'SAVE5'; code.input();
+  const applying = f.node('checkout-promotion-apply').click(); await tick();
+  assert.equal(f.node('checkout-promotion-apply').disabled, true);
+  assert.equal(f.node('checkout-submit').disabled, true);
+  await f.node('checkout-form').submit();
+  assert.equal(f.confirmations.length, 0);
+  release(); await applying;
+  assert.equal(f.node('checkout-total').textContent, 'Due today: $15.00');
+});
+
+test('a destroyed checkout ignores a late promotion result', async t => {
+  let release!: () => void;
+  const f = await fixture(t, { promotionGate: new Promise<void>(resolve => { release = resolve; }) });
+  await f.node('topup-form').submit(); await tick();
+  const code = f.node('checkout-promotion-code');
+  code.value = 'SAVE5'; code.input();
+  const applying = f.node('checkout-promotion-apply').click(); await tick();
+  f.changeAccount({ id: 'next-owner' }); await tick();
+  release(); await applying;
+  assert.equal(f.node('checkout-total').textContent, 'Due today: $20.00');
+  assert.equal(f.node('checkout-promotion-status').textContent, 'Applying code…');
+});
+
+test('zero-dollar Stripe promotion shows a confirmation action', async t => {
+  const f = await fixture(t);
+  await f.node('topup-form').submit(); await tick();
+  const code = f.node('checkout-promotion-code');
+  code.value = 'FREE'; code.input();
+  await f.node('checkout-promotion-apply').click();
+  assert.equal(f.node('checkout-total').textContent, 'Due today: $0.00');
+  assert.equal(f.node('checkout-submit').textContent, 'Confirm');
 });
 
 test('retrying a pending inline confirmation verifies again without charging again', async t => {

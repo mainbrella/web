@@ -22,10 +22,10 @@ Bearer automation credentials do not authorize purchases or plan changes.
 
 When `STRIPE_PREPAID_PRICE_ID` is configured, recurring Checkout, plan changes,
 upgrades, resumption and legacy cap mutation return 409 `prepaid_billing_required`.
-New purchases do not create a monthly subscription. Each dollar paid adds one
-dollar of balance. Repeated $5 purchases and a larger single purchase have the
-same value, compute prices and account limits; $180 funds the same balance as
-36 purchases of $5, and $1,000 funds the same balance as 200 purchases of $5.
+New purchases do not create a monthly subscription. Stripe promotion codes
+discount the price while preserving the selected compute balance. Without a
+discount, each dollar paid adds one dollar of balance. Repeated $5 purchases and
+a larger single purchase have the same compute prices and account limits.
 
 Use the web billing controls for explicit user confirmation. Never perform a
 purchase, plan change or cancellation as part of an ordinary container job.

@@ -25,6 +25,10 @@ const checkoutForm = element<HTMLFormElement>('checkout-form');
 const checkoutEmail = element<HTMLInputElement>('checkout-email');
 const checkoutBack = element<HTMLButtonElement>('checkout-back');
 const checkoutSlot = element('checkout-payment-slot');
+const checkoutPromotionInput = element<HTMLInputElement>('checkout-promotion-code');
+const checkoutPromotionApply = element<HTMLButtonElement>('checkout-promotion-apply');
+const checkoutPromotionRemove = element<HTMLButtonElement>('checkout-promotion-remove');
+const checkoutPromotionStatus = element('checkout-promotion-status');
 let cleanupCheckout: (() => void) | null = null;
 let checkoutVersion = 0;
 let checkoutProcessing = false;
@@ -320,6 +324,8 @@ element<HTMLFormElement>('topup-form').addEventListener('submit', async event =>
       container: element('checkout-payment'), form: checkoutForm,
       submitButton: submit, statusElement: element('checkout-status'),
       emailInput: checkoutEmail, totalElement: element('checkout-total'),
+      promotionInput: checkoutPromotionInput, promotionApply: checkoutPromotionApply,
+      promotionRemove: checkoutPromotionRemove, promotionStatus: checkoutPromotionStatus,
       clientSecret: data.client_secret, publishableKey: data.publishable_key, submitLabel,
       onReady: () => { if (current()) setPaymentLoading(false); },
       onError: () => { if (current()) setPaymentLoading(false); },
