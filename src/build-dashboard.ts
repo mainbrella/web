@@ -443,7 +443,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       }
       const activityKey = `activity-${turn.id}`, activity = activityRow(turn, existing.get(activityKey));
       activity.dataset.messageKey = activityKey; rows.push(activity);
-      if (turn.status === 'failed') message(`result-${turn.id}`, 'Build', buildErrorMessage(turn.error || 'build_failed'), 'build-message-error');
+      if (turn.status === 'failed') message(`result-${turn.id}`, 'Build', buildErrorMessage(turn.error || 'build_failed', turn.log), 'build-message-error');
       else if (turn.summary && !turn.activity?.some(item => item.type === 'message' && item.text === turn.summary)) message(`result-${turn.id}`, 'Build', turn.summary);
       else if (!turn.activity?.length && turn.status === 'succeeded') message(`result-${turn.id}`, 'Build', turn.stage);
     }
@@ -475,7 +475,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
       const turn = selected.turns?.at(-1);
       previewStatus.textContent = selected.activeTurnId ? 'Building…' : 'Preview stopped';
       node<HTMLElement>('#build-preview-description').textContent = selected.activeTurnId ? 'Follow the live progress in the conversation.'
-        : turn?.status === 'failed' ? 'Check Logs, then ask Build to fix the app.'
+        : turn?.status === 'failed' ? 'See the error in the conversation, then ask Build to fix the app.'
           : selected.revision ? 'Your source is saved. Start a preview to run your app again.' : 'Describe a change to continue building your app.';
     }
     node<HTMLButtonElement>('#build-start-preview').hidden = Boolean(url || selected.activeTurnId || !selected.revision);

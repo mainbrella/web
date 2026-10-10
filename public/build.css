@@ -221,6 +221,7 @@
 .app-body .build-preview-empty h3 { font-size: 14px; font-weight: 500; }
 .build-preview-empty p { margin-top: 8px; color: var(--muted); font-size: 13px; }
 #build-storage-error, #build-retry { margin-bottom: 12px; }
+#build-storage-error { overflow-wrap: anywhere; white-space: pre-wrap; }
 
 @media (max-width: 900px) {
   .build-workspace-panels.has-preview { display: flex; gap: 0; }

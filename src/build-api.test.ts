@@ -47,7 +47,42 @@ test('funding and revision errors retain their public codes and human-readable r
       cause instanceof BuildAPIError && cause.code === error && cause.message === buildErrorMessage(error));
     t.mock.restoreAll();
   }
-  assert.doesNotMatch(buildErrorMessage('internal_database_error'), /internal_database_error/);
+  assert.equal(buildErrorMessage('unexpected_build_error'), 'Build error: unexpected_build_error');
+});
+
+test('failed builds include the actual command output with its line breaks', () => {
+  const output = "failed\nsrc/App.tsx(12,5): error TS2304: Cannot find name 'total'.\nFix src/App.tsx.";
+  assert.equal(buildErrorMessage('build_check_failed', output), `${buildErrorMessage('build_check_failed')}\n\n${output}`);
+  assert.equal(buildErrorMessage('build_failed', '  '), buildErrorMessage('build_failed'));
+  assert.equal(buildErrorMessage('build_failed', 'build_failed'), buildErrorMessage('build_failed'));
+  for (const code of ['insufficient_balance', 'spend_limit_exceeded', 'build_inference_timeout', 'build_inference_disconnected', 'invalid_model_response']) {
+    assert.doesNotMatch(buildErrorMessage(code), /Could not complete that action|Build error:/);
+  }
+});
+
+test('action and export errors preserve backend messages, details and unfamiliar codes', async t => {
+  const client = createBuildClient(() => {});
+  const details = 'src/App.tsx: Missing export\nCheck the import on line 12.';
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ error: 'provider_rate_limited', message: 'The model returned HTTP 429.', details }, { status: 429 }));
+  for (const request of [() => client.create('An app', 'retry-key'), () => client.export(app.id)]) {
+    await assert.rejects(request(), cause => cause instanceof BuildAPIError
+      && cause.code === 'provider_rate_limited'
+      && cause.message === `Build error: provider_rate_limited\n\nThe model returned HTTP 429.\n\n${details}`);
+  }
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ error: 'build_failed', message: details, details }, { status: 503 }));
+  await assert.rejects(client.list(), cause => cause instanceof BuildAPIError
+    && cause.message === `${buildErrorMessage('build_failed')}\n\n${details}`);
+});
+
+test('missing or malformed error responses retain a readable fallback', async t => {
+  const client = createBuildClient(() => {});
+  for (const response of [new Response('Bad gateway', { status: 502 }), Response.json({ error: {}, message: 123, details: [] }, { status: 503 })]) {
+    t.mock.method(globalThis, 'fetch', async () => response.clone());
+    for (const request of [() => client.list(), () => client.export(app.id)]) {
+      await assert.rejects(request(), cause => cause instanceof BuildAPIError
+        && cause.code === 'build_unavailable' && cause.message === buildErrorMessage('build_unavailable'));
+    }
+  }
 });
 
 test('session expiry is reported for source reads and ZIP downloads', async t => {

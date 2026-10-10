@@ -21,13 +21,15 @@ export type BuildModelOptions = { model?: string; effort?: string };
 export type BuildConfig = { available: boolean; model: string; models?: BuildModel[]; maxApps: number; dailyTurns: number; aiBilling: 'included' | 'prepaid'; aiMarkupPercent: number; computeUnitHourlyCents: number; size: 'small' };
 export type BuildSource = { revision: number; files: Record<string, string> };
 export class BuildAPIError extends Error {
-  constructor(public code: string) { super(buildErrorMessage(code)); }
+  constructor(public code: string, public details?: string) { super(buildErrorMessage(code, details)); }
 }
-export function buildErrorMessage(code: string): string {
-  return ({
+export function buildErrorMessage(code: string, details?: string | null): string {
+  const message = ({
     invalid_build_model: 'Choose an available Build model and try again.',
     invalid_build_effort: 'Choose a supported effort for this model and try again.',
     subscription_required: 'Add prepaid balance to build and run apps.',
+    insufficient_balance: 'Your prepaid balance is too low to continue. Add balance and try again.',
+    spend_limit_exceeded: 'Your spending limit has been reached. Increase the limit to continue building.',
     build_billing_unavailable: 'Could not check your prepaid balance. Try again shortly.',
     build_billing_reconciliation_required: 'An AI request needs billing reconciliation. Your source is saved; contact support.',
     build_model_unpriced: 'Build is unavailable right now. Please try again shortly.',
@@ -41,7 +43,10 @@ export function buildErrorMessage(code: string): string {
     container_not_running: 'The sandbox stopped. Your source is saved; start a new preview or ask for a change.',
     build_budget_exceeded: 'The build reached its limit. Your edits are saved; try a smaller change or ask to fix the build.',
     model_response_incomplete: 'The model response was incomplete. Your source is saved; try again.',
-    build_check_failed: 'The app did not pass its build check. Ask Build to fix the errors shown in Logs.',
+    invalid_model_response: 'The model returned an invalid response. Your source is saved; try again.',
+    build_inference_timeout: 'The model took too long to respond. Your source is saved; try again.',
+    build_inference_disconnected: 'The connection to the model was lost. Your source is saved; try again.',
+    build_check_failed: 'The app did not pass its build check. Ask Build to fix the build errors.',
     build_interrupted: 'The build was interrupted. Your source is saved; try again.',
     preview_start_failed: 'The app built, but its preview could not start. Try again.',
     invalid_request: 'Check your app name or prompt and try again.',
@@ -50,7 +55,16 @@ export function buildErrorMessage(code: string): string {
     build_runtime_unavailable: 'The sandbox could not start. Check your balance and try again.',
     build_failed: 'The build could not finish. Your source is saved; try again.',
     network: 'Could not reach Build. Check your connection and try again.',
-  } as Record<string, string>)[code] || 'Could not complete that action. Please try again.';
+  } as Record<string, string>)[code] || (code.trim() ? `Build error: ${code}` : 'Could not complete that action. Please try again.');
+  const output = details?.trim();
+  return output && output !== code && output !== message ? `${message}\n\n${output}` : message;
+}
+
+function buildResponseError(result: unknown): BuildAPIError {
+  const data = result && typeof result === 'object' ? result as Record<string, unknown> : {};
+  const code = typeof data.error === 'string' && data.error.trim() ? data.error : 'build_unavailable';
+  const details = [data.message, data.details].filter((value): value is string => typeof value === 'string' && Boolean(value.trim()));
+  return new BuildAPIError(code, [...new Set(details)].filter(value => value !== code).join('\n\n'));
 }
 export function safeBuildPreviewURL(value: string): string | null {
   try {
@@ -75,7 +89,7 @@ export function createBuildClient(onUnauthenticated: () => void, signal?: AbortS
     }
     const result = await response.json().catch(() => null);
     if (response.status === 401) onUnauthenticated();
-    if (!response.ok) throw new BuildAPIError(result?.error || 'build_unavailable');
+    if (!response.ok) throw buildResponseError(result);
     if (!result || typeof result !== 'object') throw new BuildAPIError('build_unavailable');
     return result as T;
   }
@@ -117,7 +131,7 @@ export function createBuildClient(onUnauthenticated: () => void, signal?: AbortS
       if (response.status === 401) onUnauthenticated();
       if (!response.ok) {
         const result = await response.json().catch(() => null);
-        throw new BuildAPIError(result?.error || 'build_unavailable');
+        throw buildResponseError(result);
       }
       return response.blob();
     },
