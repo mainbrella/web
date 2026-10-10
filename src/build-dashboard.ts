@@ -14,6 +14,18 @@ export function selectBuildModelOptions(models: BuildModel[], defaultModel: stri
   return { model: model.id, effort: previous && model.efforts.includes(options.effort ?? '') ? options.effort : model.defaultEffort };
 }
 
+export function buildProgressText(turn: BuildTurn | undefined): string {
+  if (!turn) return 'Connecting to Build…';
+  const tools = (turn.activity ?? []).filter(item => item.type === 'tool');
+  const current = tools.find(item => item.status === 'running') ?? tools.slice().reverse().find(item => item.status === 'proposed');
+  if (current) {
+    if (current.status === 'proposed') return current.text.startsWith('Drafting ') ? current.text
+      : `Preparing to ${current.text.charAt(0).toLowerCase()}${current.text.slice(1)}…`;
+    return current.text.replace(/^Write /, 'Saving ').replace(/^Read /, 'Reading ').replace(/^Generate /, 'Generating ');
+  }
+  return turn.stage === 'Editing and checking' ? 'Working on your app…' : turn.stage || 'Starting build…';
+}
+
 export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated: () => void }) {
   const host = document.querySelector<HTMLElement>('#dashboard-build')!;
   const node = <T extends HTMLElement>(selector: string) => (host.querySelector<T>(selector) ?? document.querySelector<T>(selector))!;
@@ -68,6 +80,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   let pendingSubmission: { signature: string; key: string } | null = null;
   let stopWatching: (() => void) | null = null;
   let watchedAppId: string | null = null;
+  let reconnecting = false;
   let optimistic: { text: string; newApp: boolean } | null = null;
   let clarification: Clarification | null = null;
   let previewPreference: boolean | null = null;
@@ -451,6 +464,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     let details = row.querySelector<HTMLDetailsElement>('details');
     if (!details) {
       details = document.createElement('details'); details.className = 'build-activity';
+      details.open = turn.status === 'running' || turn.status === 'queued';
       const summary = document.createElement('summary');
       for (const className of ['build-activity-state', 'build-activity-title', 'build-activity-count']) {
         const span = document.createElement('span'); span.className = className; summary.append(span);
@@ -463,7 +477,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     const state = details.querySelector<HTMLElement>('.build-activity-state')!;
     state.textContent = running ? '⋯' : turn.status === 'failed' ? '!' : '✓';
     state.setAttribute('aria-label', running ? 'In progress' : turn.status === 'failed' ? 'Failed' : 'Completed');
-    details.querySelector<HTMLElement>('.build-activity-title')!.textContent = running ? turn.stage || 'Starting build…'
+    details.querySelector<HTMLElement>('.build-activity-title')!.textContent = running ? buildProgressText(turn)
       : turn.status === 'failed' ? 'Build needs attention' : turn.mode === 'preview' ? 'Preview ready' : 'Built app';
     const tools = (turn.activity ?? []).filter(item => item.type === 'tool');
     details.querySelector<HTMLElement>('.build-activity-count')!.textContent = tools.length ? `${tools.length} ${tools.length === 1 ? 'step' : 'steps'}` : '';
@@ -493,10 +507,10 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
         }
         const entry = document.createElement('li'), icon = document.createElement('span'), text = document.createElement('p');
         entry.className = `build-tool build-tool-${state}`;
-        const statusLabel = { running: 'In progress', proposed: 'Proposed', skipped: 'Not run', blocked: 'Blocked', unknown: 'Outcome unknown', failed: 'Failed', succeeded: 'Completed' }[state];
+        const statusLabel = { running: 'In progress', proposed: 'Preparing', skipped: 'Not run', blocked: 'Blocked', unknown: 'Outcome unknown', failed: 'Failed', succeeded: 'Completed' }[state];
         icon.textContent = state === 'succeeded' ? '✓' : state === 'failed' ? '!' : state === 'running' || state === 'proposed' ? '⋯' : '–';
         icon.setAttribute('aria-label', statusLabel);
-        text.textContent = `${item.text}${['skipped','blocked','unknown','proposed'].includes(state) ? ` · ${statusLabel}` : ''}${item.explanation && !['skipped','proposed'].includes(state) ? ` — ${item.explanation}` : ''}`;
+        text.textContent = `${item.text}${['skipped','blocked','unknown','proposed'].includes(state) && (state !== 'proposed' || !item.text.startsWith('Drafting ')) ? ` · ${statusLabel}` : ''}${item.explanation && !['skipped','proposed'].includes(state) ? ` — ${item.explanation}` : ''}`;
         entry.append(icon, text); activity.append(entry);
       }
       if (tools.length) body.append(activity);
@@ -560,15 +574,15 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     }
     for (const turn of app.turns ?? []) {
       message(`user-${turn.id}`, 'You', turn.mode === 'preview' ? 'Restart the preview from saved source.' : readBuildBriefPrompt(turn.prompt).prompt, 'build-message-user');
+      const imageIds = new Set<string>();
       for (const item of turn.activity ?? []) {
         if (item.type === 'message') message(`${turn.id}-${item.id}`, 'Build', item.text, item.status === 'running' && app.activeTurnId === turn.id ? 'build-message-streaming' : '');
-      }
-      const imageTools = (turn.activity ?? []).filter(item => item.type === 'tool' && item.text.startsWith('Generate '));
-      const imageIds = new Set(imageTools.map(item => item.id));
-      for (const tool of imageTools) {
-        const key = `image-${turn.id}-${tool.id}`, image = turn.images?.find(image => image.toolId === tool.id);
-        const row = imageRow(app.id, image, { ...tool, status: tool.status === 'running' && turn.status === 'failed' ? 'unknown' : tool.status }, existing.get(key));
-        row.dataset.messageKey = key; rows.push(row);
+        if (item.type === 'tool' && item.text.startsWith('Generate ')) {
+          imageIds.add(item.id);
+          const key = `image-${turn.id}-${item.id}`, image = turn.images?.find(image => image.toolId === item.id);
+          const row = imageRow(app.id, image, { ...item, status: item.status === 'running' && turn.status === 'failed' ? 'unknown' : item.status }, existing.get(key));
+          row.dataset.messageKey = key; rows.push(row);
+        }
       }
       for (const image of turn.images ?? []) {
         if (imageIds.has(image.toolId)) continue;
@@ -633,8 +647,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     const turn = app.turns?.at(-1);
     status.textContent = app.activeTurnId ? 'You can write your next change' : turn?.status === 'failed' ? 'Ask Build to try again' : 'Changes saved';
     progress.hidden = !app.activeTurnId;
-    progress.classList.add('visually-hidden');
-    progress.textContent = app.activeTurnId ? turn?.stage || 'Connecting to Build…' : '';
+    renderProgress();
     messages.setAttribute('aria-busy', String(Boolean(app.activeTurnId)));
     workspace.classList.toggle('is-building', Boolean(app.activeTurnId));
     const inference = node<HTMLElement>('#build-current-model');
@@ -648,6 +661,12 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   function disconnectStream() {
     stopWatching?.(); stopWatching = null; watchedAppId = null;
   }
+  function renderProgress() {
+    const turn = selected?.turns?.find(turn => turn.id === selected?.activeTurnId);
+    const text = selected?.activeTurnId ? reconnecting
+      ? `Reconnecting to live progress… Last update: ${buildProgressText(turn)}` : buildProgressText(turn) : '';
+    if (progress.textContent !== text) progress.textContent = text;
+  }
   function watchApp() {
     if (disposed || document.hidden || !selected?.activeTurnId) { disconnectStream(); return; }
     if (watchedAppId === selected.id) return;
@@ -656,18 +675,20 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     watchedAppId = id;
     stopWatching = client.watch(id, app => {
       if (disposed || selected?.id !== id || busy) return;
+      reconnecting = false;
       const changed = selected.revision !== app.revision;
       clearError(); renderApp(app);
       if (changed && tabs[1].getAttribute('aria-selected') === 'true') void loadSource();
       schedule();
     }, () => {
       if (disposed || selected?.id !== id) return;
-      disconnectStream(); schedule();
+      reconnecting = true; renderProgress(); disconnectStream(); schedule();
     });
   }
 
   function renderPending(text: string) {
     optimistic = { text, newApp: !selected };
+    reconnecting = false;
     disconnectStream();
     questions.hidden = true; workspace.classList.remove('is-clarifying');
     if (!selected) {
@@ -686,7 +707,6 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     messages.append(messageRow(readBuildBriefPrompt(text).prompt));
     conversationScroll.scrollTop = conversationScroll.scrollHeight;
     progress.hidden = false; progress.textContent = 'Sending your request…';
-    progress.classList.remove('visually-hidden');
     status.textContent = '';
     messages.setAttribute('aria-busy', 'true'); workspace.classList.add('is-building');
     setTab(tabs[0]);
@@ -786,6 +806,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     if (busy || disposed) return;
     if (update.value.trim() && !window.confirm('Leave this app without sending your changes?')) return;
     await mutate(() => client.read(id), ({ app }) => {
+      reconnecting = false;
       clearClarification(); previewPreference = null; mobileView = 'conversation';
       update.value = ''; source = null; sourceVersion++; conversationKey = '';
       const lastBuild = app.turns?.slice().reverse().find(turn => turn.mode === 'build');
@@ -972,6 +993,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     disposed = true; version++; sourceVersion++; controller.abort(); clearTimeout(timer);
     disconnectStream(); optimistic = null;
     diagnostics.clear();
+    reconnecting = false;
     apps = []; selected = null; source = null; config = null; modelOptions = {}; renderModelOptions(); pendingSubmission = null; clarification = null;
     prompt.value = ''; update.value = ''; name.value = ''; messages.replaceChildren(); list.replaceChildren();
     node<HTMLElement>('#build-local-list').replaceChildren(); code.textContent = ''; node<HTMLElement>('#build-logs').textContent = '';

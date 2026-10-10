@@ -127,7 +127,7 @@
 .build-image-message img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; background: var(--surface); }
 .build-image-pending { aspect-ratio: 3 / 2; border-radius: 8px; background: var(--surface); animation: build-pulse 1.4s ease-in-out infinite; }
 .build-image-message figcaption, .build-image-feedback { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; }
-.build-progress { display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-height: 36px; padding: 0 0 8px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.build-progress { display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-height: 32px; margin: 0; padding: 0 0 8px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .build-progress::before { flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: var(--blue); content: ''; animation: build-pulse 1.4s ease-in-out infinite; }
 @keyframes build-pulse { 50% { opacity: .35; } }
 @keyframes build-enter { from { opacity: 0; } to { opacity: 1; } }
@@ -139,10 +139,10 @@
 .build-activity > summary::after { position: absolute; right: 14px; width: 7px; height: 7px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); content: ''; transform: rotate(45deg) translateY(-2px); transition: transform 160ms ease; }
 .build-activity[open] > summary::after { transform: rotate(225deg) translate(-2px, -1px); }
 .build-activity > summary > span:first-child { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 20px; flex-shrink: 0; border-radius: 0; background: transparent; color: var(--muted); font-size: 14px; font-weight: 600; line-height: 1; }
-.build-activity[data-state="running"] > summary > span:first-child { color: var(--blue); }
+.build-activity[data-state="running"] > summary > span:first-child { color: var(--blue); animation: build-pulse 1.4s ease-in-out infinite; }
 .build-activity[data-state="succeeded"] > summary > span:first-child { color: #9ed6a8; }
 .build-activity[data-state="failed"] > summary > span:first-child { color: #ffb4ab; }
-.build-activity > summary > span:nth-child(2) { min-width: 0; overflow: hidden; color: var(--ink); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.build-activity > summary > span:nth-child(2) { min-width: 0; overflow-wrap: anywhere; color: var(--ink); font-size: 13px; }
 .build-activity > summary > span:last-child { flex-shrink: 0; margin-left: auto; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .build-activity[open] > summary { border-bottom: 1px solid var(--line); }
 .build-activity-body { padding: 10px 12px 12px; }
@@ -317,7 +317,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .build-composer, .build-question-option, .build-style-option, .build-activity > summary::after { transition: none; }
-  .build-progress::before, .build-message-streaming p::after, .build-image-pending, .build-questions:not([hidden]), .build-preview { animation: none; }
+  .build-progress::before, .build-activity[data-state="running"] > summary > span:first-child, .build-message-streaming p::after, .build-image-pending, .build-questions:not([hidden]), .build-preview { animation: none; }
 }
 
 .build-model-options { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; }
