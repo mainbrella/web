@@ -408,7 +408,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     rows.forEach((row, index) => { if (messages.children[index] !== row) messages.insertBefore(row, messages.children[index] ?? null); });
     if (nearBottom) conversationScroll.scrollTop = conversationScroll.scrollHeight;
     node<HTMLElement>('#build-logs').textContent = (app.turns ?? []).map(turn =>
-      `${turn.mode === 'preview' ? 'Preview' : 'Build'} · ${turn.stage}${turn.activity?.length ? `\n${turn.activity.map(item => item.text).join('\n')}` : ''}${turn.error ? `\n${buildErrorMessage(turn.error)}` : ''}${turn.log ? `\n${turn.log}` : ''}`
+      `${turn.mode === 'preview' ? 'Preview' : 'Build'} · ${turn.stage}${turn.aiCostCents ? ` · AI $${(turn.aiCostCents / 100).toFixed(6)}` : ''}${turn.activity?.length ? `\n${turn.activity.map(item => item.text).join('\n')}` : ''}${turn.error ? `\n${buildErrorMessage(turn.error)}` : ''}${turn.log ? `\n${turn.log}` : ''}`
     ).join('\n\n') || 'No build output yet.';
   }
 
@@ -756,7 +756,8 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     if (listing.status === 'fulfilled') { apps = listing.value.apps; loaded = true; renderList(); }
     node<HTMLElement>('#build-availability').textContent = configuration.status === 'rejected' ? 'Could not check Build availability.'
       : !config?.available ? 'Build is unavailable right now. Your saved apps and source remain accessible.'
-        : 'AI included during beta · Preview runtime uses your prepaid balance.';
+        : config?.aiBilling === 'included' ? 'Local text inference included · Images and preview runtime use your prepaid balance.'
+          : `AI at Cloudflare cost + ${config?.aiMarkupPercent ?? 50}% · AI and preview runtime use your prepaid balance.`;
     const failure = results.find(result => result.status === 'rejected');
     if (failure?.status === 'rejected') reportError(failure.reason, () => load(id));
     loadLocalBriefs(id);

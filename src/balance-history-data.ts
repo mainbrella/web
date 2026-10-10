@@ -26,7 +26,7 @@ export interface BalanceFunding {
 export interface BalanceHistory {
   asOf: number;
   balance: PrepaidBalance;
-  totals: { fundedCents: number; revokedCents: number; usedCents: number; unattributedUsedCents: number };
+  totals: { fundedCents: number; revokedCents: number; usedCents: number; unattributedUsedCents: number; inferenceUsedCents?: number };
   currentHourlyCents: number;
   activeResources: BalanceResource[];
   resources: BalanceResource[];
@@ -51,6 +51,7 @@ export function readBalanceHistory(value: unknown): BalanceHistory {
   if (!timestamp(data.asOf) || !data.totals || !Object.values(data.totals).every(nonnegative)
     || !cents(data.totals.fundedCents) || !cents(data.totals.revokedCents)
     || !nonnegative(data.totals.usedCents) || !nonnegative(data.totals.unattributedUsedCents)
+    || data.totals.inferenceUsedCents !== undefined && (!nonnegative(data.totals.inferenceUsedCents) || data.totals.inferenceUsedCents + data.totals.unattributedUsedCents > data.totals.usedCents + 1e-7)
     || data.totals.revokedCents > data.totals.fundedCents
     || data.totals.unattributedUsedCents > data.totals.usedCents + 1e-7
     || !nonnegative(data.currentHourlyCents) || typeof data.historyTruncated !== 'boolean'

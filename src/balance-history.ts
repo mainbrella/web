@@ -122,6 +122,9 @@ function renderSummary(data: BalanceHistory) {
   setText('history-activity', activeCount > 0
     ? `${activeCount} allocated ${activeCount === 1 ? 'resource is' : 'resources are'} consuming ${formatBalance(data.currentHourlyCents)}/hour.`
     : 'No resources are currently consuming balance.');
+  if (data.totals.inferenceUsedCents) {
+    document.querySelector<HTMLElement>('#history-activity')!.append(` Build AI has consumed ${formatRuntimeCost(data.totals.inferenceUsedCents)}.`);
+  }
 
   const unattributed = document.querySelector<HTMLElement>('#history-unattributed')!;
   const hasUnattributed = data.totals.unattributedUsedCents > 0;

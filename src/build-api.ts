@@ -6,6 +6,7 @@ export type BuildTurn = {
   id: string; prompt: string; mode: 'build' | 'preview'; status: 'queued' | 'running' | 'succeeded' | 'failed';
   stage: string; summary: string | null; error: string | null; log: string; model: string;
   inputTokens: number; outputTokens: number; createdAt: string; finishedAt: string | null;
+  aiCostCents?: number;
   activity?: BuildActivity[];
   images?: BuildImage[];
 };
@@ -15,7 +16,7 @@ export type BuildApp = {
   preview: { id: string; url: string; expiresAt: number } | null;
   createdAt: string; updatedAt: string; turns?: BuildTurn[];
 };
-export type BuildConfig = { available: boolean; model: string; maxApps: number; dailyTurns: number; aiBilling: 'included'; computeUnitHourlyCents: number; size: 'small' };
+export type BuildConfig = { available: boolean; model: string; maxApps: number; dailyTurns: number; aiBilling: 'included' | 'prepaid'; aiMarkupPercent: number; computeUnitHourlyCents: number; size: 'small' };
 export type BuildSource = { revision: number; files: Record<string, string> };
 export class BuildAPIError extends Error {
   constructor(public code: string) { super(buildErrorMessage(code)); }
@@ -23,6 +24,9 @@ export class BuildAPIError extends Error {
 export function buildErrorMessage(code: string): string {
   return ({
     subscription_required: 'Add prepaid balance to build and run apps.',
+    build_billing_unavailable: 'Could not check your prepaid balance. Try again shortly.',
+    build_billing_reconciliation_required: 'An AI request needs billing reconciliation. Your source is saved; contact support.',
+    build_model_unpriced: 'Build is unavailable right now. Please try again shortly.',
     build_unavailable: 'Build is unavailable right now. Please try again shortly.',
     build_busy: 'Another build is running in your account. Wait for it to finish.',
     revision_conflict: 'This app changed in another tab. Reload the app before trying again.',
