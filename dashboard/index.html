@@ -62,10 +62,12 @@
             <div class="build-workspace-heading">
               <button id="build-back" type="button" class="build-back" aria-label="Back to apps"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg></button>
               <input id="build-draft-name" type="text" maxlength="80" aria-label="App name" autocomplete="off" />
-              <button id="build-resume" type="button" class="dashboard-retry" hidden>Resume build</button>
-              <button id="build-start-preview" type="button" class="dashboard-retry" hidden>Start preview</button>
-              <button id="build-stop" type="button" class="dashboard-retry" hidden>Stop sandbox</button>
-              <button id="build-export" type="button" class="dashboard-retry">Download source</button>
+              <div class="build-workspace-actions">
+                <button id="build-resume" type="button" class="dashboard-retry" hidden>Resume build</button>
+                <button id="build-start-preview" type="button" class="dashboard-retry" hidden>Start preview</button>
+                <button id="build-stop" type="button" class="dashboard-retry" hidden>Stop sandbox</button>
+                <button id="build-export" type="button" class="dashboard-retry">Download source</button>
+              </div>
             </div>
             <div class="build-workspace-panels">
               <section class="build-conversation" aria-labelledby="build-conversation-title">
@@ -87,12 +89,14 @@
                 </div>
                 <div class="build-preview-toolbar"><span id="build-preview-status" role="status"></span><a id="build-open-preview" class="text-link" target="_blank" rel="noopener noreferrer" hidden>Open preview ↗</a></div>
                 <div id="build-preview-panel" class="build-preview-panel" role="tabpanel" aria-labelledby="build-preview-tab" tabindex="0">
-                  <div class="build-preview-empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18m-14-2h.01M10 7h.01" /></svg><h3>Your app preview will appear here</h3><p id="build-preview-description">Build is getting started.</p></div>
+                  <div id="build-preview-empty" class="build-preview-empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18m-14-2h.01M10 7h.01" /></svg><h3>Your app preview will appear here</h3><p id="build-preview-description">Build is getting started.</p></div>
+                  <iframe id="build-preview-frame" title="Generated app preview" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads" referrerpolicy="no-referrer" hidden></iframe>
                 </div>
                 <div id="build-code-panel" class="build-code-panel" role="tabpanel" aria-labelledby="build-code-tab" tabindex="0" hidden><label for="build-file">Source file</label><select id="build-file"></select><pre id="build-code"></pre></div>
                 <div id="build-logs-panel" class="build-code-panel" role="tabpanel" aria-labelledby="build-logs-tab" tabindex="0" hidden><pre id="build-logs">No build output yet.</pre></div>
               </section>
             </div>
+            <p class="build-runtime-note">Previews are temporary and may stop earlier when the sandbox is idle or its funding runs out. Stopping the sandbox keeps your source saved.</p>
           </section>
         </section>
         <dl id="container-usage" class="container-usage" aria-label="Account usage" hidden>

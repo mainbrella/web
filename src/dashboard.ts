@@ -25,7 +25,7 @@ const view = dashboardView(location.search);
 document.querySelector<HTMLElement>('#dashboard-title')!.textContent = view === 'overview' ? 'Overview' : view === 'build' ? 'Build' : view === 'production' ? 'Production' : 'Ad Hoc';
 document.querySelector<HTMLElement>('#dashboard-overview')!.hidden = view !== 'overview';
 document.querySelector<HTMLElement>('#dashboard-build')!.hidden = view !== 'build';
-const build = view === 'build' ? createBuildDashboard() : null;
+const build = view === 'build' ? createBuildDashboard({ onUnauthenticated: goToLogin }) : null;
 for (const link of document.querySelectorAll<HTMLAnchorElement>('.app-navigation a')) {
   if (new URL(link.href).pathname !== '/dashboard/') continue;
   if (dashboardView(new URL(link.href).search) === view) link.setAttribute('aria-current', 'page');

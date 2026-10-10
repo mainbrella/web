@@ -48,13 +48,22 @@ links to the dashboard. The authenticated dashboard reads `/billing/balance` and
 shows prepaid funding alongside workloads. Failed status requests
 show an error with retry rather than reporting a zero balance.
 
-The **Build** tab at `/dashboard/?view=build` provides a prompt composer and a
-split brief/preview workspace. This first release supports creating, renaming,
-refining, deleting, and exporting app briefs. Drafts are saved in browser storage
-under the signed-in account, with a limit of 50 drafts and 100 brief entries per
-draft; they do not sync between devices. AI generation and live app previews are
-not connected yet, and the interface labels that availability explicitly. Build
-does not start containers or charge for AI or compute.
+The **Build** tab at `/dashboard/?view=build` connects to the session-authenticated
+`/build` API. Describe a frontend app, follow its durable build in the conversation
+and Logs, then use the live preview or browse its source in Code. Apps, source,
+conversations, and successful revisions are saved to the account independently of
+the sandbox. The UI supports iterative changes, renaming, queued-build resumption,
+restarting previews, stopping sandboxes, deletion, and ZIP source export. An app
+URL includes `app=<id>` so reloading restores the workspace and progress. Submission
+keys survive retries and same-tab reloads to avoid duplicate builds after a lost
+response. Previous browser-only briefs remain available as prompt inputs.
+
+Availability comes from `/build/config`; saved apps remain accessible when building
+is disabled. The current backend allows 50 apps, 100 turns per app, 10 turns per UTC
+day, and one active build per account. AI is included during beta; Small Ad Hoc
+sandboxes use prepaid compute billing. Preview links last at most 30 minutes and
+can stop earlier with the sandbox's idle or funding deadline. This release does
+not publish permanent deployments or provision app databases or authentication.
 
 Container listing, creation, and stopping use the session-authenticated
 `GET`, `POST`, and `DELETE /containers` backend API. Prepaid accounts allow 100 containers within 128 concurrent units, 10,000 starts per UTC month, 24-hour sessions and a 30-minute idle timeout. The $5 default monthly cap limits consumption independently of purchased balance. Legacy subscriptions

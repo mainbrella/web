@@ -32,6 +32,10 @@ export function buildErrorMessage(code: string): string {
     build_check_failed: 'The app did not pass its build check. Ask Build to fix the errors shown in Logs.',
     build_interrupted: 'The build was interrupted. Your source is saved; try again.',
     preview_start_failed: 'The app built, but its preview could not start. Try again.',
+    invalid_request: 'Check your app name or prompt and try again.',
+    source_limit: 'This app has reached the source size limit. Try a smaller change.',
+    build_command_timeout: 'A build command took too long. Your source is saved; try again.',
+    build_runtime_unavailable: 'The sandbox could not start. Check your balance and try again.',
     build_failed: 'The build could not finish. Your source is saved; try again.',
     network: 'Could not reach Build. Check your connection and try again.',
   } as Record<string, string>)[code] || 'Could not complete that action. Please try again.';
@@ -40,9 +44,9 @@ export function safeBuildPreviewURL(value: string): string | null {
   try {
     const url = new URL(value);
     const host = url.hostname;
-    if (!/^[a-f0-9]{48}\./.test(host) || url.username || url.password) return null;
-    if (url.protocol === 'https:' && !url.port && host.endsWith('.mainbrella.dev')) return url.href;
-    if (url.protocol === 'http:' && host.endsWith('.localhost')) return url.href;
+    if (url.username || url.password) return null;
+    if (url.protocol === 'https:' && !url.port && /^[a-f0-9]{48}\.mainbrella\.dev$/.test(host)) return url.href;
+    if (url.protocol === 'http:' && /^[a-f0-9]{48}\.localhost$/.test(host)) return url.href;
   } catch { /* Invalid server URL. */ }
   return null;
 }
@@ -50,7 +54,7 @@ export function createBuildClient(onUnauthenticated: () => void, signal?: AbortS
   async function request<T>(path: string, method = 'GET', body?: unknown, key?: string): Promise<T> {
     let response: Response;
     try {
-      response = await fetch(`${API_ORIGIN}/build${path}`, { method, credentials: 'include', signal,
+      response = await fetch(`${API_ORIGIN}/build${path}`, { method, credentials: 'include', redirect: 'error', signal,
         headers: { Accept: 'application/json', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(key ? { 'Idempotency-Key': key } : {}) },
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
     } catch (error) {
@@ -78,10 +82,13 @@ export function createBuildClient(onUnauthenticated: () => void, signal?: AbortS
     source: (id: string) => request<BuildSource>(`${appPath(id)}/source`),
     async export(id: string): Promise<Blob> {
       let response: Response;
-      try { response = await fetch(`${API_ORIGIN}/build${appPath(id)}/export`, { credentials: 'include', signal }); }
-      catch { throw new BuildAPIError('network'); }
+      try { response = await fetch(`${API_ORIGIN}/build${appPath(id)}/export`, { credentials: 'include', redirect: 'error', signal }); }
+      catch (error) { if (signal?.aborted) throw error; throw new BuildAPIError('network'); }
       if (response.status === 401) onUnauthenticated();
-      if (!response.ok) throw new BuildAPIError('build_unavailable');
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new BuildAPIError(result?.error || 'build_unavailable');
+      }
       return response.blob();
     },
   };
