@@ -16,7 +16,7 @@ if (nav) {
     </button>
     <div class="account-panel" id="account-panel" hidden>
       <p class="account-identity"></p>
-      <a class="account-balance" href="/pricing/"><span>Current balance</span><span class="account-balance-value">Loading…</span></a>
+      <a class="account-balance" href="/balance/"><span>Current balance</span><span class="account-balance-value">Loading…</span></a>
       <a href="/dashboard/">Dashboard</a>
       <a href="/run/">Run repository</a>
       <a href="/profile/">Profile</a>

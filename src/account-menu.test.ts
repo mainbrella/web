@@ -72,7 +72,7 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
 test('account menu reads and shows linked current balance only after it opens', async t => {
   const f = await fixture(t);
   assert.equal(f.calls.length, 0);
-  assert.match(f.account.innerHTML, /class="account-balance" href="\/pricing\/"/);
+  assert.match(f.account.innerHTML, /class="account-balance" href="\/balance\/"/);
   await f.node('.account-toggle').click(); await tick();
   assert.equal(f.calls.length, 1);
   assert.equal(f.node('.account-balance-value').textContent, '$12.34');

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0d1014" />
+    <meta name="description" content="Review your Mainbrella balance and usage history." />
+    <meta name="robots" content="noindex" />
+    <link rel="canonical" href="https://mainbrella.com/balance/" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <link rel="stylesheet" href="/app.css" />
+    <link rel="stylesheet" href="/balance.css" />
+    <title>Balance history · Mainbrella</title>
+  </head>
+  <body class="info-body sandbox-home app-body dashboard-body balance-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- app-header -->
+    <main id="main" class="dashboard-main balance-main" aria-busy="true">
+      <div class="balance-heading">
+        <h1>Balance history</h1>
+        <div class="balance-heading-actions">
+          <button id="history-refresh" class="dashboard-retry" type="button" disabled>Refresh</button>
+          <a class="text-link" href="/pricing/">Add balance / billing settings</a>
+        </div>
+      </div>
+
+      <p id="history-status" class="dashboard-status" role="status">Checking session…</p>
+      <p id="history-error" class="dashboard-error" role="alert" hidden></p>
+      <button id="history-retry" class="dashboard-retry" type="button" hidden>Retry</button>
+
+      <div id="history-content" hidden>
+        <dl id="balance-summary" class="container-usage balance-summary" aria-label="Balance summary">
+          <div><dt>Current balance</dt><dd id="history-balance">—</dd></div>
+          <div><dt>Available</dt><dd id="history-available">—</dd></div>
+          <div><dt>Reserved for runtime</dt><dd id="history-reserved">—</dd></div>
+        </dl>
+        <p class="balance-reservation-note">Reserved funds cover future runtime. Only elapsed runtime reduces your balance; unused reservations are released after a confirmed stop.</p>
+
+        <section class="history-section" aria-labelledby="history-breakdown-label">
+          <h2 id="history-breakdown-label">Balance breakdown</h2>
+          <dl class="history-breakdown">
+            <div><dt>Balance added</dt><dd id="history-funded" class="history-number">—</dd></div>
+            <div><dt>Refunds and disputes</dt><dd id="history-revoked" class="history-number">—</dd></div>
+            <div><dt>Compute consumed</dt><dd id="history-used" class="history-number">—</dd></div>
+            <div><dt>Current balance</dt><dd id="history-reconciled" class="history-number">—</dd></div>
+          </dl>
+          <p id="history-rounding" class="history-note">Runtime costs are shown to four decimal places. Your balance is rounded down to the nearest cent.</p>
+          <p id="history-as-of" class="dashboard-status history-as-of"></p>
+          <p id="history-activity" class="dashboard-status history-activity"></p>
+        </section>
+
+        <section class="history-section" aria-labelledby="history-resources-label">
+          <h2 id="history-resources-label">Resource consumption</h2>
+          <p class="history-note">Allocated runtime includes provisioning and idle time.</p>
+          <p id="history-resources-empty" class="dashboard-status" hidden>You have no recorded resource usage.</p>
+          <div class="history-table-scroll" tabindex="0" role="region" aria-label="Resource consumption table">
+            <table id="history-resources-table" class="history-table history-resource-table">
+              <caption class="visually-hidden">Resource consumption and reserved runtime</caption>
+              <thead>
+                <tr><th scope="col">Resource</th><th scope="col">Recorded period</th><th scope="col" class="history-number">Runtime</th><th scope="col" class="history-number">Rate</th><th scope="col" class="history-number">Consumed</th><th scope="col" class="history-number">Reserved</th></tr>
+              </thead>
+              <tbody id="history-resources"></tbody>
+            </table>
+          </div>
+          <p id="history-resources-status" class="dashboard-status" role="status"></p>
+          <button id="history-resources-more" class="dashboard-retry" type="button" disabled hidden>Load more resources</button>
+          <p id="history-unattributed" class="history-note" hidden></p>
+        </section>
+
+        <section class="history-section" aria-labelledby="history-fundings-label">
+          <h2 id="history-fundings-label">Balance additions</h2>
+          <p id="history-fundings-empty" class="dashboard-status" hidden>You have no balance additions yet.</p>
+          <div class="history-table-scroll" tabindex="0" role="region" aria-label="Balance additions table">
+            <table id="history-fundings-table" class="history-table history-fundings-table">
+              <caption class="visually-hidden">Balance additions, removals, and reasons</caption>
+              <thead>
+                <tr><th scope="col">Date</th><th scope="col" class="history-number">Credit added</th><th scope="col" class="history-number">Credit removed</th><th scope="col">Reason</th></tr>
+              </thead>
+              <tbody id="history-fundings"></tbody>
+            </table>
+          </div>
+          <p id="history-fundings-status" class="dashboard-status" role="status"></p>
+          <button id="history-fundings-more" class="dashboard-retry" type="button" disabled hidden>Load more balance additions</button>
+          <p id="history-fundings-note" class="history-note" hidden></p>
+        </section>
+      </div>
+
+      <noscript><p>Enable JavaScript to view your balance history.</p></noscript>
+    </main>
+    <!-- cookie-consent -->
+    <script type="module" src="/src/balance-history.ts"></script>
+    <script type="module" src="/src/account-menu.ts"></script>
+  </body>
+</html>
