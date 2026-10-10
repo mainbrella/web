@@ -53,7 +53,6 @@ open dist/TabDance.app</code></pre>
               <img src="/images/blog/tabdance-good-enough-to-use/workspaces.png" width="1920" height="704" alt="TabDance’s workspace sidebar and tab bar beside a shell printing alpha, beta, and gamma." loading="lazy" decoding="async" />
             </picture>
           </a>
-          <figcaption>The AppKit views in a controlled demo: three workspaces, five live shells, and <code>cat demo.txt</code> in the selected tab. <a href="/images/blog/tabdance-good-enough-to-use/workspaces.png">View the full screenshot.</a></figcaption>
         </figure>
 
         <p>Each tab owns a live session, identified by a UUID. Switching tabs changes which terminal view is visible and has keyboard focus; the <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/Tests/TerminalLabTests/WindowTests.swift">other shells keep running</a>. Dragging a tab changes its position without changing its session. Each workspace remembers its selected tab, so switching back returns there.</p>
@@ -69,7 +68,6 @@ open dist/TabDance.app</code></pre>
             <source media="(max-width: 600px)" srcset="/images/blog/tabdance-good-enough-to-use/clear-wrapped-line-mobile.svg" width="390" height="686" />
             <img src="/images/blog/tabdance-good-enough-to-use/clear-wrapped-line.svg" width="880" height="410" alt="Schematic of a wrapped command before and after Command-K. Old output and scrollback disappear; both rows of the logical command move together to the top, with the cursor in the same column on its continuation row." loading="lazy" decoding="async" />
           </picture>
-          <figcaption>A schematic of a 20-column terminal. Command-K moves both rows of the wrapped command together; the cursor stays at the same place within the command.</figcaption>
         </figure>
 
         <p>The <a href="https://github.com/andrewarrow/TabDance/blob/1ac4e614ddadad91b752cbe5e0b65c0e624a86f2/Sources/TerminalCore/TabDanceTerminalView.swift">clear operation</a> walks backward and forward from the cursor’s row using the buffer’s wrapping flags. That identifies the whole logical line, including a continuation below the cursor. It moves those rows to the top, erases the rows beneath them, removes scrollback, and restores the cursor relative to the retained line.</p>
