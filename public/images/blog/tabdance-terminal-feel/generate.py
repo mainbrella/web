@@ -111,7 +111,7 @@ def snapshot_desktop():
     # Stored snapshot is independent from live cells, then copied.
     p.append(line(83,184,83,220,BLUE,1.5,marker='blue-arrow'))
     p.append(rect(30,232,390,72,BLUE_PALE,BLUE,1.2,3))
-    p.append(t(46,258,'Selection snapshot',14,BLUE,600))
+    p.append(t(46,258,'Saved when selected',14,BLUE,600))
     p.append(t(46,286,'hello',22,BLUE,500,MONO))
     p.append(line(432,267,557,267,BLUE,1.6,marker='blue-arrow'))
     p.append(rect(572,232,278,72,'#fffdf8','#9da9aa',1,3))
@@ -132,9 +132,11 @@ p=[t(22,35,'Cells change; selection stays',21,INK,600),
    line(134,294,134,320,MUTED,1.4,marker='arrow'),
    t(22,346,'3 · Live cells now blank',15,INK,600),
    cells(22,359,['']*5,False,True),
-   line(134,407,134,436,BLUE,1.5,marker='blue-arrow'),
+   line(253,126,337,126,BLUE,1.5),
+   line(337,126,337,438,BLUE,1.5),
+   line(337,438,337,447,BLUE,1.5,marker='blue-arrow'),
    rect(22,450,346,89,BLUE_PALE,BLUE,1.2,3),
-   t(38,476,'Selection snapshot',14,BLUE,600),
+   t(38,476,'Saved when selected',14,BLUE,600),
    t(38,514,'hello',22,BLUE,500,MONO),
    line(195,539,195,573,BLUE,1.5,marker='blue-arrow'),
    rect(22,586,346,66,'#fffdf8','#9da9aa',1,3),
@@ -147,14 +149,14 @@ def topology_desktop():
     p=[t(30,35,'Terminal input and output cross threads',23,INK,600),
        t(30,59,'Reconstructed from disassembly · schematic sequence',14,MUTED)]
     lane_x=[185,452,701]; lane_w=[220,210,156]
-    labels=['Main thread','I/O thread','PTY + shell']
+    labels=['Main thread','I/O thread','PTY + program']
     for x,w,label in zip(lane_x,lane_w,labels):
         p.append(t(x+w/2,94,label,16,INK,600,anchor='middle'))
         p.append(line(x+w/2,111,x+w/2,530,'#c4cbca',1,'4 5'))
     # Keyboard bytes are queued on main, then written by the I/O thread.
     p += [rect(185,119,220,52,GOLD_PALE,GOLD,1.2,3),t(295,141,'Encode key input',15,INK,500,anchor='middle'),t(295,161,'queue PTY write',13,MUTED,400,anchor='middle')]
     p.append(rect(452,194,210,52,GREEN_PALE,GREEN,1.2,3));p.append(t(557,216,'Write queued bytes',15,INK,500,anchor='middle'));p.append(t(557,236,'partial writes',13,MUTED,400,anchor='middle'))
-    p.append(rect(701,269,156,54,'#fffdf8','#66757a',1.2,3));p.append(t(779,292,'Shell',16,INK,600,anchor='middle'));p.append(t(779,313,'echo + output',13,MUTED,400,anchor='middle'))
+    p.append(rect(701,269,156,54,'#fffdf8','#66757a',1.2,3));p.append(t(779,292,'PTY + program',14,INK,600,anchor='middle'));p.append(t(779,313,'echo + output',13,MUTED,400,anchor='middle'))
     p.append(rect(452,344,210,52,GREEN_PALE,GREEN,1.2,3));p.append(t(557,366,'Read PTY output',15,INK,500,anchor='middle'));p.append(t(557,386,'background I/O',13,MUTED,400,anchor='middle'))
     p.append(rect(185,419,220,52,BLUE_PALE,BLUE,1.2,3));p.append(t(295,441,'Decode bytes',15,INK,500,anchor='middle'));p.append(t(295,461,'VT100 parser',13,MUTED,400,anchor='middle'))
     p.append(rect(185,494,220,52,BLUE_PALE,BLUE,1.2,3));p.append(t(295,516,'Mark rows dirty',15,INK,500,anchor='middle'));p.append(t(295,536,'draw updated rows',13,MUTED,400,anchor='middle'))
@@ -175,8 +177,8 @@ p=[t(22,34,'Terminal I/O crosses thread boundaries',18,INK,600),
    t(22,205,'I/O THREAD',13,GREEN,600),
    rect(22,216,346,54,GREEN_PALE,GREEN,1.2,3),t(36,239,'Write queued bytes',15,INK,500),t(36,259,'partial writes',13,MUTED),
    line(195,270,195,293,MUTED,1.4,marker='arrow'),
-   t(22,316,'PTY + SHELL',13,INK,600),
-   rect(22,327,346,50,'#fffdf8','#66757a',1.2,3),t(195,358,'Shell echoes output',15,INK,500,anchor='middle'),
+   t(22,316,'PTY + PROGRAM',13,INK,600),
+   rect(22,327,346,50,'#fffdf8','#66757a',1.2,3),t(195,358,'Echo and program output',15,INK,500,anchor='middle'),
    line(195,377,195,400,MUTED,1.4,marker='arrow'),
    t(22,423,'I/O THREAD',13,GREEN,600),
    rect(22,434,346,50,GREEN_PALE,GREEN,1.2,3),t(195,465,'Read PTY output',15,INK,500,anchor='middle'),

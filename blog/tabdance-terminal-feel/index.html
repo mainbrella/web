@@ -53,7 +53,7 @@
         <figure class="article-figure">
           <picture>
             <source media="(max-width: 600px)" srcset="/images/blog/tabdance-terminal-feel/clear-selection-mobile.svg" width="390" height="684" />
-            <img src="/images/blog/tabdance-terminal-feel/clear-selection.svg" width="880" height="420" alt="Schematic selection comparison. One buffer includes an old build log and error before cat file.txt. The desired buffer selects only alpha, beta, gamma and two surrounding rows on either side." loading="lazy" decoding="async" />
+            <img src="/images/blog/tabdance-terminal-feel/clear-selection.svg" width="880" height="415" alt="Schematic selection comparison. One buffer includes an old build log and error before cat file.txt. The desired buffer selects only alpha, beta, gamma and two surrounding rows on either side." loading="lazy" decoding="async" />
           </picture>
           <figcaption>The target behavior for TabDance. The three-line file and surrounding rows are a schematic fixture; this is not a measured comparison between released terminals. Prompt and wrapping settings can change the surrounding text.</figcaption>
         </figure>
@@ -81,7 +81,7 @@ dyld_info -arch arm64e -disassemble term.bin.exe.mac</code></pre>
         <figure class="article-figure">
           <picture>
             <source media="(max-width: 600px)" srcset="/images/blog/tabdance-terminal-feel/selection-snapshot-mobile.svg" width="390" height="675" />
-            <img src="/images/blog/tabdance-terminal-feel/selection-snapshot.svg" width="880" height="370" alt="Five selected cells spell hello. An erase-line sequence blanks the live cells, while a separate saved selection still contains hello and supplies that string to the clipboard." loading="lazy" decoding="async" />
+            <img src="/images/blog/tabdance-terminal-feel/selection-snapshot.svg" width="880" height="365" alt="Five selected cells spell hello. An erase-line sequence blanks the live cells, while a separate saved selection still contains hello and supplies that string to the clipboard." loading="lazy" decoding="async" />
           </picture>
           <figcaption>A schematic of the Rio fix. The copied string has a lifetime independent of the cells the application is redrawing.</figcaption>
         </figure>
@@ -107,7 +107,7 @@ dyld_info -arch arm64e -disassemble term.bin.exe.mac</code></pre>
         <p>A high frame rate or fast dump of a large file wouldn’t tell me the whole time from a key event to the character I see. Queued writes, shell processing, delivery to the main thread, and the next draw all sit on that route. I need a controlled comparison with the same shell, prompt, window size, font, and workload before claiming that TabDance is faster—or that a particular Apple design choice explains my preference.</p>
 
         <h2 id="first-build">Where TabDance is today</h2>
-        <p>The <a href="https://github.com/andrewarrow/TabDance/tree/045d83cdefd6dfbefcdcd416eaf16be355894290">first public snapshot</a> contains the inspection artifacts and a small native prototype. It uses Swift, AppKit, and <a href="https://github.com/migueldeicaza/SwiftTerm/tree/464df5207fc2432e16c9a23abe538187196daf5f">SwiftTerm 1.19.0</a> for terminal emulation and rendering. It launches a real login shell, supports selection and copy/paste, resizes the PTY, and opens multiple windows. The app bundle is still called <code>TerminalLab.app</code>.</p>
+        <p>The <a href="https://github.com/andrewarrow/TabDance/tree/045d83cdefd6dfbefcdcd416eaf16be355894290">October 10 snapshot</a> contains the inspection artifacts and a small native prototype. It uses Swift, AppKit, and <a href="https://github.com/migueldeicaza/SwiftTerm/tree/464df5207fc2432e16c9a23abe538187196daf5f">SwiftTerm 1.19.0</a> for terminal emulation and rendering. It launches a real login shell, supports selection and copy/paste, resizes the PTY, and opens multiple windows. The app bundle is still called <code>TerminalLab.app</code>.</p>
         <p>Two local tests passed: one exercises a real PTY’s input, output, resize, and child cleanup; the other checks parser behavior for cursor positioning, color, and the alternate screen. The <a href="https://github.com/andrewarrow/TabDance/blob/045d83cdefd6dfbefcdcd416eaf16be355894290/prototype/README.md">build instructions and scope</a> are in the repository. Those checks establish a working base. Tabs, workspaces, and matching the clear–print–select behavior are still ahead of this prototype.</p>
         <p>I’m starting the next comparison with a deliberately boring file:</p>
         <pre class="docs-code" tabindex="0" role="region" aria-label="Create a three-line file for comparing clear and selection behavior"><code>printf 'alpha\nbeta\ngamma\n' &gt; /tmp/tabdance-selection.txt
