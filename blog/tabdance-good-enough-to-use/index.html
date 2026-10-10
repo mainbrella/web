@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Building TabDance on free GitHub Actions runners, packaging a DMG, attaching it to a release, and getting Developer ID signing and notarization into the workflow." />
+    <meta name="description" content="Why we’re building TabDance, and how its signed macOS DMG gets from a free GitHub Actions runner to a release—through a keychain failure and a 403." />
     <meta name="theme-color" content="#181a1b" />
     <link rel="canonical" href="https://mainbrella.com/blog/tabdance-good-enough-to-use/" />
     <meta property="og:title" content="Getting a signed macOS DMG release working with free GitHub Actions · Mainbrella" />
-    <meta property="og:description" content="TabDance is good enough to use. Getting it onto another Mac means a build, a DMG, a release upload, and a signing identity that codesign can actually find." />
+    <meta property="og:description" content="The certificate imported successfully. codesign still couldn’t find it. Getting TabDance’s signed DMG from a free Mac runner onto GitHub Releases." />
     <meta property="og:url" content="https://mainbrella.com/blog/tabdance-good-enough-to-use/" />
     <meta property="og:type" content="article" />
     <meta property="og:image" content="https://mainbrella.com/images/blog/tabdance-good-enough-to-use/workspaces.png" />
@@ -29,13 +29,15 @@
         <h1>Getting a signed macOS DMG release working with free GitHub Actions</h1>
         <p class="article-meta"><time datetime="2026-10-10">October 10, 2026</time> · Andrew Arrow</p>
 
-        <p>TabDance is now good enough to use. Command-K keeps the command you’re editing, copying survives a terminal redraw, and each tab keeps its shell when you switch workspaces. The next job was making it something another person could download without installing Xcode.</p>
-        <p>The recent <a href="https://github.com/andrewarrow/TabDance/compare/3599034bcc0ff5505bbbe3442a2df2bcd0e7d201...47710798c42fdff54d3d07829dbedb3874558e57">release commits</a> add a macOS build on GitHub Actions, a drag-to-Applications DMG, a release upload, and Developer ID signing. The most revealing failure came after the certificate imported successfully: <code>codesign</code> still said <code>no identity found</code>. The fix adds the temporary signing keychain to macOS’s search list.</p>
-        <p>The standard macOS runners are <a href="https://docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories">free for public repositories</a> like TabDance. Apple’s signing identity comes through the Apple Developer Program, whose <a href="https://developer.apple.com/help/account/membership/program-enrollment/#payment">usual membership fee is $99 USD per year</a>. The free part here is the build machine.</p>
+        <p>I wanted people to try TabDance, the macOS terminal I’m building, without installing Xcode. The build ran on a free GitHub Actions Mac runner, and my Developer ID certificate imported successfully. Then the packaging step failed:</p>
+        <pre class="docs-code" tabindex="0" role="region" aria-label="The signing error from the first release attempt"><code>…: no identity found</code></pre>
+        <p>The build machines are <a href="https://docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories">free for public repositories</a> like <a href="https://github.com/andrewarrow/TabDance">TabDance</a>. The signing certificate requires Apple Developer Program membership, usually <a href="https://developer.apple.com/help/account/membership/program-enrollment/#payment">$99 USD a year</a>.</p>
 
-        <h2 id="app">The app worth packaging</h2>
-        <p>In <a href="/blog/tabdance-terminal-feel/">the first article</a>, my Command-K, <code>cat file.txt</code>, Command-A copying habit led from cmux and Rio to studying Apple Terminal’s executable. TabDance was a small AppKit prototype. It now has multiple windows, workspaces, live tabs, keyboard navigation, and file drops. I like how little ceremony there is: a workspace for a project, a few shells, and the clearing and copying behavior I wanted.</p>
-        <p>The app starts your account’s login shell, so your usual shell setup comes with it. Each shell runs through a pseudoterminal (PTY), the connection through which terminal programs exchange input and output. <a href="https://github.com/migueldeicaza/SwiftTerm/tree/464df5207fc2432e16c9a23abe538187196daf5f">SwiftTerm 1.19.0</a> supplies the terminal emulator and rendering; TabDance adds the AppKit workspace UI and its own clearing and copying behavior.</p>
+        <h2 id="app">Why another terminal?</h2>
+        <p>I clear the terminal with Command-K, run <code>cat file.txt</code>, then press Command-A to copy the contents. I expect the old build log to be gone. If I clear while editing a long command, I expect the whole wrapped line to stay put. Those habits are a large part of why I’m making this app.</p>
+        <p>I liked <a href="https://cmux.com/">cmux’s</a> workspaces: related shells grouped by project, instead of a collection of windows I have to remember. But clearing and multiline editing didn’t match how I used Apple Terminal. I tried adding workspaces to a <a href="https://github.com/raphamorim/rio/pull/1954">Rio fork</a>, then started inspecting Apple Terminal’s executable to understand the behavior I kept missing. <a href="/blog/tabdance-terminal-feel/">The first post follows that detour.</a></p>
+        <p>TabDance combines those workspaces with the clearing and copying behavior I want. Command-K removes old output and scrollback while preserving the command being edited. Copy saves the selected text so a program redrawing the screen can’t erase it before I press Command-C. Tabs keep their shells running when I switch projects.</p>
+        <p>It’s a native Swift and AppKit app, with <a href="https://github.com/migueldeicaza/SwiftTerm/tree/464df5207fc2432e16c9a23abe538187196daf5f">SwiftTerm</a> handling terminal emulation and rendering. The workspace UI and clearing and copying changes are ours.</p>
 
         <figure class="article-figure">
           <a href="/images/blog/tabdance-good-enough-to-use/workspaces.png" aria-label="View the full TabDance screenshot">
@@ -46,220 +48,97 @@
           </a>
         </figure>
 
-        <h2 id="build">Build on the Mac runner</h2>
-        <p>The <a href="https://github.com/andrewarrow/TabDance/blob/47710798c42fdff54d3d07829dbedb3874558e57/.github/workflows/build.yml">workflow</a> runs on pushes to <code>main</code>, version tags, pull requests, and manual dispatches. Its build job uses <code>macos-latest</code>, checks that <code>uname -m</code> returns <code>arm64</code>, then tests the app before producing a Release build. The downloadable DMG is for Apple silicon; the local build script can also produce a universal app for Intel Macs.</p>
-        <pre class="docs-code"><code>xcodebuild -project TabDance.xcodeproj -scheme TabDance \
+        <h2 id="build">Start with the app bundle</h2>
+        <p>The <a href="https://github.com/andrewarrow/TabDance/blob/47710798c42fdff54d3d07829dbedb3874558e57/.github/workflows/build.yml">workflow</a> uses <code>macos-latest</code>, checks that the runner is <code>arm64</code>, runs the tests, then builds for Apple silicon:</p>
+        <pre class="docs-code" tabindex="0" role="region" aria-label="Test and build commands from the macOS workflow"><code>xcodebuild -project TabDance.xcodeproj -scheme TabDance \
   -destination 'platform=macOS,arch=arm64' \
   -derivedDataPath .build/xcode -skipPackagePluginValidation \
   ARCHS=arm64 ONLY_ACTIVE_ARCH=YES test
 
 ./build-app.sh ARCHS=arm64 ONLY_ACTIVE_ARCH=NO</code></pre>
-        <p>The Xcode project is checked in, so the runner doesn’t need to install XcodeGen. Swift Package Manager fetches the pinned SwiftTerm dependency. <code>-skipPackagePluginValidation</code> avoids an interactive approval for that dependency’s build information plugin. The <a href="https://github.com/andrewarrow/TabDance/blob/47710798c42fdff54d3d07829dbedb3874558e57/build-app.sh">build script</a> copies the finished bundle into <code>dist/TabDance.app</code>; later steps all use that path.</p>
-        <p>The first CI run exposed a test assumption. The PTY test expected SwiftTerm to have reaped its child process by the time the termination callback fired. On the runner, <code>waitpid</code> returned the child’s PID instead of the expected <code>-1</code>. The <a href="https://github.com/andrewarrow/TabDance/commit/8de87c29569ce6dc5ced990c435252616836ca74">fix</a> checks the reported exit code and makes cleanup the test’s responsibility:</p>
-        <div class="test-examples">
-          <div class="example example-failure">
-            <p class="example-heading">Assume cleanup already happened</p>
-            <pre class="docs-code"><code>XCTAssertEqual(
-    waitpid(pid, &amp;status, WNOHANG), -1
-)
-XCTAssertEqual(errno, ECHILD)</code></pre>
-          </div>
-          <div class="example example-recovery">
-            <p class="example-heading">Check the process result</p>
-            <pre class="docs-code"><code>XCTAssertEqual(delegate.exitCode, 0)
-<span class="code-comment">// Terminate and reap in defer.</span></code></pre>
-          </div>
-        </div>
-        <p>The test still checks interactive input, resizing, and terminal output. It stops demanding that a separate cleanup operation finish at a particular instant. That’s a useful distinction to make before treating a CI failure as an app failure.</p>
+        <p>The Xcode project is checked in; Swift Package Manager fetches the pinned SwiftTerm dependency. <code>-skipPackagePluginValidation</code> skips interactive approval for its build-information plugin. The <a href="https://github.com/andrewarrow/TabDance/blob/47710798c42fdff54d3d07829dbedb3874558e57/build-app.sh">build script</a> puts the Release bundle at <code>dist/TabDance.app</code>.</p>
+        <p>That bundle has an ad-hoc signature. It can pass a signature-integrity check without identifying an Apple-registered developer. For distribution outside the App Store, this workflow uses a <a href="https://developer.apple.com/developer-id/">Developer ID Application</a> certificate.</p>
 
-        <h2 id="dmg">Make a DMG with an Applications shortcut</h2>
-        <p>A DMG packages a directory into a mountable disk image. For TabDance, that directory contains the app and a symlink to <code>/Applications</code>. Finder resolves the link, giving the user the familiar destination to drag the app onto. This is the packaging portion of <a href="https://github.com/andrewarrow/TabDance/blob/47710798c42fdff54d3d07829dbedb3874558e57/scripts/package-macos.sh">the script</a>:</p>
-        <pre class="docs-code"><code>staging="$RUNNER_TEMP/tabdance-dmg"
-mkdir -p "$staging"
-ditto dist/TabDance.app "$staging/TabDance.app"
-ln -s /Applications "$staging/Applications"
-hdiutil create -volname TabDance -srcfolder "$staging" \
-  -ov -format UDZO dist/TabDance-macos-arm64.dmg</code></pre>
-        <p><code>ditto</code> copies the app bundle, and <code>UDZO</code> produces a compressed, read-only image. The full script clears old staging output before this excerpt. Once signing is enabled, it signs the app before copying it into the image, then signs the finished DMG too.</p>
-        <p>The Mac job uploads that file so another job can use it:</p>
-        <pre class="docs-code"><code>- uses: actions/upload-artifact@v7
-  with:
-    name: TabDance-macos-arm64
-    path: dist/TabDance-macos-arm64.dmg
-    if-no-files-found: error
-    retention-days: 7</code></pre>
-        <p>The <a href="https://github.com/andrewarrow/TabDance/commit/d64fa4112f490e9a6228ed453070f8b6fa3c65a9">Node 24 update</a> moves the helper actions to <code>checkout@v7</code>, <code>upload-artifact@v7</code>, and <code>download-artifact@v8</code>. Those versions belong to the CI helpers; the app itself is still Swift and AppKit.</p>
-
-        <h2 id="release">An Actions artifact needs a release upload</h2>
-        <p>At this point, the DMG lives under a workflow run and expires after seven days. I want a download on the repository’s Releases page. GitHub’s automatic source ZIP and tarball don’t contain the compiled app, and uploading an Actions artifact doesn’t attach it to a release.</p>
-        <p>A second job downloads the same DMG and publishes it. This job can run on Ubuntu because it only hashes and uploads a file. It waits for the Mac build, skips pull requests, and requests permission to write repository contents:</p>
-        <pre class="docs-code"><code>publish:
-  if: github.event_name != 'pull_request'
-  needs: build
-  runs-on: ubuntu-latest
-  permissions:
-    contents: write
-  steps:
-    - uses: actions/download-artifact@v8
-      with:
-        name: TabDance-macos-arm64</code></pre>
-        <p>The upload step sets <code>GH_TOKEN</code> to <code>${{ github.token }}</code> and <code>GH_REPO</code> to <code>${{ github.repository }}</code>. The <a href="https://docs.github.com/en/actions/tutorials/authenticate-with-github_token">workflow’s built-in token</a> handles ordinary release uploads with <code>contents: write</code>, and it works for the successful release here. There is a catch when creating a release for an older commit.</p>
-        <p>One <a href="https://github.com/andrewarrow/TabDance/actions/runs/38081144905">early upload</a> returned <code>HTTP 403: Resource not accessible by integration</code>. A <a href="https://github.com/andrewarrow/TabDance/actions/runs/38082189266">later run</a> hit the same error even though its job log explicitly showed <code>Contents: write</code>. By then, another workflow fix had reached <code>main</code> while the older build was running.</p>
-        <p>That matches a <a href="https://docs.github.com/en/rest/releases/releases#create-a-release">restriction in GitHub’s release API</a>: if the target commit’s files under <code>.github/workflows/</code> differ from the current default branch, creating the release requires permission to write workflows. The built-in <code>GITHUB_TOKEN</code> can’t be granted that permission. A release job can therefore fail after a newer push changes the workflow. For publishing arbitrary commits, a suitably authorized GitHub App or fine-grained token can supply both Contents and Workflows write permissions.</p>
-        <p>The original publishing condition required a version tag. The <a href="https://github.com/andrewarrow/TabDance/commit/0078fb5525a11395a16924ab6064e9edbb09a97e">next change</a> publishes successful main pushes and manual runs too, using the first eight characters of the built commit as the release tag. The core upload looks like this, with release-note handling omitted:</p>
-        <pre class="docs-code"><code>TAG_NAME="${COMMIT_SHA:0:8}"
-sha256sum TabDance-macos-arm64.dmg &gt; SHA256SUMS
-if gh release view "$TAG_NAME" &gt;/dev/null 2&gt;&amp;1; then
-  gh release upload "$TAG_NAME" \
-    TabDance-macos-arm64.dmg SHA256SUMS --clobber
-else
-  gh release create "$TAG_NAME" \
-    TabDance-macos-arm64.dmg SHA256SUMS \
-    --title "$TAG_NAME" --target "$COMMIT_SHA" --generate-notes
-fi</code></pre>
-        <p>A rerun updates that commit’s release and replaces its assets. <code>--target</code> ties a newly created tag to the commit that was built. The app also embeds its short Git SHA in <code>GitSHA.txt</code>, and <a href="https://github.com/andrewarrow/TabDance/commit/6eaa4057381dd96dc4573cfca0dbcce34d73b268">About TabDance displays it</a>, so the installed binary can be matched back to source.</p>
-        <p>The <a href="https://github.com/andrewarrow/TabDance/releases/tag/47710798">47710798 release</a> shows the result after the signing fixes below. Its assets include the DMG and checksum file alongside GitHub’s source archives. The release notes state that it is Developer ID signed and unnotarized.</p>
-        <figure class="article-figure">
-          <a href="https://github.com/andrewarrow/TabDance/releases/tag/47710798" aria-label="View the signed 47710798 GitHub release">
-            <picture>
-              <source media="(max-width: 600px)" srcset="/images/blog/tabdance-good-enough-to-use/release-assets-mobile.png" width="732" height="1689" />
-              <img src="/images/blog/tabdance-good-enough-to-use/release-assets.png" width="1884" height="1233" alt="The 47710798 GitHub release reports Developer ID signed and Notarized: false, with TabDance-macos-arm64.dmg and SHA256SUMS attached in addition to the automatic source-code archives." loading="lazy" decoding="async" />
-            </picture>
-          </a>
-        </figure>
-
-        <h2 id="signing">Give the runner a Developer ID identity</h2>
-        <p>The Xcode project sets <code>CODE_SIGN_IDENTITY</code> to <code>-</code>, producing an ad-hoc signature. That can pass a signature-integrity check, but it doesn’t identify an Apple-registered developer. For distribution outside the Mac App Store, <a href="https://developer.apple.com/developer-id/">Developer ID Application</a> is the certificate type this workflow uses.</p>
-        <p>Create a Developer ID Application certificate through Xcode or your Apple developer account. Export it together with its private key from Keychain Access as a password-protected <code>.p12</code> archive. Add these two secrets under the repository’s <strong>Settings → Secrets and variables → Actions</strong>:</p>
+        <h2 id="signing">The certificate was there</h2>
+        <p>The runner needs both the certificate and its private key. Export them together from Keychain Access as a password-protected <code>.p12</code> archive, then add two repository secrets under <strong>Settings → Secrets and variables → Actions</strong>:</p>
         <table class="secrets-table">
           <caption class="sr-only">Required secrets for Developer ID signing</caption>
           <thead><tr><th scope="col">Secret</th><th scope="col">Value</th></tr></thead>
           <tbody>
-            <tr><th scope="row"><code>MACOS_DEVELOPER_<wbr>ID_P12</code></th><td>The base64-encoded <code>.p12</code> archive, containing the certificate and private key.</td></tr>
-            <tr><th scope="row"><code>MACOS_DEVELOPER_<wbr>ID_P12_<wbr>PASSWORD</code></th><td>The password chosen when exporting that archive.</td></tr>
+            <tr><th scope="row"><code>MACOS_DEVELOPER_<wbr>ID_P12</code></th><td>The base64-encoded certificate and private-key archive.</td></tr>
+            <tr><th scope="row"><code>MACOS_DEVELOPER_<wbr>ID_P12_<wbr>PASSWORD</code></th><td>The password used to export it.</td></tr>
           </tbody>
         </table>
-        <p>On a Mac, this copies the encoded archive so it can be pasted into the first secret:</p>
-        <pre class="docs-code"><code>base64 -i DeveloperID.p12 | pbcopy</code></pre>
-        <p>The workflow decodes the archive into a temporary file, creates and unlocks a temporary keychain, then imports the identity there. <code>security set-key-partition-list</code> grants Apple signing tools access to its private key without a GUI prompt. It checks for exactly one valid Developer ID Application identity and passes that identity’s SHA-1 hash to the packaging script.</p>
-        <p>That setup exposed the awkward part. In <a href="https://github.com/andrewarrow/TabDance/actions/runs/38081783017">the first complete signing attempt</a>, the import step succeeded, but the next step failed with:</p>
-        <pre class="docs-code"><code>…: no identity found</code></pre>
-        <p>The <a href="https://github.com/andrewarrow/TabDance/commit/133d1c843829bbe148d96acaa023d7fef3a86055">next fix</a> saves the runner’s user keychain search list and adds the temporary keychain to it. Finding an identity by querying a particular keychain hadn’t established that <code>codesign</code> could use it. After parsing the saved paths into an array, the workflow adds the new path:</p>
-        <pre class="docs-code"><code>keychain_search_list+=("$keychain_path")
+        <p>On a Mac, <code>base64 -i DeveloperID.p12 | pbcopy</code> puts the encoded archive on the clipboard. The workflow decodes it into a temporary file. The keychain gets its own random password, separate from the archive’s export password. Here’s the import, with those temporary paths and the keychain password already set:</p>
+        <pre class="docs-code" tabindex="0" role="region" aria-label="Create a temporary keychain and import the signing identity"><code>security create-keychain -p "$keychain_password" "$keychain_path"
+security unlock-keychain -p "$keychain_password" "$keychain_path"
+security import "$certificate_path" -k "$keychain_path" \
+  -P "$MACOS_DEVELOPER_ID_P12_PASSWORD" -T /usr/bin/codesign
+security set-key-partition-list -S apple-tool:,apple: -s \
+  -k "$keychain_password" "$keychain_path"</code></pre>
+        <p>The last command allows Apple’s signing tools to use the private key without a GUI prompt. An unlocked keychain alone doesn’t grant that access.</p>
+        <p>In the <a href="https://github.com/andrewarrow/TabDance/actions/runs/38081783017">failed signing run</a>, that setup succeeded. The identity check explicitly queried the temporary keychain and found the Developer ID identity. Packaging still failed with the error at the top of this post.</p>
+        <p>The <a href="https://github.com/andrewarrow/TabDance/commit/133d1c843829bbe148d96acaa023d7fef3a86055">fix</a> added the temporary keychain to the runner’s user keychain search list. These are the relevant lines, with the code that parses the saved list omitted:</p>
+        <pre class="docs-code" tabindex="0" role="region" aria-label="Finding the identity and adding its keychain to the search list"><code><span class="code-comment"># This check queries the temporary keychain directly.</span>
+security find-identity -v -p codesigning "$keychain_path"
+
+<span class="code-comment"># Add it to the saved user search list before signing.</span>
+keychain_search_list+=("$keychain_path")
 security list-keychains -d user -s "${keychain_search_list[@]}"</code></pre>
-        <p>Cleanup restores the original search list and deletes the temporary keychain under <code>if: always()</code>. The <a href="https://github.com/andrewarrow/TabDance/commit/47710798c42fdff54d3d07829dbedb3874558e57">follow-up fix</a> handles unset variables and an empty original search list explicitly. Cleanup runs with <code>set -u</code> too; it has to survive the case where setup failed before every variable or array element existed.</p>
-        <p>With the identity available, the packaging script applies a Developer ID signature to the app with the hardened runtime and a secure timestamp, then verifies it:</p>
-        <pre class="docs-code"><code>codesign --force --options runtime --timestamp \
+        <p>We were already passing <code>--keychain</code> to <code>codesign</code>. Its entry in <code>man codesign</code> distinguishes two lookups: that option selects where to find the signing identity, while assembling the certificate chain still uses the user’s keychain search list. Naming the keychain in one command hadn’t made it available to every lookup.</p>
+        <p>Adding the search-list entry got signing past that failure. The workflow selects exactly one valid Developer ID Application identity and passes its SHA-1 hash to the packaging script, avoiding ambiguity between certificate names.</p>
+        <p>Cleanup restores the original search list and deletes the temporary keychain under <code>if: always()</code>. A <a href="https://github.com/andrewarrow/TabDance/commit/47710798c42fdff54d3d07829dbedb3874558e57">follow-up fix</a> handles unset variables and an empty original list: with <code>set -u</code>, cleanup has to work even when setup didn’t finish.</p>
+
+        <h2 id="dmg">Sign the app, then the disk image</h2>
+        <p>The DMG contains the signed app and a symlink to <code>/Applications</code>. Finder resolves that link into the familiar drag-to-Applications destination. Here are the <a href="https://github.com/andrewarrow/TabDance/blob/47710798c42fdff54d3d07829dbedb3874558e57/scripts/package-macos.sh">packaging steps</a>, with verification and optional notarization omitted:</p>
+        <pre class="docs-code" tabindex="0" role="region" aria-label="Sign the app, package it into a DMG, and sign the DMG"><code>codesign --force --options runtime --timestamp \
   --sign "$MACOS_SIGNING_IDENTITY" \
   --keychain "$MACOS_SIGNING_KEYCHAIN" dist/TabDance.app
-codesign --verify --deep --strict --verbose=2 dist/TabDance.app</code></pre>
-        <p>The script signs and verifies the DMG after creating it. Pull requests keep the ad-hoc build path and don’t import the certificate. Published builds require the signing secrets, and the publish job refuses an artifact whose reported signing status isn’t <code>Developer ID signed</code>.</p>
-        <p id="signing-result">The <a href="https://github.com/andrewarrow/TabDance/actions/runs/38082270573">run after both keychain fixes</a> completed the build, signing, cleanup, and release upload. The downloadable <a href="https://github.com/andrewarrow/TabDance/releases/tag/47710798">47710798 build</a> is Developer ID signed. The next optional step is notarization.</p>
 
-        <h2 id="notarization">Signing and notarization have different credentials</h2>
-        <p>Developer ID signing identifies the developer and protects the signed contents. Notarization submits that signed software to Apple for automated checks. Stapling attaches the resulting ticket to the app or disk image so Gatekeeper can find it even without a network connection. Apple describes the command-line process in <a href="https://developer.apple.com/documentation/security/customizing-the-notarization-workflow">its notarization workflow guide</a>.</p>
-        <p>TabDance makes notarization optional. To enable it, add all three App Store Connect API key secrets:</p>
-        <table class="secrets-table">
-          <caption class="sr-only">Optional secrets that enable notarization together</caption>
-          <thead><tr><th scope="col">Secret</th><th scope="col">Value</th></tr></thead>
-          <tbody>
-            <tr><th scope="row"><code>APPLE_NOTARY_<wbr>KEY_P8</code></th><td>The contents of the API key’s <code>.p8</code> file.</td></tr>
-            <tr><th scope="row"><code>APPLE_NOTARY_<wbr>KEY_ID</code></th><td>The API key ID.</td></tr>
-            <tr><th scope="row"><code>APPLE_NOTARY_<wbr>ISSUER_ID</code></th><td>The issuer UUID for the App Store Connect team.</td></tr>
-          </tbody>
-        </table>
-        <p>The <code>.p12</code> supplies the signing identity; the <code>.p8</code> authenticates requests to Apple’s notary service. This script expects base64 for the p12 secret and the file’s text contents for the p8 secret. Setting the p8 secret turns notarization on and requires the other two values. Leaving it unset skips notarization.</p>
-        <p>The script first ZIPs the signed app, submits it with <code>notarytool --wait</code>, then staples and validates the app’s ticket. It copies that stapled app into the DMG, signs the image, submits the DMG, and staples that ticket too. The final submission uses these commands:</p>
-        <pre class="docs-code"><code>xcrun notarytool submit "$dmg" \
+staging="$RUNNER_TEMP/tabdance-dmg"
+mkdir -p "$staging"
+ditto dist/TabDance.app "$staging/TabDance.app"
+ln -s /Applications "$staging/Applications"
+hdiutil create -volname TabDance -srcfolder "$staging" \
+  -ov -format UDZO dist/TabDance-macos-arm64.dmg
+
+codesign --force --timestamp --sign "$MACOS_SIGNING_IDENTITY" \
+  --keychain "$MACOS_SIGNING_KEYCHAIN" \
+  dist/TabDance-macos-arm64.dmg</code></pre>
+        <p><code>--options runtime</code> enables the app’s hardened runtime; <code>--timestamp</code> requests a secure timestamp. <code>UDZO</code> makes a compressed, read-only image. The full script clears old staging output first and verifies both signatures after signing.</p>
+        <p>Pull requests build ad-hoc signed artifacts without importing the certificate. Published builds require the signing secrets, and the publish job refuses an artifact unless the packaging job reports <code>Developer ID signed</code>.</p>
+
+        <h2 id="release">The DMG still wasn’t on Releases</h2>
+        <p><code>actions/upload-artifact</code> stores the DMG under the workflow run, where this workflow keeps it for seven days. It doesn’t attach the file to a release. GitHub’s automatic source ZIP and tarball don’t contain the compiled app either.</p>
+        <p>A second job waits for the Mac build, downloads that same DMG, and publishes it from Ubuntu. Its <code>contents: write</code> permission and <code>GH_TOKEN</code> set to <code>${{ github.token }}</code> let the GitHub CLI create a release. <code>GH_REPO</code> identifies the repository. The upload’s core is:</p>
+        <pre class="docs-code" tabindex="0" role="region" aria-label="Create a release for the built commit and upload the DMG and checksum"><code>TAG_NAME="${COMMIT_SHA:0:8}"
+sha256sum TabDance-macos-arm64.dmg &gt; SHA256SUMS
+gh release create "$TAG_NAME" \
+  TabDance-macos-arm64.dmg SHA256SUMS \
+  --title "$TAG_NAME" --target "$COMMIT_SHA" --generate-notes</code></pre>
+        <p>The tag names the commit that was built, and <code>--target</code> points the new tag there. Reruns update the existing release with <code>gh release upload --clobber</code>. The same short SHA appears in About TabDance, so an installed binary can be matched to its source.</p>
+        <p>One <a href="https://github.com/andrewarrow/TabDance/actions/runs/38082189266">upload still returned 403</a> even though the job log showed <code>Contents: write</code>. A newer workflow fix had reached <code>main</code> while that older build was running. This matches a <a href="https://docs.github.com/en/rest/releases/releases#create-a-release">release API restriction</a>: when the target commit changes workflow files relative to the current default branch, release creation also needs Workflows write permission. The built-in <code>GITHUB_TOKEN</code> can’t have it.</p>
+        <p>Publishing arbitrary older commits therefore needs a suitably authorized GitHub App or token. The <a href="https://github.com/andrewarrow/TabDance/actions/runs/38082270573">successful run</a> used the built-in token and produced <a href="https://github.com/andrewarrow/TabDance/releases/tag/47710798">release 47710798</a>, with the signed DMG and its checksum attached.</p>
+
+        <figure class="article-figure">
+          <a href="https://github.com/andrewarrow/TabDance/releases/tag/47710798" aria-label="View the signed 47710798 GitHub release">
+            <picture>
+              <source media="(max-width: 600px)" srcset="/images/blog/tabdance-good-enough-to-use/release-assets-mobile.png" width="732" height="1689" />
+              <img src="/images/blog/tabdance-good-enough-to-use/release-assets.png" width="1884" height="1233" alt="Release 47710798 reports Developer ID signed and Notarized: false, with the DMG and SHA256SUMS attached alongside GitHub’s source archives." loading="lazy" decoding="async" />
+            </picture>
+          </a>
+        </figure>
+
+        <h2 id="notarization">Signed, with notarization still to do</h2>
+        <p>The release says <code>Notarized: false</code>. Signing identifies the developer and protects the signed contents. <a href="https://developer.apple.com/documentation/security/customizing-the-notarization-workflow">Notarization</a> submits the software to Apple for automated checks; stapling attaches the resulting ticket so Gatekeeper can find it offline.</p>
+        <p>The optional path in our script uses an App Store Connect API key: a <code>.p8</code> file, key ID, and issuer ID. These authenticate the submission; the <code>.p12</code> supplies the signing identity. The script notarizes and staples the app before copying it into the DMG, then submits and staples the signed DMG too:</p>
+        <pre class="docs-code" tabindex="0" role="region" aria-label="Optional notarization and stapling of the signed DMG"><code>xcrun notarytool submit "$dmg" \
   --key "$notary_key" --key-id "$APPLE_NOTARY_KEY_ID" \
   --issuer "$APPLE_NOTARY_ISSUER_ID" --wait --timeout 30m
 xcrun stapler staple "$dmg"
-xcrun stapler validate "$dmg"
-spctl --assess --type open \
-  --context context:primary-signature --verbose=2 "$dmg"</code></pre>
-        <p>Those are separate checks: the signature, the stapled ticket, and Gatekeeper’s assessment. Release notes receive the packaging script’s signing and notarization results. A Developer ID signed build can still be unnotarized; that state is reported explicitly, with Apple’s first-launch instructions. The notarization path is implemented but hasn’t been demonstrated by the releases linked here.</p>
-
-        <h2 id="live-tabs">A tab switch keeps the shell</h2>
-        <p>The release work is there so someone else can try the parts of TabDance I care about. Start a server in one tab, open another for edits, then switch workspaces. The server should keep running. Returning should put you back in the tab you last selected in that workspace.</p>
-        <p>Each tab owns a live session, identified by a UUID. Switching tabs changes which terminal view is visible and has keyboard focus; the <a href="https://github.com/andrewarrow/TabDance/blob/47710798c42fdff54d3d07829dbedb3874558e57/Tests/TerminalLabTests/WindowTests.swift">other shells keep running</a>. Dragging a tab changes its position without changing its session. Each workspace remembers its selected tab, so switching back returns there.</p>
-        <p>There was a smaller continuity problem in the UI itself. A background session can update its title or working directory while you’re clicking a tab. The original refresh rebuilt every tab view. If that happened between mouse-down and mouse-up, the object holding the click disappeared.</p>
-        <p>The <a href="https://github.com/andrewarrow/TabDance/commit/08be3c8e35a5835a6ff75f2b9c3be66a9af47a44">fix</a> compares the ordered tab IDs. If they haven’t changed, it updates the existing labels and styles in place. Background updates also leave the tab bar’s scroll position alone. The regression test reproduces the mouse-down, metadata update, mouse-up sequence.</p>
-        <p>You can drag workspaces into a new order too. Tabs stay within their workspace and window; an insertion marker shows where they’ll land. Below 600 points of window width, the sidebar collapses and a workspace menu remains available.</p>
-        <p>Closing a tab also has to remove its terminal view. Stopping the shell while leaving the view attached could put the visible terminal out of sync with the selected workspace. The <a href="https://github.com/andrewarrow/TabDance/commit/3599034bcc0ff5505bbbe3442a2df2bcd0e7d201">closing fix</a> removes both; its regression case closes successive workspaces that share a directory.</p>
-
-        <h2 id="clear">Command-K keeps the line you’re editing</h2>
-        <p>If a prompt and unfinished command wrap across two rows, clearing the old output should keep both rows and leave the cursor at the same place in the command.</p>
-
-        <figure class="article-figure">
-          <picture>
-            <source media="(max-width: 600px)" srcset="/images/blog/tabdance-good-enough-to-use/clear-wrapped-line-mobile.svg" width="390" height="686" />
-            <img src="/images/blog/tabdance-good-enough-to-use/clear-wrapped-line.svg" width="880" height="410" alt="Schematic of a wrapped command before and after Command-K. Old output and scrollback disappear; both rows of the logical command move together to the top, with the cursor in the same column on its continuation row." loading="lazy" decoding="async" />
-          </picture>
-        </figure>
-
-        <p>The <a href="https://github.com/andrewarrow/TabDance/blob/47710798c42fdff54d3d07829dbedb3874558e57/Sources/TerminalCore/TabDanceTerminalView.swift">clear operation</a> walks backward and forward from the cursor’s row using the buffer’s wrapping flags. That identifies the whole logical line, including a continuation below the cursor. It moves those rows to the top, erases the rows beneath them, removes scrollback, and restores the cursor relative to the retained line.</p>
-        <p>It does this inside the terminal emulator. The scroll and erase sequences go directly into SwiftTerm’s parser; no Control-L is written to the shell. That keeps the result independent of how the foreground program handles Control-L. Moving existing rows also preserves their colors and metadata rather than reconstructing the command as plain text.</p>
-        <p>Old output also disappears from <a href="https://github.com/andrewarrow/TabDance/blob/47710798c42fdff54d3d07829dbedb3874558e57/Tests/TerminalLabTests/TerminalBehaviorTests.swift">Select All</a>. Clearing an alternate screen leaves the normal buffer alone and preserves bracketed-paste mode, which lets a program recognize pasted text.</p>
-
-        <h2 id="copy">Copy remembers the selection</h2>
-        <p>Terminal programs redraw. Select <code>hello</code>, let the program erase that row, and Copy still ought to give you <code>hello</code>. TabDance stores a text snapshot when a selection is made and copies from that snapshot before falling back to the current cells:</p>
-        <pre class="docs-code"><code><span class="code-keyword">public var</span> copyText: String? {
-    selectedTextSnapshot ?? getSelection()
-}</code></pre>
-        <p>Selecting nonempty text also copies it to the clipboard automatically. A <a href="https://github.com/andrewarrow/TabDance/blob/47710798c42fdff54d3d07829dbedb3874558e57/Tests/TerminalLabTests/TerminalBehaviorTests.swift">redraw can erase the selected cells</a> while the saved string remains:</p>
-        <table class="selection-table">
-          <caption class="sr-only">Copy before and after an erase-line redraw</caption>
-          <thead><tr><th scope="col">Moment</th><th scope="col">Screen text</th><th scope="col">Copy returns</th></tr></thead>
-          <tbody>
-            <tr><th scope="row">After selecting</th><td><code>hello</code></td><td><code>hello</code></td></tr>
-            <tr><th scope="row">After erase-line</th><td>Empty</td><td><code>hello</code></td></tr>
-          </tbody>
-        </table>
-        <p>Typing or pasting, a new mouse-down, or Command-K discards the snapshot. When a program asks for the cursor position, the terminal emulator replies through the PTY without any user action. Treating that reply as typing would discard the selection and confuse the activity indicator. TabDance keeps the two paths separate: user input clears the snapshot and notifies the monitor; parser replies go straight to the process.</p>
-
-        <h2 id="directories">The next tab starts where you are</h2>
-        <p>After <code>cd</code>, Command-T should open a shell in that directory—even if you press it before the next background poll. A shell can announce its current directory with OSC 7, an escape sequence carrying a file URL. TabDance also polls the directory through macOS’s <code>libproc</code> interface, so shells that don’t send OSC 7 still work.</p>
-        <p>Polling alone leaves a timing gap. Immediately before creating a tab or workspace, TabDance <a href="https://github.com/andrewarrow/TabDance/blob/47710798c42fdff54d3d07829dbedb3874558e57/Sources/TerminalLab/TerminalWindowController.swift">queries the selected shell’s current directory again</a>. The new shell needn’t wait for its label to catch up.</p>
-        <p>File drops insert paths and let you finish the command. Drop local files or folders onto terminal content, or onto a tab label to select and focus that tab. TabDance inserts absolute paths with shell-special characters escaped, separated by spaces and followed by a space. It doesn’t press Enter.</p>
-
-        <div class="drop-example">
-          <p>Drop <code>annual report.txt</code> onto a pending <code>cat </code> command:</p>
-          <pre class="docs-code"><code>cat /tmp/annual\ report.txt <span class="code-comment">▏</span></code></pre>
-          <p>The cursor is still waiting. You can add another path or press Return.</p>
-        </div>
-
-        <p>If the receiving program enables bracketed paste, the drop is wrapped in paste-start and paste-end sequences. Filenames containing control characters are rejected.</p>
-
-        <h2 id="activity">A running Codex process isn’t always busy</h2>
-        <p>A workspace can have a Codex process open while nothing is happening. Showing a spinner for the process’s entire lifetime would make the indicator useless.</p>
-        <p>The indicator follows task events in <a href="https://github.com/andrewarrow/TabDance/blob/47710798c42fdff54d3d07829dbedb3874558e57/Sources/TerminalCore/CodexActivityMonitor.swift">Codex’s local session transcript</a>. TabDance finds the Codex process under each shell, then matches the transcript using its working directory and process start time. It reads new JSONL events—JSON objects, one per line—as they’re appended. Submitting a prompt can start the indicator; task-start, completion, and abort events then update it. Completion events are checked against the submission time to filter out older turns.</p>
-        <p>Control-C clears the indicator immediately and suppresses late events until the next submission. Newlines inside bracketed paste don’t count as submitted prompts. Other commands don’t get this activity tracking, and changes to Codex’s transcript format may require an update.</p>
-
-        <h2 id="use">Try it against your own habits</h2>
-        <p>For an Apple silicon Mac running macOS 13 or later, download <code>TabDance-macos-arm64.dmg</code> from the <a href="https://github.com/andrewarrow/TabDance/releases">Releases page</a>. Open the DMG and drag TabDance to Applications. The release above is Developer ID signed but unnotarized. If macOS blocks first launch, Apple documents approval under <a href="https://support.apple.com/en-us/102445">System Settings → Privacy &amp; Security</a>.</p>
-        <p>Building from source is still an option, including for Intel Macs. The <a href="https://github.com/andrewarrow/TabDance#build-and-run">README</a> covers the Xcode setup and build commands.</p>
-        <p>These are the shortcuts to start with. The <a href="https://github.com/andrewarrow/TabDance/blob/47710798c42fdff54d3d07829dbedb3874558e57/README.md#keyboard-shortcuts">README</a> has the full list, including numbered tab selection and keyboard reordering.</p>
-        <table class="shortcut-table">
-          <caption class="sr-only">Common TabDance keyboard shortcuts</caption>
-          <thead><tr><th scope="col">Keys</th><th scope="col">Action</th></tr></thead>
-          <tbody>
-            <tr><td><kbd>⌘T</kbd></td><td>New tab in the current directory</td></tr>
-            <tr><td><kbd>⌘⇧N</kbd></td><td>New workspace in the current directory</td></tr>
-            <tr><td><kbd>⌘⇧[</kbd> / <kbd>⌘⇧]</kbd></td><td>Previous / next tab</td></tr>
-            <tr><td><kbd>⌥⌘↑</kbd> / <kbd>⌥⌘↓</kbd></td><td>Previous / next workspace</td></tr>
-            <tr><td><kbd>⌘K</kbd></td><td>Clear prior output; keep the current logical line</td></tr>
-            <tr><td><kbd>⌘B</kbd></td><td>Toggle the workspace sidebar</td></tr>
-          </tbody>
-        </table>
-        <p>Reopening TabDance restores the primary window’s workspace order, tab directories and titles, and selections. It starts fresh shells in those directories; running processes and terminal output aren’t restored. Held keys use macOS’s repeat delay and rate.</p>
-        <p>There are no profiles, search, or preferences yet. The terminal appearance is fixed: Menlo at 20 points, green text on black, and a fixed ANSI palette. Exact copied-newline behavior and typing latency haven’t been measured against Apple Terminal.</p>
-        <p>Command-W closes a tab and Command-Q quits without prompting. Explicitly closing a window asks for confirmation when sessions are active.</p>
-        <p>I’m still starting with the same boring file:</p>
-        <pre class="docs-code"><code>printf 'alpha\nbeta\ngamma\n' &gt; /tmp/tabdance-selection.txt
-<span class="code-comment"># Press Command-K, then run:</span>
-cat /tmp/tabdance-selection.txt
-<span class="code-comment"># Press Command-A, Command-C, and inspect the pasted text.</span></code></pre>
-        <p>Then try an unfinished wrapped command, a selection erased by a redraw, and a quick <code>cd</code> followed by Command-T. They’re small enough to tell me exactly where your habits and TabDance still disagree.</p>
+xcrun stapler validate "$dmg"</code></pre>
+        <p>That path is implemented; the linked release didn’t run it. Its Developer ID signature doesn’t promise a first launch without a Gatekeeper warning.</p>
+        <p id="use">On an Apple silicon Mac running macOS 13 or later, download <code>TabDance-macos-arm64.dmg</code> from <a href="https://github.com/andrewarrow/TabDance/releases/tag/47710798">the release</a> and drag the app to Applications. If macOS blocks it, Apple documents <a href="https://support.apple.com/en-us/102445">Open Anyway under System Settings → Privacy &amp; Security</a>. The <a href="https://github.com/andrewarrow/TabDance#build-and-run">README</a> covers building from source, including for Intel Macs.</p>
       </article>
     </main>
     <!-- site-footer -->
