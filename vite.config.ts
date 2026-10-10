@@ -10,7 +10,7 @@ const publicPages = ['docs', 'docs/containers', 'docs/execute', 'docs/files', 'd
   'benchmarks', 'integrations', 'trust', 'subprocessors', 'platform',
   'blog', 'blog/opencode-one-workspace', 'blog/open-swe-memory-and-machines', 'blog/open-your-mainbrella-with-two-hands', 'blog/when-it-rains-agents-bring-a-mainbrella', 'blog/new-batteries-for-the-batteries-included-agent-harness', 'blog/the-benefits-of-rain', 'blog/inside-our-brella', 'blog/virtual-companies-producing-reports', 'blog/account-owned-compute', 'blog/measuring-startup',
   'blog/safe-container-creation', 'blog/interactive-access', 'blog/custom-images',
-  'compare', 'brand', 'press', 'careers', 'opensource',
+  'compare', 'brand', 'press', 'careers', 'opensource', 'try',
   'e2b-alternative', 'daytona-alternative', 'cloudflare-sandbox'];
 
 const legacyPricingRoutes = ['builder', 'pro', 'scale'];

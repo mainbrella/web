@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0d1014">
+    <meta name="description" content="Paste a public GitHub repository, prepare setup instructions with ChatGPT or Claude, and run it in a Mainbrella cloud Linux machine.">
+    <meta property="og:title" content="Run your GitHub project in the cloud · Mainbrella">
+    <meta property="og:description" content="Paste a public GitHub repository, prepare setup instructions, and run it in a cloud Linux machine.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://mainbrella.com/try/">
+    <link rel="canonical" href="https://mainbrella.com/try/">
+    <link rel="icon" href="/images/favicon.png" type="image/png">
+    <link rel="stylesheet" href="/mainbrella.css">
+    <link rel="stylesheet" href="/try.css">
+    <title>Run your GitHub project in the cloud · Mainbrella</title>
+  </head>
+  <body class="info-body sandbox-home try-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="try-main wrap">
+      <section class="try-hero" aria-labelledby="try-title">
+        <div class="try-intro">
+          <h1 id="try-title">Run your GitHub project in a cloud Linux machine.</h1>
+          <p class="try-description">Paste a public repository. Use your ChatGPT or Claude account to prepare the setup, then review it in Mainbrella.</p>
+          <form id="try-form" class="try-form" action="/run/" method="get">
+            <label for="try-repo">Public GitHub repository</label>
+            <div class="try-form-controls">
+              <input id="try-repo" name="repo" type="text" inputmode="url" maxlength="240" autocomplete="url" spellcheck="false" required placeholder="owner/repository or GitHub URL" aria-describedby="try-repo-hint try-repo-error">
+              <button class="button" type="submit">Continue</button>
+            </div>
+            <p id="try-repo-hint" class="try-hint">For example, https://github.com/owner/repository</p>
+            <p id="try-repo-error" class="try-error" role="alert" hidden></p>
+          </form>
+          <p class="try-pricing">A Mainbrella account and prepaid balance are needed to run a project. Add $5 or more; no monthly subscription. <a href="/pricing/">See pricing</a></p>
+        </div>
+        <figure class="try-walkthrough">
+          <div class="try-video">
+            <iframe width="560" height="315" src="https://www.youtube.com/embed/BkX1qdB7S8k?si=CAu9hwCmiY8WgwZU" title="Mainbrella GitHub project walkthrough" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+          </div>
+          <figcaption>See a GitHub project go from setup instructions to a running cloud machine.</figcaption>
+        </figure>
+      </section>
+      <section class="try-steps" aria-label="How it works">
+        <ol>
+          <li><span>1</span>Paste a public GitHub repository.</li>
+          <li><span>2</span>Get setup instructions with ChatGPT or Claude.</li>
+          <li><span>3</span>Review the commands and run them in Mainbrella.</li>
+        </ol>
+      </section>
+    </main>
+    <footer class="try-footer wrap" aria-label="Footer">
+      <a href="/contact/">Help</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+    </footer>
+    <script type="module" src="/src/try.ts"></script>
+    <script type="module" src="/src/account-menu.ts"></script>
+  </body>
+</html>

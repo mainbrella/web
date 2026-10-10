@@ -2,7 +2,7 @@ import './cookie-consent.ts';
 import { readConsent } from './cookie-preferences.ts';
 import { syncFunnelConsent, trackFunnel } from './acquisition-analytics.ts';
 
-const landingPages = ['/', '/e2b-alternative/', '/daytona-alternative/', '/cloudflare-sandbox/'];
+const landingPages = ['/', '/try/', '/e2b-alternative/', '/daytona-alternative/', '/cloudflare-sandbox/'];
 const path = location.pathname.replace(/index\.html$/, '').replace(/\/?$/, '/');
 const landing = landingPages.includes(path);
 const quickstart = path === '/docs/';

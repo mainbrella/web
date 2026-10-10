@@ -17,6 +17,11 @@ export type RepoRunDiagnostics = Partial<Record<keyof RepositoryLaunch['executio
 export function normalizeRepo(value: string): string {
   return value.trim().replace(/^https:\/\/github\.com\//i, '').replace(/\/$/, '').replace(/\.git$/, '');
 }
+export function validRepo(value: string): boolean {
+  const repo = normalizeRepo(value);
+  return /^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9_.-]{1,100}$/.test(repo)
+    && !['.', '..'].includes(repo.split('/')[1]);
+}
 export function repoRunUrl(options: RepoRunOptions, origin: string): URL {
   const url = new URL('/run/', origin);
   url.searchParams.set('repo', normalizeRepo(options.repo));

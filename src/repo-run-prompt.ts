@@ -1,11 +1,7 @@
 import { normalizeRepo, type RepoRunOptions, type RepositoryLaunch, type RepoRunDiagnostics } from './repo-run-contract.ts';
 import { stringify } from 'yaml';
 
-export function validRepo(value: string): boolean {
-  const repo = normalizeRepo(value);
-  return /^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9_.-]{1,100}$/.test(repo)
-    && !['.', '..'].includes(repo.split('/')[1]);
-}
+export { validRepo } from './repo-run-contract.ts';
 
 export function repoSetupPrompt(options: RepoRunOptions, origin: string, launch?: RepositoryLaunch | null, diagnostics?: RepoRunDiagnostics): string {
   const repo = normalizeRepo(options.repo);
