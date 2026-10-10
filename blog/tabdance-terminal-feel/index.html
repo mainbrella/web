@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="From cmux’s workspaces to a Rio fork to disassembling Apple Terminal: building TabDance around predictable clearing, selection, paste, and the feel of typing." />
+    <meta name="theme-color" content="#181a1b" />
+    <link rel="canonical" href="https://mainbrella.com/blog/tabdance-terminal-feel/" />
+    <meta property="og:title" content="Building TabDance to feel like macOS Terminal · Mainbrella" />
+    <meta property="og:description" content="Command-K, cat file.txt, Command-A. A small copying habit led from a Rio workspace experiment to studying Apple Terminal’s executable." />
+    <meta property="og:url" content="https://mainbrella.com/blog/tabdance-terminal-feel/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:image" content="https://mainbrella.com/images/blog/tabdance-terminal-feel/clear-selection.png" />
+    <meta property="og:image:alt" content="A schematic comparison of selecting a file with earlier terminal output retained and with that earlier output cleared." />
+    <meta property="article:published_time" content="2026-10-10T00:00:00-07:00" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <link rel="stylesheet" href="/blog/inside-our-brella/article.css" />
+    <link rel="stylesheet" href="/blog/tabdance-terminal-feel/article.css" />
+    <title>Building TabDance to feel like macOS Terminal · Mainbrella</title>
+  </head>
+  <body class="info-body brella-article-page">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap inside-brella tabdance-article">
+      <article>
+        <a class="article-back" href="/blog/">← Engineering blog</a>
+        <h1>Building TabDance to feel like macOS Terminal</h1>
+        <p class="article-meta"><time datetime="2026-10-10">October 10, 2026</time> · Andrew Arrow</p>
+
+        <p>Command-K is part of how I copy a file. I clear the terminal, run <code>cat file.txt</code>, and press Command-A. I expect to select the file’s contents with only two lines above and two below, confident that some old build log won’t come along for the ride.</p>
+        <p>That small habit explains a fairly long detour: I tried cmux, worked on a Rio fork, then started reverse engineering Apple’s Terminal to understand the behavior I kept missing. The new project is <a href="https://github.com/andrewarrow/TabDance">TabDance</a>. I want workspaces and tabs, with the everyday feel of the macOS terminal I’m used to.</p>
+        <p>“Feel” sounds vague until you name the keystrokes. Clearing, copying, pasting, and seeing a character appear are separate operations in the code. In my hands they’re one continuous activity, and a small surprise in any of them is enough to make me hesitate.</p>
+
+        <h2 id="workspaces">I liked cmux’s workspaces</h2>
+        <p><a href="https://cmux.com/">cmux</a> made organizing terminal sessions appealing. Its vertical workspace layout gives related sessions a place to live instead of leaving me to remember which window belongs to which project. It’s a native macOS application using Swift and AppKit, with libghostty supplying the terminal engine. The <a href="https://github.com/manaflow-ai/cmux">source is available</a>, so there’s real machinery to learn from.</p>
+        <p>I liked it, and I wanted to change things. In particular, Command-K and working with multiline commands weren’t matching my habits. I then found <a href="https://github.com/raphamorim/rio">Rio</a> and tried bringing the workspace idea there.</p>
+        <p>On September 22, I opened <a href="https://github.com/raphamorim/rio/pull/1954">Rio PR #1954</a>, adding a left drawer and workspace concepts inspired by cmux. That proposal came from my <code>aa</code> branch. The later <a href="https://github.com/andrewarrow/rio/tree/spinner"><code>spinner</code> branch</a> contains more of the experiment, including a fix for copying a selection after a terminal application redraws it. They’re different snapshots of the work.</p>
+
+        <figure class="article-figure rio-figure">
+          <a class="rio-crop" href="/images/blog/tabdance-terminal-feel/rio-workspaces.png" aria-label="View the full Rio workspace screenshot">
+            <img src="/images/blog/tabdance-terminal-feel/rio-workspaces.png" width="3424" height="1836" alt="The Rio workspace experiment: cubacadabra, forkalope, os, and groupicorn in the left drawer, with groupicorn tabs and a shell prompt beside them." decoding="async" fetchpriority="high" />
+          </a>
+          <figcaption>My Rio workspace experiment, from the September 22 PR. This is a crop of the actual screenshot, not a TabDance mockup. <a href="/images/blog/tabdance-terminal-feel/rio-workspaces.png">View the full image.</a></figcaption>
+        </figure>
+
+        <p>In the PR description I called Rio “perfect.” That was enthusiasm for finding a promising base. As I kept using it, copy and paste, clearing, and the response while typing still had little differences from Apple Terminal. Getting the workspace layout I wanted hadn’t settled those details.</p>
+
+        <h2 id="clear">What did Command-K actually clear?</h2>
+        <p>For my copying habit, the cleared window needs to establish a useful boundary: what I print next is what Select All will collect. If earlier output is still selectable, a visually clean screen hasn’t given me the confidence I wanted.</p>
+
+        <figure class="article-figure">
+          <picture>
+            <source media="(max-width: 600px)" srcset="/images/blog/tabdance-terminal-feel/clear-selection-mobile.svg" width="390" height="684" />
+            <img src="/images/blog/tabdance-terminal-feel/clear-selection.svg" width="880" height="420" alt="Schematic selection comparison. One buffer includes an old build log and error before cat file.txt. The desired buffer selects only alpha, beta, gamma and two surrounding rows on either side." loading="lazy" decoding="async" />
+          </picture>
+          <figcaption>The target behavior for TabDance. The three-line file and surrounding rows are a schematic fixture; this is not a measured comparison between released terminals. Prompt and wrapping settings can change the surrounding text.</figcaption>
+        </figure>
+
+        <p>A terminal has a current screen, saved scrollback, a cursor, and a selection. Clearing can affect each differently. Sending a control character to the shell adds another participant: the shell or foreground program decides how to respond. Moving the viewport away from old text doesn’t necessarily remove that text from the selectable buffer.</p>
+        <p>In the Rio revision I inspected, the normal macOS Command-K binding has <a href="https://github.com/andrewarrow/rio/blob/3ccf378f97fa66d07f76408e5bee824d913abba5/frontends/rioterm/src/bindings/mod.rs#L1116-L1119">two matching actions</a>: send <code>0x0c</code>, the character generated by Control-L, and clear saved history. The <a href="https://github.com/andrewarrow/rio/blob/3ccf378f97fa66d07f76408e5bee824d913abba5/frontends/rioterm/src/screen/mod.rs#L1485-L1490">history action</a> operates on Rio’s terminal state. The other action goes to the running program, which commonly redraws the prompt or screen in response.</p>
+        <p>That distinction gives me something concrete to investigate. The command can look right in an idle shell while behaving differently with a partial command, a different line editor, or a full-screen program. These bindings explain the route Rio takes; they don’t, by themselves, prove the cause of every difference I felt.</p>
+
+        <h2 id="executable">An executable is a useful map</h2>
+        <p>I wanted to see how Apple approached the same problem. The file I started with was named <code>term.bin.exe.mac</code>. Its name was odd, but <code>file</code> identified a Mach-O universal binary containing <code>arm64e</code> and <code>arm64e.x1</code> slices. Its SHA-256 matched the installed Apple Terminal executable byte for byte. The <a href="https://github.com/andrewarrow/TabDance/blob/045d83cdefd6dfbefcdcd416eaf16be355894290/analysis/manifest.json">analysis manifest</a> records that comparison and the commands used.</p>
+        <p>The first pass used macOS’s own inspection tools:</p>
+        <pre class="docs-code" tabindex="0" role="region" aria-label="Commands for inspecting the Terminal executable"><code>file term.bin.exe.mac
+dyld_info -arch arm64e -objc term.bin.exe.mac
+dyld_info -arch arm64e -disassemble term.bin.exe.mac</code></pre>
+        <p>Objective-C metadata was especially useful. It exposed class and method names that gave the assembly a readable outline: a shell object, an I/O manager, an encoding converter, a VT100 emulator, logical screen storage, and a view. The extraction found 107 classes and 2,488 method implementations. That is enough structure to trace specific operations without pretending we have the original source.</p>
+        <p>This is where “decompile Terminal” needs a qualification. So far, the work is static inspection, annotated disassembly, and manual reconstruction of selected paths. We haven’t recovered Apple’s original Objective-C, its comments, or its design intent. A name such as <code>clearAll:</code> is a lead to inspect, not a complete specification.</p>
+        <p>Apple’s <a href="https://support.apple.com/guide/terminal/keyboard-shortcuts-trmlshtcts/mac">shortcut guide</a> describes Command-K as clearing to the start. In the binary, the view has separate methods for clearing the screen, scrollback, and everything. Its <a href="https://github.com/andrewarrow/TabDance/blob/045d83cdefd6dfbefcdcd416eaf16be355894290/analysis/raw/dyld_disassembly.txt#L86570-L86594"><code>clearAll:</code> method</a> clears the selection and asks the logical screen to clear scrollback, within a begin/end content-change pair.</p>
+        <p>Following <a href="https://github.com/andrewarrow/TabDance/blob/045d83cdefd6dfbefcdcd416eaf16be355894290/analysis/raw/dyld_disassembly.txt#L79713-L79787">that logical-screen call</a> shows more than deleting a list of old lines. It shifts active line ranges, removes characters, truncates saved text and an offset cache, and marks rows dirty for drawing. This is local screen bookkeeping. There’s no shell write in the view’s <code>clearAll:</code> path.</p>
+        <p>I haven’t traced the menu wiring far enough to claim that this is the exact Command-K handler. What the inspection does establish is that Apple has an explicit operation coordinating selection, saved text, and active rows. That’s the level at which my clear–print–select habit needs a definition in TabDance.</p>
+
+        <h2 id="selection">Copy the text I selected</h2>
+        <p>A second problem is easier to show with five characters. Suppose a terminal application displays <code>hello</code>, I select it, and the application erases that row before I press Command-C. Should Copy read the current cells or the text I selected a moment ago?</p>
+        <p>My Rio fork <a href="https://github.com/andrewarrow/rio/commit/000772d4982c267b46d8a9cb322df349d8c071ac">stores a text snapshot when the selection changes</a>. The <a href="https://github.com/andrewarrow/rio/blob/3ccf378f97fa66d07f76408e5bee824d913abba5/frontends/rioterm/src/screen/mod.rs#L2013-L2028">copy path</a> uses that saved string before falling back to the live grid. The visible row can change without changing the text waiting to be copied.</p>
+
+        <figure class="article-figure">
+          <picture>
+            <source media="(max-width: 600px)" srcset="/images/blog/tabdance-terminal-feel/selection-snapshot-mobile.svg" width="390" height="675" />
+            <img src="/images/blog/tabdance-terminal-feel/selection-snapshot.svg" width="880" height="370" alt="Five selected cells spell hello. An erase-line sequence blanks the live cells, while a separate saved selection still contains hello and supplies that string to the clipboard." loading="lazy" decoding="async" />
+          </picture>
+          <figcaption>A schematic of the Rio fix. The copied string has a lifetime independent of the cells the application is redrawing.</figcaption>
+        </figure>
+
+        <p>The fork includes a <a href="https://github.com/andrewarrow/rio/blob/3ccf378f97fa66d07f76408e5bee824d913abba5/frontends/rioterm/src/context/mod.rs#L1966-L2004">regression test for this exact sequence</a>: write <code>hello</code>, select it, then feed carriage return and erase-line, <code>\r\x1b[2K</code>, into the parser. The terminal’s live selection disappears, while the saved string remains <code>hello</code>. Clearing the selection explicitly removes the snapshot. I inspected that test; I haven’t run the Rio suite as part of this investigation.</p>
+        <p>That last rule matters. A snapshot that survives redraw is useful. A snapshot that survives my explicit clear can copy something I meant to discard. Command-K and Command-C meet at the lifetime of the same selected text.</p>
+        <p>Paste has a different boundary. With <a href="https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Bracketed-Paste-Mode">bracketed paste</a>, a terminal wraps pasted text in start and end sequences so the receiving program can distinguish a paste from typing. Rio’s <a href="https://github.com/andrewarrow/rio/blob/3ccf378f97fa66d07f76408e5bee824d913abba5/frontends/rioterm/src/screen/mod.rs#L3938-L3985">paste implementation</a> takes that route when the program has enabled it; normal paste otherwise converts line endings to carriage returns. The shell and its line editor are part of the result. Comparing paste behavior means keeping those participants and their modes the same.</p>
+
+        <h2 id="typing">The round trip behind a typed character</h2>
+        <p>Typing was another thing that didn’t feel the same to me. The binary gives us a path to examine, but it hasn’t given us a latency result.</p>
+        <p>Apple Terminal starts its child through <a href="https://github.com/andrewarrow/TabDance/blob/045d83cdefd6dfbefcdcd416eaf16be355894290/analysis/raw/dyld_disassembly.txt#L55704-L55725"><code>forkpty</code></a>. A pseudoterminal, or PTY, gives the shell a terminal device while the application reads and writes the other end. A key event becomes bytes, those bytes reach the shell, and output returns to update the screen. Depending on the program and terminal settings, the echo comes from the terminal driver or the program.</p>
+
+        <figure class="article-figure">
+          <picture>
+            <source media="(max-width: 600px)" srcset="/images/blog/tabdance-terminal-feel/echo-roundtrip-mobile.svg" width="390" height="615" />
+            <img src="/images/blog/tabdance-terminal-feel/echo-roundtrip.svg" width="880" height="570" alt="Reconstructed Apple Terminal path: main-thread key encoding queues a write; the I/O thread writes to the PTY, reads returning output, and hands it to main-thread decoding, VT100 parsing, and drawing." loading="lazy" decoding="async" />
+          </picture>
+          <figcaption>Reconstructed from this executable’s disassembly. The arrows show handoffs, not measured durations; drawing is condensed into the final step.</figcaption>
+        </figure>
+
+        <p>The <a href="https://github.com/andrewarrow/TabDance/blob/045d83cdefd6dfbefcdcd416eaf16be355894290/analysis/raw/dyld_disassembly.txt#L9628-L10075">I/O thread</a> uses <code>kqueue</code>, handles buffered writes, and reads output in chunks. It schedules delivery back to the main thread. There, <a href="https://github.com/andrewarrow/TabDance/blob/045d83cdefd6dfbefcdcd416eaf16be355894290/analysis/raw/dyld_disassembly.txt#L27606-L27632"><code>shellDidReceiveData:</code></a> passes data through the encoding converter into the output decoder. In this path, parsing returns to the main thread rather than staying on the I/O thread.</p>
+        <p>The encoding layer also handles incomplete character data between reads. A read can end halfway through a UTF-8 character; the next chunk completes it. Then the VT100 decoder interprets cursor movement, erasure, and other control sequences to update the screen. The output is a stream of instructions as well as text, which is why the same parser can make a selected row disappear.</p>
+        <p>A high frame rate or fast dump of a large file wouldn’t tell me the whole time from a key event to the character I see. Queued writes, shell processing, delivery to the main thread, and the next draw all sit on that route. I need a controlled comparison with the same shell, prompt, window size, font, and workload before claiming that TabDance is faster—or that a particular Apple design choice explains my preference.</p>
+
+        <h2 id="first-build">Where TabDance is today</h2>
+        <p>The <a href="https://github.com/andrewarrow/TabDance/tree/045d83cdefd6dfbefcdcd416eaf16be355894290">first public snapshot</a> contains the inspection artifacts and a small native prototype. It uses Swift, AppKit, and <a href="https://github.com/migueldeicaza/SwiftTerm/tree/464df5207fc2432e16c9a23abe538187196daf5f">SwiftTerm 1.19.0</a> for terminal emulation and rendering. It launches a real login shell, supports selection and copy/paste, resizes the PTY, and opens multiple windows. The app bundle is still called <code>TerminalLab.app</code>.</p>
+        <p>Two local tests passed: one exercises a real PTY’s input, output, resize, and child cleanup; the other checks parser behavior for cursor positioning, color, and the alternate screen. The <a href="https://github.com/andrewarrow/TabDance/blob/045d83cdefd6dfbefcdcd416eaf16be355894290/prototype/README.md">build instructions and scope</a> are in the repository. Those checks establish a working base. Tabs, workspaces, and matching the clear–print–select behavior are still ahead of this prototype.</p>
+        <p>I’m starting the next comparison with a deliberately boring file:</p>
+        <pre class="docs-code" tabindex="0" role="region" aria-label="Create a three-line file for comparing clear and selection behavior"><code>printf 'alpha\nbeta\ngamma\n' &gt; /tmp/tabdance-selection.txt
+<span class="code-comment"># Press Command-K, then run:</span>
+cat /tmp/tabdance-selection.txt
+<span class="code-comment"># Press Command-A, Command-C, and inspect the pasted text.</span></code></pre>
+        <p>First I want to record exactly which text and surrounding newlines are copied in Apple Terminal, with a fixed prompt and window size. Then I want TabDance to produce the same result. After that come a wrapped line, a selection erased by a redraw, and a multiline paste. Those are small enough cases to make a disagreement visible.</p>
+        <p>Workspaces brought me to cmux and Rio. The reason to keep going with TabDance is the moment after Command-K when I can stop wondering what Command-A is about to select.</p>
+      </article>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.ts"></script>
+  </body>
+</html>

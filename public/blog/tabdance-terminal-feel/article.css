@@ -1,0 +1,24 @@
+.tabdance-article .rio-crop {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2.3;
+  overflow: hidden;
+  background: #000;
+}
+.tabdance-article .rio-crop img {
+  display: block;
+  width: 190%;
+  max-width: none;
+  height: auto;
+  transform: translate(-3%, -4%);
+}
+.tabdance-article .rio-crop:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 4px;
+}
+.tabdance-article code { overflow-wrap: anywhere; }
+.tabdance-article .docs-code code { overflow-wrap: normal; }
+@media (max-width: 600px) {
+  .tabdance-article .rio-crop { aspect-ratio: 1.3; }
+  .tabdance-article .rio-crop img { width: 300%; }
+}
