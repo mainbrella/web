@@ -73,6 +73,8 @@ export function siteChromePlugin(): Plugin {
     transformIndexHtml: {
       order: 'pre',
       async handler(html, context) {
+        // The public opt-out must show its confirmation without a cookie dialog.
+        if (/^\/unsubscribe\/(?:index\.html)?$/.test(context.path)) return html;
         if (html.includes('<!-- agent-setup -->')) {
           const setup = await readFile(new URL('../partials/agent-setup.html', import.meta.url), 'utf8');
           html = html.replace('<!-- agent-setup -->', setup)
