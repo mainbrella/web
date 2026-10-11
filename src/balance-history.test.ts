@@ -120,7 +120,7 @@ test('Storage and Git renders compact usage details, funded dates and signed inv
   assert.match(contents(f.node('#history-storage')), /18\.0000/);
   assert.match(contents(f.node('#history-storage')), /500 GB/);
   assert.match(contents(f.node('#history-storage')), /-\$1\.0000/);
-  assert.match(contents(f.node('#history-storage')), /Writes paused/);
+  assert.match(contents(f.node('#history-storage')), /Read-only/);
   assert.match(f.node('#history-storage-pricing').textContent, /0\.018\/GB-month/);
   f.changeAccount(null); await f.flush();
   assert.equal(f.node('#history-storage-section').hidden, true);
@@ -225,4 +225,28 @@ test('an expired history request clears cached account data before redirecting',
   assert.equal(f.node('#history-content').hidden, true);
   assert.equal(f.node('#history-resources').children.length, 0);
   assert.deepEqual(f.redirects, ['/login/?returnTo=%2Fbalance%2F']);
+});
+
+test('30-day retention warning shows its exact deadline, funding action and owner-scoped exports', async t => {
+  const f = await fixture(t);
+  const deadline = now + 30 * 86400000;
+  f.respond(() => Response.json(history({ storage: { month: '2026-10', maxBytes: 10000000000,
+    retention: { writesBlocked: true, deletionAt: deadline, warningDeliveredAt: now, expiredAt: null,
+      notice: `Your files are read-only. Download before ${new Date(deadline).toISOString()}.` },
+    pricing: { mode: 'charge', markupBps: 2000, chargeFrom: now - 86400000, retentionDays: 30, storageUsdPerGbMonth: 0.015, classAUsdPerMillion: 4.5, classBUsdPerMillion: 0.36 },
+    projects: [{ appId: 'example', name: 'Example app', storedBytes: 1000, sourceAssetsBytes: 500, historyBytes: 500,
+      chargedCents: 0, estimatedMonthlyCents: 0.01, cloudflareCents: 0, markupCents: 0, adjustmentCents: 0,
+      reads: 0, writes: 0, fundedThrough: now + 86400000, writesBlocked: true,
+      exportUrl: '/build/apps/example/repository', sourceExportUrl: '/build/apps/example/export' }] } })));
+  await f.node('#history-refresh').click(); await f.flush();
+  const warning = f.node('#history-storage-warning');
+  assert.equal(warning.hidden, false);
+  assert.match(contents(warning), new RegExp(new Date(deadline).toISOString().replace(/\./g, '\\.')));
+  assert.equal(warning.children.at(-1)!.href, '/pricing/');
+  const links = f.node('#history-storage').children[0].children[0].children.filter(child => child.href);
+  assert.equal(links.length, 2);
+  assert.ok(links[0].href.endsWith('/build/apps/example/repository'));
+  assert.ok(links[1].href.endsWith('/build/apps/example/export'));
+  f.changeAccount(null); await f.flush();
+  assert.equal(warning.hidden, true); assert.equal(warning.children.length, 0);
 });

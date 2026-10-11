@@ -367,3 +367,6 @@
 .build-model-options label:first-child select { flex: 1; }
 .build-current-model { margin: 0 0 8px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 @media (max-width: 480px) { .build-model-options { gap: 4px 8px; } .build-model-options label:first-child { flex-basis: 100%; } }
+
+.build-retention-warning { flex: none; margin: 8px 0; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.build-retention-warning a { text-decoration: underline; text-underline-offset: 3px; }

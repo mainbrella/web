@@ -20,3 +20,13 @@ test('storage shows decimal GB and validates signed invoice credits and configur
     (value: StorageBilling) => { value.projects[0].estimatedMonthlyCents = NaN; },
   ]) { const data = sample(); mutate(data); assert.throws(() => readStorageBilling(data)); }
 });
+
+test('30-day retention and download URLs validate without permitting external download destinations', () => {
+  const data = sample();
+  data.pricing.retentionDays = 30;
+  data.retention = { writesBlocked: true, deletionAt: Date.now() + 30 * 86400000, warningDeliveredAt: Date.now(), expiredAt: null, notice: 'Add funds or download before the deadline.' };
+  data.projects[0].exportUrl = `/build/apps/${data.projects[0].appId}/repository`;
+  assert.equal(readStorageBilling(data), data);
+  data.projects[0].exportUrl = 'https://example.com/download';
+  assert.throws(() => readStorageBilling(data), /storage_unavailable/);
+});

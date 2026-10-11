@@ -53,6 +53,7 @@
         <section id="history-storage-section" class="history-section" aria-labelledby="history-storage-label" hidden>
           <h2 id="history-storage-label">Storage and Git</h2>
           <p class="history-note">Storage continues to use your balance while files and Git history are retained, even when your app is stopped.</p>
+          <p id="history-storage-warning" class="history-note" role="status" hidden></p>
           <p id="history-storage-pricing" class="history-note"></p>
           <p id="history-storage-empty" class="dashboard-status" hidden>You have no retained project files.</p>
           <div id="history-storage-scroll" class="history-table-scroll" tabindex="0" role="region" aria-label="Storage and Git table">
@@ -62,7 +63,7 @@
               <tbody id="history-storage"></tbody>
             </table>
           </div>
-          <p class="history-note">Storage uses daily peaks. Estimates exclude shared free-tier and invoice rounding adjustments. Egress is free. If funding cannot renew, writes stop and exports remain available through the funded date; retained source and Git history are then deleted.</p>
+          <p class="history-note">Storage uses daily peaks. Estimates exclude shared free-tier and invoice rounding adjustments. Egress is free. Storage reserves 30 days of funding. If renewal fails, files become read-only. We notify you and give at least 30 days to add funds or download your files before deletion, with reminders seven days and one day before the deadline.</p>
         </section>
 
         <section class="history-section" aria-labelledby="history-resources-label">

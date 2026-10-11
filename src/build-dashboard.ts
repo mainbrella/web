@@ -92,6 +92,9 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   let mobileView: 'conversation' | 'preview' = 'conversation';
   const diagnostics = new Map<string, DiagnosticState>();
 
+  const retentionWarning = document.createElement('p');
+  retentionWarning.className = 'build-retention-warning'; retentionWarning.hidden = true; retentionWarning.setAttribute('role', 'status');
+  conversationScroll.before(retentionWarning);
   const heading = node<HTMLElement>('.build-workspace-heading');
   const header = document.querySelector<HTMLElement>('.app-header')!;
   const navigation = document.querySelector<HTMLElement>('.app-navigation')!;
@@ -149,20 +152,21 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
 
   function controls() {
     const locked = busy || disposed;
+    const readOnly = Boolean(selected?.retention?.writesBlocked || selected?.retention?.expiredAt);
     const active = apps.some(app => app.activeTurnId) || Boolean(selected?.activeTurnId);
     const available = config?.available && loaded && !active;
     create.disabled = locked || !available || !prompt.value.trim() || apps.length >= (config?.maxApps ?? 50);
-    send.disabled = locked || !available || !(selected || clarification) || !update.value.trim();
+    send.disabled = locked || readOnly || !available || !(selected || clarification) || !update.value.trim();
     create.setAttribute('aria-label', busy && !selected ? 'Starting build' : 'Start building');
     send.setAttribute('aria-label', busy ? 'Sending message' : 'Send message');
     for (const input of [prompt, update]) input.disabled = locked;
     name.disabled = locked || Boolean(clarification);
     for (const button of [...heading.querySelectorAll<HTMLButtonElement>('button'), ...host.querySelectorAll<HTMLButtonElement>('.build-draft-open, .build-draft-delete')]) button.disabled = locked;
     node<HTMLButtonElement>('#build-stop').disabled = locked || Boolean(selected?.activeTurnId);
-    node<HTMLButtonElement>('#build-start-preview').disabled = locked || !available;
-    node<HTMLButtonElement>('#build-resume').disabled = locked || !config?.available;
+    node<HTMLButtonElement>('#build-start-preview').disabled = locked || readOnly || !available;
+    node<HTMLButtonElement>('#build-resume').disabled = locked || readOnly || !config?.available;
     node<HTMLButtonElement>('#build-repository').hidden = !selected?.versionId;
-    for (const button of historyList.querySelectorAll<HTMLButtonElement>('[data-restore-version]')) button.disabled = locked || active || !config?.available;
+    for (const button of historyList.querySelectorAll<HTMLButtonElement>('[data-restore-version]')) button.disabled = locked || readOnly || active || !config?.available;
     for (const select of modelSelects) select.disabled = locked || !config?.models || modelSelects[0].options.length < 2;
     for (const select of effortSelects) select.disabled = locked || !config?.models || select.options.length < 2;
     retry.disabled = locked;
@@ -657,6 +661,12 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
     } else if (!selected?.versionId && app.versionId) sourceView.value = 'repository';
     sourceView.options[0].disabled = !app.versionId;
     selected = app; remember(app);
+    retentionWarning.replaceChildren(); retentionWarning.hidden = !app.retention?.notice;
+    if (app.retention?.notice) {
+      const text = document.createElement('span'); text.textContent = app.retention.notice + ' ';
+      const link = document.createElement('a'); link.href = '/balance/'; link.textContent = 'Storage and downloads';
+      retentionWarning.append(text, link);
+    }
     home.hidden = true; workspace.hidden = false;
     if (document.activeElement !== name) name.value = app.name;
     node<HTMLElement>('#build-revision').textContent = app.revision ? `Revision ${app.revision}` : 'New app';
@@ -1116,6 +1126,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   window.addEventListener('beforeunload', beforeUnload);
   document.addEventListener('visibilitychange', visibility);
   function dispose() {
+    retentionWarning.remove();
     disposed = true; version++; sourceVersion++; controller.abort(); clearTimeout(timer);
     disconnectStream(); optimistic = null;
     diagnostics.clear();

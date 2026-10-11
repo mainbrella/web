@@ -1,3 +1,4 @@
+import type { StorageRetention } from './storage-billing-data.ts';
 import { API_ORIGIN } from './api-origin.ts';
 
 export type BuildActivity = { id: string; type: 'message' | 'tool'; text: string; status: 'proposed' | 'running' | 'skipped' | 'blocked' | 'succeeded' | 'failed' | 'unknown'; explanation?: string | null };
@@ -29,7 +30,7 @@ export type BuildTurn = {
 };
 export type BuildApp = {
   id: string; name: string; prompt: string; revision: number; activeTurnId: string | null;
-  versionId?: string | null; verifiedVersionId?: string | null;
+  versionId?: string | null; verifiedVersionId?: string | null; retention?: StorageRetention;
   container: { id: string; createdAt: string; expiresAt: string } | null;
   preview: { id: string; url: string; expiresAt: number } | null;
   createdAt: string; updatedAt: string; turns?: BuildTurn[];
@@ -57,6 +58,11 @@ export function buildErrorMessage(code: string, details?: string | null): string
     build_operation_reconciliation_required: 'An operation has an unknown result. Execution stopped so it can be inspected safely.',
     build_journal_unavailable: 'Required operation records could not be saved. Execution stopped; your saved source is retained.',
     build_usage_storage_unavailable: 'Provider usage could not be saved. Execution stopped; accounting can retry independently.',
+    storage_funding_required: 'Storage funding could not be renewed. Add balance or download your files before the deletion deadline.',
+    storage_rate_limited: 'Too many requests. Wait one minute and try again.',
+    storage_stream_busy: 'Too many live views are open. Close another Build tab and try again.',
+    storage_export_busy: 'Two downloads are already running. Finish or cancel one before starting another.',
+    build_git_file_limit: 'A repository file exceeds the 25 MiB limit.',
     build_model_unpriced: 'Build is unavailable right now. Please try again shortly.',
     build_unavailable: 'Build is unavailable right now. Please try again shortly.',
     build_busy: 'Another build is running in your account. Wait for it to finish.',

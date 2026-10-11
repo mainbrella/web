@@ -75,6 +75,8 @@ function clearSnapshot() {
   fundingRows.replaceChildren();
   document.querySelector<HTMLElement>('#history-storage-section')!.hidden = true;
   document.querySelector<HTMLElement>('#history-storage')!.replaceChildren();
+  document.querySelector<HTMLElement>('#history-storage-warning')!.hidden = true;
+  document.querySelector<HTMLElement>('#history-storage-warning')!.replaceChildren();
   resourceTable.hidden = true;
   fundingTable.hidden = true;
   resourceScroll.hidden = true;
@@ -248,7 +250,15 @@ function storageRow(project: StorageProject, mode: StorageBilling['pricing']['mo
     const group = element('div'); group.append(element('dt', undefined, label), element('dd', undefined, value)); list.append(group);
   }
   details.append(list); identity.append(details);
-  if (project.writesBlocked) identity.append(element('span', 'history-resource-meta', 'Writes paused — export before the funded date'));
+  if (project.writesBlocked) identity.append(element('span', 'history-resource-meta', 'Read-only — see the deletion deadline above'));
+  if (project.storedBytes > 0) {
+    for (const [path, label] of [[project.exportUrl, 'Download Git repository'], [project.sourceExportUrl, 'Download source ZIP']]) {
+      if (!path) continue;
+      const link = element('a', 'history-resource-meta', label);
+      link.href = `${API_ORIGIN}${path}`;
+      identity.append(link);
+    }
+  }
   row.append(identity, element('td', 'history-number', formatStorageBytes(project.storedBytes)),
     element('td', 'history-number', formatRuntimeCost(project.chargedCents)), element('td', 'history-number', formatRuntimeCost(project.estimatedMonthlyCents)));
   return row;
@@ -257,6 +267,16 @@ function storageRow(project: StorageProject, mode: StorageBilling['pricing']['mo
 function renderStorage(data: BalanceHistory) {
   const storage = data.storage;
   document.querySelector<HTMLElement>('#history-storage-section')!.hidden = !storage || storage.pricing.mode === 'off';
+  const warning = document.querySelector<HTMLElement>('#history-storage-warning')!;
+  warning.replaceChildren();
+  warning.hidden = !storage?.retention?.notice;
+  if (storage?.retention?.notice) {
+    warning.append(element('span', undefined, storage.retention.notice));
+    if (storage.retention.writesBlocked) {
+      const link = element('a', 'text-link', 'Add balance'); link.href = '/pricing/';
+      warning.append(element('span', undefined, ' '), link);
+    }
+  }
   if (!storage) return;
   const pricing = storage.pricing, multiplier = 1 + pricing.markupBps / 10000;
   const timing = pricing.mode === 'meter' ? 'Metering only; no storage deductions yet.'
