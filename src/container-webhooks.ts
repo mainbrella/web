@@ -1,8 +1,8 @@
-import type { ContainerIdentity, ClientOptions } from './types.ts';
+import type { ContainerIdentity, ClientOptions } from './container-types.ts';
 interface WebhookConfig extends ContainerIdentity { url: string; configuredAt: string; retainUntil: number }
 interface WebhookDelivery { id: string; status: string; attempts: number; manualRetries: number }
 type WebhookResult<M, S> = S extends '/deliveries' ? WebhookDelivery[] : S extends '/retry' ? WebhookDelivery : M extends 'DELETE' ? { removed: true } : M extends 'PUT' ? { config: WebhookConfig; signingSecret: string } : { config: WebhookConfig | null };
-import { API_ORIGIN } from './auth.ts';
+import { API_ORIGIN } from './platform.ts';
 const uuid = (value: unknown) => typeof value === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(value);
 export function webhookConfig(input: unknown, container: ContainerIdentity) {
   const value = input as { webhook: WebhookConfig | null } | null;

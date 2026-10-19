@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { mkdtemp } from 'node:fs/promises';
 
-const root = fileURLToPath(new URL('../', import.meta.url));
+const root = fileURLToPath(new URL('..', import.meta.url));
 const args = process.argv.slice(2);
 let check = false, backend = join(root, '../backend');
 while (args.length) {

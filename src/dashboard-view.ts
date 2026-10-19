@@ -1,4 +1,4 @@
-import type { Container, ContainerData, MachineSize } from './types.ts';
+import type { Container, ContainerData, MachineSize } from './container-types.ts';
 
 export type Lifecycle = 'ad_hoc' | 'production';
 export function dashboardView(search: string) {

@@ -36,7 +36,7 @@
           </picture>
         </figure>
 
-        <p>Consider a Python job that reads data from another container and writes <code>metrics.csv</code>. We’ll call the script <code>analysis.py</code> and its slot <code>c17</code>. This example follows our <a href="https://github.com/mainbrella/backend">backend</a> at <a href="https://github.com/mainbrella/backend/commit/6e5bef3">the October 7, 2026 revision</a>. The <a href="/API.md">API reference</a> and <a href="/SKILL.md">agent workflow</a> cover the request formats.</p>
+        <p>Consider a Python job that reads data from another container and writes <code>metrics.csv</code>. We’ll call the script <code>analysis.py</code> and its slot <code>c17</code>. This example follows our <a href="https://github.com/mainbrella/backend">backend</a> at <a href="https://github.com/mainbrella/canopy/commit/6e5bef3">the October 7, 2026 revision</a>. The <a href="/API.md">API reference</a> and <a href="/SKILL.md">agent workflow</a> cover the request formats.</p>
 
         <h2 id="admission">Reserve the slot before booting</h2>
         <p>Before that job can run, its account has to get a slot. Suppose two requests arrive with one slot left. If both read “one available,” boot, and update the counter afterward, both win. Discovering the conflict after you’ve started paying for it is too late.</p>

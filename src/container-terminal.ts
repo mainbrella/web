@@ -1,7 +1,7 @@
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
-import { API_ORIGIN } from './auth.ts';
+import { API_ORIGIN } from './platform.ts';
 
 const MAX_RECONNECTS = 5;
 const encoder = new TextEncoder();

@@ -1,4 +1,4 @@
-import type { ClientOptions, ContainerIdentity, Container } from './types.ts';
+import type { ClientOptions, ContainerIdentity, Container } from './container-types.ts';
 interface PreviewGrant extends ContainerIdentity { port: number; expiresAt: number; url?: string }
 type PreviewMethod = 'GET' | 'POST' | 'DELETE';
 type PreviewResult<M> = M extends 'GET' ? PreviewGrant[] : M extends 'POST' ? PreviewGrant : { revoked: true };
@@ -8,7 +8,7 @@ interface PreviewState {
   create: HTMLButtonElement; refresh: HTMLButtonElement; rows: HTMLUListElement; message: HTMLParagraphElement; error: HTMLParagraphElement;
   grants: PreviewGrant[]; known: boolean; busy: boolean; running: boolean; pending: string | null;
 }
-import { API_ORIGIN } from './auth.ts';
+import { API_ORIGIN } from './platform.ts';
 
 const validId = (value: unknown): value is string => typeof value === 'string' && /^[a-f0-9]{32}$/.test(value);
 export const validPreviewPort = (port: unknown): port is number => typeof port === "number" && Number.isInteger(port) && port >= 1024 && port <= 65535;

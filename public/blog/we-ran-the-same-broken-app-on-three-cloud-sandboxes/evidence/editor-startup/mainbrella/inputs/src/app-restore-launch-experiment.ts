@@ -15,7 +15,7 @@ import type { Execution, Sandbox } from './providers/interface.ts';
 
 // A separate readiness qualification of the article's pinned application. The
 // matched repair protocol and its historical process observations stay intact.
-const repository = fileURLToPath(new URL('../', import.meta.url));
+const repository = fileURLToPath(new URL('..', import.meta.url));
 const { values } = parseArgs({ options: { output: { type: 'string' }, source: { type: 'string' } } });
 assert.ok(values.output && values.source, 'Use --output <new-directory> --source <web-checkout>');
 assert.equal(process.versions.node, '22.22.2');

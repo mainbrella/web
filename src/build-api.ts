@@ -1,5 +1,3 @@
-import type { StorageRetention } from './storage-billing-data.ts';
-import { API_ORIGIN } from './api-origin.ts';
 
 export type BuildActivity = { id: string; type: 'message' | 'tool'; text: string; status: 'proposed' | 'running' | 'skipped' | 'blocked' | 'succeeded' | 'failed' | 'unknown'; explanation?: string | null };
 export type BuildImage = { id: string; toolId: string; label: string; path: string };
@@ -30,7 +28,7 @@ export type BuildTurn = {
 };
 export type BuildApp = {
   id: string; name: string; prompt: string; revision: number; activeTurnId: string | null;
-  versionId?: string | null; verifiedVersionId?: string | null; github?: BuildGitHub | null; retention?: StorageRetention;
+  versionId?: string | null; verifiedVersionId?: string | null; github?: BuildGitHub | null; retention?: { writesBlocked: boolean; deletionAt: number | null; notice: string | null; warningDeliveredAt: number | null; expiredAt: number | null };
   container: { id: string; createdAt: string; expiresAt: string } | null;
   preview: { id: string; url: string; expiresAt: number } | null;
   createdAt: string; updatedAt: string; turns?: BuildTurn[];
@@ -123,11 +121,11 @@ export function safeBuildPreviewURL(value: string): string | null {
   } catch { /* Invalid server URL. */ }
   return null;
 }
-export function createBuildClient(onUnauthenticated: () => void, signal?: AbortSignal) {
+export function createBuildClient(apiOrigin: string, onUnauthenticated: () => void, signal?: AbortSignal) {
   async function request<T>(path: string, method = 'GET', body?: unknown, key?: string): Promise<T> {
     let response: Response;
     try {
-      response = await fetch(`${API_ORIGIN}/build${path}`, { method, credentials: 'include', redirect: 'error', signal,
+      response = await fetch(`${apiOrigin}/build${path}`, { method, credentials: 'include', redirect: 'error', signal,
         headers: { Accept: 'application/json', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(key ? { 'Idempotency-Key': key } : {}) },
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
     } catch (error) {
@@ -143,7 +141,7 @@ export function createBuildClient(onUnauthenticated: () => void, signal?: AbortS
   const appPath = (id: string) => `/apps/${encodeURIComponent(id)}`;
   const fileURL = (id: string, path: string, versionId?: string | null) => {
     const query = new URLSearchParams({ path }); if (versionId) query.set('versionId', versionId);
-    return `${API_ORIGIN}/build${appPath(id)}/file?${query}`;
+    return `${apiOrigin}/build${appPath(id)}/file?${query}`;
   };
   return {
     config: () => request<BuildConfig>('/config'),
@@ -172,9 +170,9 @@ export function createBuildClient(onUnauthenticated: () => void, signal?: AbortS
     restore: (app: BuildApp, versionId: string, key: string) => request<{ app: BuildApp }>(`${appPath(app.id)}/restore`, 'POST', { versionId, revision: app.revision }, key),
     diagnostics: (appId: string, turnId: string) => request<BuildDiagnostics>(`${appPath(appId)}/turns/${encodeURIComponent(turnId)}/diagnostics`),
     imageURL: (appId: string, imageId: string) => /^[a-f0-9-]{36}$/.test(appId) && /^[a-f0-9-]{36}$/.test(imageId)
-      ? `${API_ORIGIN}/build${appPath(appId)}/images/${imageId}` : null,
+      ? `${apiOrigin}/build${appPath(appId)}/images/${imageId}` : null,
     watch(id: string, onApp: (app: BuildApp) => void, onDisconnect: () => void) {
-      const events = new EventSource(`${API_ORIGIN}/build${appPath(id)}/events`, { withCredentials: true });
+      const events = new EventSource(`${apiOrigin}/build${appPath(id)}/events`, { withCredentials: true });
       const stop = () => { events.close(); signal?.removeEventListener('abort', stop); };
       events.addEventListener('app', event => {
         if (signal?.aborted) return;
@@ -191,7 +189,7 @@ export function createBuildClient(onUnauthenticated: () => void, signal?: AbortS
     },
     async export(id: string, repository = false): Promise<Blob> {
       let response: Response;
-      try { response = await fetch(`${API_ORIGIN}/build${appPath(id)}/${repository ? 'repository' : 'export'}`, { credentials: 'include', redirect: 'error', signal }); }
+      try { response = await fetch(`${apiOrigin}/build${appPath(id)}/${repository ? 'repository' : 'export'}`, { credentials: 'include', redirect: 'error', signal }); }
       catch (error) { if (signal?.aborted) throw error; throw new BuildAPIError('network'); }
       if (response.status === 401) onUnauthenticated();
       if (!response.ok) {

@@ -40,7 +40,7 @@ export function buildProgressText(turn: BuildTurn | undefined): string {
   return turn.stage === 'Editing and checking' ? 'Working on your app…' : turn.stage || 'Starting build…';
 }
 
-export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated: () => void }) {
+export function createBuildDashboard({ apiOrigin, onUnauthenticated }: { apiOrigin: string; onUnauthenticated: () => void }) {
   const host = document.querySelector<HTMLElement>('#dashboard-build')!;
   const node = <T extends HTMLElement>(selector: string) => (host.querySelector<T>(selector) ?? document.querySelector<T>(selector))!;
   const home = node<HTMLElement>('#build-home');
@@ -74,7 +74,7 @@ export function createBuildDashboard({ onUnauthenticated }: { onUnauthenticated:
   const togglePreview = node<HTMLButtonElement>('#build-toggle-preview');
   const mobile = window.matchMedia('(max-width: 900px)');
   const controller = new AbortController();
-  const client = createBuildClient(() => { dispose(); onUnauthenticated(); }, controller.signal);
+  const client = createBuildClient(apiOrigin, () => { dispose(); onUnauthenticated(); }, controller.signal);
   const sourceBrowser = createBuildSourceBrowser(node<HTMLElement>('#build-code-panel'), client, reportError);
   const modelSelects = ['create', 'update'].map(id => node<HTMLSelectElement>(`#build-${id}-model`));
   const effortSelects = ['create', 'update'].map(id => node<HTMLSelectElement>(`#build-${id}-effort`));

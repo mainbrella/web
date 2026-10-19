@@ -16,8 +16,8 @@ const shared = globalThis as typeof globalThis & {
 registerHooks({ resolve(specifier, context, next) {
   const mocks: Record<string, string> = {
     './auth.ts': "export const API_ORIGIN='https://api.test';export const createAuthClient=()=>({readSession:()=>globalThis.dashboardSession()});",
-    './containers-dashboard.ts': 'export const createContainersDashboard=options=>{globalThis.dashboardContainerOptions=options;return{load(){globalThis.dashboardLoads++},dispose(){globalThis.dashboardDisposals++},setImages(){},selectImage(){}}}',
-    './images-dashboard.ts': 'export const createImagesDashboard=()=>({load(){},dispose(){globalThis.dashboardDisposals++}});',
+    './linux-view.ts': 'export const createContainersDashboard=options=>{globalThis.dashboardContainerOptions=options;return{load(){globalThis.dashboardLoads++},dispose(){globalThis.dashboardDisposals++},setImages(){},selectImage(){}}};export const createImagesDashboard=()=>({load(){},dispose(){globalThis.dashboardDisposals++}});',
+    './linux.ts': 'export {};',
     './overview-feed.ts': 'export const createOverviewFeed=()=>({load(){globalThis.dashboardOverviewLoads++},dispose(){globalThis.dashboardOverviewDisposals++}});',
     './build-dashboard.ts': 'export const createBuildDashboard=()=>({load(id){globalThis.dashboardBuildLoads.push(id)},dispose(){globalThis.dashboardBuildDisposals++}});',
     './acquisition-analytics.ts': 'export const trackFunnel=()=>{};',

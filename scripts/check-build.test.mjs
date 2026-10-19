@@ -51,9 +51,24 @@ test('site code pages can share syntax grammars without bundling the Builder wor
     'projects/code/index.html': { file: 'assets/code.js', isEntry: true, dynamicImports: ['node_modules/@shikijs/langs/dist/cpp.mjs'] },
     'node_modules/@shikijs/langs/dist/cpp.mjs': { file: 'assets/cpp.js' },
   };
-  const directory = await artifact(t, manifest, ['assets/dashboard.js', 'assets/code.js', 'assets/cpp.js']);
+  const directory = await artifact(t, manifest, ['index.html', 'login/index.html', 'dashboard/index.html', 'projects/code/index.html', 'assets/dashboard.js', 'assets/code.js', 'assets/cpp.js']);
+  for (const page of ['index.html', 'login/index.html', 'dashboard/index.html', 'projects/code/index.html']) await writeFile(join(directory, page), '<html><body>Page</body></html>');
   await checkBuild('site', directory);
   manifest['src/build-dashboard.ts'] = { file: 'assets/build-dashboard.js' };
   await writeFile(join(directory, '.vite/manifest.json'), JSON.stringify(manifest));
   await assert.rejects(checkBuild('site', directory), /builder workspace/);
+});
+
+test('site checks reject missing route HTML even if the manifest and JavaScript remain', async t => {
+  const manifest = { 'dashboard/index.html': { file: 'assets/dashboard.js', isEntry: true } };
+  const directory = await artifact(t, manifest, ['index.html', 'login/index.html', 'assets/dashboard.js']);
+  for (const page of ['index.html', 'login/index.html']) await writeFile(join(directory, page), '<html><body>Page</body></html>');
+  await assert.rejects(checkBuild('site', directory), /dashboard\/index.html/);
+});
+
+test('site checks reject HTML referring to chunks from a different build', async t => {
+  const manifest = { 'dashboard/index.html': { file: 'assets/dashboard.js', isEntry: true } };
+  const directory = await artifact(t, manifest, ['index.html', 'login/index.html', 'dashboard/index.html', 'assets/dashboard.js']);
+  for (const page of ['index.html', 'login/index.html', 'dashboard/index.html']) await writeFile(join(directory, page), '<html><script src="/assets/old.js"></script></html>');
+  await assert.rejects(checkBuild('site', directory), /assets\/old.js/);
 });

@@ -1,5 +1,5 @@
-import type { ClientOptions, Container, ContainerIdentity, PersistenceCapabilities, RestoreLaunch } from './types.ts';
-import { API_ORIGIN } from './auth.ts';
+import type { ClientOptions, Container, ContainerIdentity, PersistenceCapabilities, RestoreLaunch } from './container-types.ts';
+import { API_ORIGIN } from './platform.ts';
 import { createWorkspaceJournal, type WorkspaceJournal, type WorkspaceOperation } from './workspace-operations.ts';
 
 interface Workspace {

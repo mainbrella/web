@@ -2,6 +2,8 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://mainbrella.com/</loc></url>
   <url><loc>https://mainbrella.com/voice/</loc></url>
+  <url><loc>https://mainbrella.com/vibe/</loc></url>
+  <url><loc>https://mainbrella.com/bff/</loc></url>
   <url><loc>https://mainbrella.com/pricing/</loc></url>
   <url><loc>https://mainbrella.com/about/</loc></url>
   <url><loc>https://mainbrella.com/press/</loc></url>
@@ -29,10 +31,12 @@
   <url><loc>https://mainbrella.com/trust/</loc></url>
   <url><loc>https://mainbrella.com/subprocessors/</loc></url>
   <url><loc>https://mainbrella.com/blog/</loc></url>
+  <url><loc>https://mainbrella.com/blog/row-level-security-in-sqlite-on-cloudflare/</loc></url>
   <url><loc>https://mainbrella.com/blog/the-cloudflare-appstore-appflare-malware-audit/</loc></url>
   <url><loc>https://mainbrella.com/blog/many-businesses-in-a-box-under-this-brella/</loc></url>
   <url><loc>https://mainbrella.com/blog/automate-your-call-center/</loc></url>
   <url><loc>https://mainbrella.com/blog/app-store-connect-to-parsequerade/</loc></url>
+  <url><loc>https://mainbrella.com/blog/what-a-difference-search-images-make/</loc></url>
   <url><loc>https://mainbrella.com/blog/ios-app-review-new-assets/</loc></url>
   <url><loc>https://mainbrella.com/blog/apples-app-store-connect-api-facelift/</loc></url>
   <url><loc>https://mainbrella.com/blog/we-ran-the-same-broken-app-on-three-cloud-sandboxes/</loc></url>

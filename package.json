@@ -1,40 +1,50 @@
 {
-  "name": "foo-web",
+  "name": "mainbrella-web",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:local": "vite --mode local-api",
     "build": "npm run build:site && npm run build:builder",
     "build:site": "npm run type-check && vite build && node scripts/check-build.mjs site",
     "build:builder": "npm run type-check:builder && vite build --config vite.builder.config.ts && node scripts/check-build.mjs builder",
+    "build:site:staging": "npm run type-check && vite build --mode staging && node scripts/check-build.mjs site",
+    "build:builder:staging": "npm run type-check:builder && vite build --config vite.builder.config.ts --mode staging && node scripts/check-build.mjs builder",
+    "build:staging": "npm run build:site:staging && npm run build:builder:staging",
     "preview": "wrangler dev",
     "preview:builder": "wrangler dev --config wrangler.builder.jsonc --port 8788 --persist-to .wrangler/builder",
-    "deploy": "npm run deploy:builder && npm run deploy:site",
-    "deploy:site": "npm run build:site && wrangler deploy",
+    "deploy": "node scripts/deploy.mjs",
+    "deploy:site": "node scripts/deploy-site.mjs",
     "deploy:builder": "npm run build:builder && wrangler deploy --config wrangler.builder.jsonc",
     "deploy:redirect": "wrangler deploy --config wrangler.redirect.jsonc",
-    "test": "tsx --test src/*.test.ts scripts/*.test.mjs",
+    "test": "tsx --test src/*.test.ts src/bff/*.test.ts scripts/*.test.mjs examples/message-board/src/*.test.ts examples/message-board/src/*.test.tsx",
     "docs:sync": "node scripts/sync-agent-docs.mjs",
     "docs:check": "node scripts/sync-agent-docs.mjs --check",
     "acquisition:link": "node scripts/acquisition-link.mjs",
     "doctor": "node scripts/mainbrella-doctor.mjs",
     "verify:agent": "node scripts/mainbrella-verify.mjs",
     "type-check": "tsc --noEmit",
-    "type-check:builder": "tsc --noEmit -p tsconfig.builder.json"
+    "type-check:builder": "tsc --noEmit -p tsconfig.builder.json",
+    "dev:message-board": "vite examples/message-board --config examples/message-board/vite.config.ts",
+    "build:message-board": "npm run type-check && vite build examples/message-board --config examples/message-board/vite.config.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vite": "^7.1.4",
-    "wrangler": "^4.128.0"
+    "wrangler": "^4.128.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0"
   },
   "dependencies": {
-    "@cloudflare/voice": "^0.5.0",
     "@stripe/stripe-js": "^9.17.0",
+    "yaml": "^2.9.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "@cloudflare/voice": "^0.5.0",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
-    "shiki": "^4.5.0",
-    "yaml": "^2.9.1"
+    "shiki": "^4.5.0"
   }
 }

@@ -1,4 +1,4 @@
-interface ApiKey { id: string; name: string; prefix: string; created_at: string; last_used_at?: string }
+interface ApiKey { id: string; name: string; prefix: string; scope?: 'account' | 'bff'; created_at: string; last_used_at?: string }
 
 import { API_ORIGIN, createAuthClient } from './auth.ts';
 
@@ -21,6 +21,7 @@ const copyStatus = document.querySelector<HTMLElement>('#key-copy-status')!;
 let keys: ApiKey[] = [];
 let busy = false;
 let disposed = false;
+const accountKeyCount = () => keys.filter(key => key.scope !== 'bff').length;
 
 function clearSecret() {
   token.value = '';
@@ -37,7 +38,7 @@ function goToLogin() {
 
 function controls() {
   name.disabled = busy || disposed;
-  create.disabled = busy || disposed || keys.length >= 20 || !secret.hidden;
+  create.disabled = busy || disposed || accountKeyCount() >= 20 || !secret.hidden;
   retry.disabled = busy || disposed;
   list.querySelectorAll<HTMLButtonElement>('button').forEach(button => { button.disabled = busy || disposed; });
   main.setAttribute('aria-busy', String(busy));
@@ -57,7 +58,7 @@ async function request(method = 'GET', id?: string) {
   }
   const data = await response.json().catch(() => null);
   if (!response.ok || !data) throw new Error(data?.error === 'api_key_limit'
-    ? 'You can have up to 20 keys. Revoke an unused key before creating another.'
+    ? 'You can have up to 20 account keys. Revoke an unused account key before creating another.'
     : method === 'POST' ? 'Could not create the key. Please try again.'
     : method === 'DELETE' ? 'Could not revoke the key. Please try again.'
     : 'Could not load your API keys. Please try again.');
@@ -75,7 +76,7 @@ function render() {
     title.textContent = key.name;
     const metadata = document.createElement('p');
     metadata.className = 'dashboard-status key-metadata';
-    metadata.textContent = `${key.prefix}… · Created ${new Date(key.created_at).toLocaleDateString()} · ${key.last_used_at ? `Last used ${new Date(key.last_used_at).toLocaleDateString()}` : 'Never used'}`;
+    metadata.textContent = `${key.scope === 'bff' ? 'BFF browser' : 'Account'} · ${key.prefix}… · Created ${new Date(key.created_at).toLocaleDateString()} · ${key.last_used_at ? `Last used ${new Date(key.last_used_at).toLocaleDateString()}` : 'Never used'}`;
     details.append(title, metadata);
     const revoke = document.createElement('button');
     revoke.className = 'dashboard-retry key-revoke';
@@ -146,7 +147,7 @@ async function load() {
 
 form.addEventListener('submit', async event => {
   event.preventDefault();
-  if (busy || disposed || !secret.hidden || keys.length >= 20) return;
+  if (busy || disposed || !secret.hidden || accountKeyCount() >= 20) return;
   if (!name.value.trim()) { name.setCustomValidity('Enter a name for this key.'); name.reportValidity(); return; }
   busy = true;
   error.hidden = true;

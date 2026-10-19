@@ -59,10 +59,10 @@ test('every page entry includes one working consent dialog before tracking can l
   const hook = siteChromePlugin().transformIndexHtml;
   assert.ok(hook && typeof hook === 'object' && 'handler' in hook);
   const pluginContext = {} as ThisParameterType<typeof hook.handler>;
-  const inputs = config.build?.rollupOptions?.input as Record<string, string>;
+  const inputs = config({ command: 'build', mode: 'production' }).build?.rollupOptions?.input as Record<string, string>;
   assert.ok(Object.keys(inputs).length > 0);
   for (const filename of [...Object.values(inputs), builderConfig.build?.rollupOptions?.input as string]) {
-    const path = '/' + filename.slice(new URL('../', import.meta.url).pathname.length);
+    const path = '/' + filename.slice(new URL('..', import.meta.url).pathname.length);
     const html: unknown = await hook.handler.call(pluginContext, await readFile(filename, 'utf8'), { path, filename });
     assert.equal(typeof html, 'string');
     if (typeof html !== 'string') throw new Error('Expected rendered HTML');
@@ -75,14 +75,15 @@ test('every page entry includes one working consent dialog before tracking can l
     assert.match(html, /src="\/src\/acquisition\.ts"/, path);
     assert.match(html, /data-consent="accepted"/, path);
     assert.match(html, /data-consent="rejected"/, path);
-    if (path.startsWith('/blog/')) {
+    const optionalConsent = path.startsWith('/blog/') || ['/bff/', '/bff/index.html', '/bff/demo/', '/bff/demo/index.html'].includes(path);
+    if (optionalConsent) {
       assert.match(html, /data-consent-prompt="optional"/, path);
       assert.match(html, /data-cookie-settings[^>]*>Cookie settings<\/button>/, path);
       assert.match(html, /data-cookie-close/, path);
     }
 
     const first = visit({ html });
-    assert.equal(first.dialog.open, !path.startsWith('/blog/'), path);
+    assert.equal(first.dialog.open, !optionalConsent, path);
     assert.deepEqual(first.scripts, [], path);
     assert.deepEqual(first.cookieWrites, [], path);
     if (!first.dialog.open) first.reopen();
@@ -222,10 +223,11 @@ test('importing payment code does not inject Stripe before checkout opens', asyn
   }
   // Vite supports package directory imports; resolve the same real package for Node.
   const require = createRequire(import.meta.url);
+  const stripePureUrl = pathToFileURL(require.resolve('@stripe/stripe-js/pure')).href;
   const hooks = registerHooks({
     resolve(specifier, context, next) {
       if (specifier === '@stripe/stripe-js/pure') {
-        return { url: pathToFileURL(require.resolve(specifier)).href, shortCircuit: true };
+        return { url: stripePureUrl, shortCircuit: true };
       }
       return next(specifier, context);
     },

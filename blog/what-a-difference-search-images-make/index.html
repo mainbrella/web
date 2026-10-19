@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Apple's new search artwork gives an app a different presence beside the usual screenshots. Three examples, made in DeployerCoaster with Codex and uploaded through Parsequerade." />
+    <meta name="theme-color" content="#181a1b" />
+    <link rel="canonical" href="https://mainbrella.com/blog/what-a-difference-search-images-make/" />
+    <meta property="og:title" content="What a difference search images make" />
+    <meta property="og:description" content="PrintsCharming, Cash Every Week, and Aorta Know in App Store search, plus the path from a creative brief in DeployerCoaster to a verified placement through Parsequerade." />
+    <meta property="og:url" content="https://mainbrella.com/blog/what-a-difference-search-images-make/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:image" content="https://mainbrella.com/images/blog/what-a-difference-search-images-make/printscharming.webp" />
+    <meta property="og:image:width" content="3424" />
+    <meta property="og:image:height" content="1836" />
+    <meta property="og:image:alt" content="App Store web search results for PrintsCharming: its landscape artwork shows a phone, printer, and printed photos beside other apps' portrait screenshots." />
+    <meta property="article:published_time" content="2026-10-16T00:00:00-07:00" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <link rel="stylesheet" href="/blog/inside-our-brella/article.css" />
+    <link rel="stylesheet" href="/blog/what-a-difference-search-images-make/article.css" />
+    <title>What a difference search images make</title>
+  </head>
+  <body class="info-body brella-article-page">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap inside-brella search-images-article">
+      <article>
+        <a class="article-back" href="/blog/">← Engineering blog</a>
+        <h1>What a difference search images make</h1>
+        <p class="article-meta"><time datetime="2026-10-16">October 16, 2026</time> · Andrew Arrow</p>
+
+        <p>Look at PrintsCharming beside the other photo-printing apps in this search. A phone, a printer, and a few photos on a table fill its result. The apps next to it have the familiar three narrow screenshots, complete with phone frames and little headlines. PrintsCharming gets one whole scene.</p>
+        <figure class="article-figure">
+          <a class="search-capture" href="/images/blog/what-a-difference-search-images-make/printscharming.webp" aria-label="Open the full App Store search screenshot for PrintsCharming">
+            <img src="/images/blog/what-a-difference-search-images-make/printscharming-2048.webp" width="2048" height="1098" alt="PrintsCharming's search result uses one landscape scene with its character, a phone, a printer, and printed photos. The full capture also shows neighboring apps using three portrait screenshots." decoding="async" fetchpriority="high" />
+          </a>
+        </figure>
+        <p>That scene does a useful job before anyone opens the product page. You can see the idea: get photos off your phone and onto paper. There's room for the app's name and character, too. The neighboring screenshots have more detail, but you have to start reading them.</p>
+
+        <h2 id="search-artwork">What Apple added on October 5</h2>
+        <p>Apple's <a href="https://developer.apple.com/help/app-store-connect/release-notes/">October 5, 2026 App Store Connect update</a> introduced creative assets for product page headers, search results, and in-app events. Its new Asset Library puts those assets together with previews and screenshots, with live previews of how they'll appear on the product page and in search.</p>
+        <p>Search is the placement that caught my attention. An app gets a chance to establish a recognizable look while someone is still choosing which result to open. You can compose an image for that moment instead of asking three miniature screens to explain everything.</p>
+        <p>Cash Every Week takes a much simpler approach than PrintsCharming. Its gold C and receipt-filled green pockets occupy almost the whole image. Beside Ibotta's pink screenshot sequence, it's easy to pick out. There isn't even a headline to read.</p>
+        <figure class="article-figure">
+          <a class="search-capture" href="/images/blog/what-a-difference-search-images-make/cash-every-week.webp" aria-label="Open the full App Store search screenshot for Cash Every Week">
+            <img src="/images/blog/what-a-difference-search-images-make/cash-every-week-2048.webp" width="2048" height="1098" alt="Cash Every Week's search image shows a large gold C above three green pockets holding receipts. The full capture includes Ibotta and other results with portrait screenshots." decoding="async" loading="lazy" />
+          </a>
+        </figure>
+        <p>These captures are from name searches on the App Store's website. I haven't measured whether the artwork changes downloads or ranking, but the difference in presentation is enough to make me want these assets on my listings. A small app can have a clear visual identity beside a much more established one. Open any image to see the full search page.</p>
+
+        <h2 id="codex">Making the images inside DeployerCoaster</h2>
+        <p>The images were made through <a href="https://github.com/andrewarrow/DeployerCoaster/tree/cdac78310d4292f640f9764a354f1eaf6bdb492d/studio">DeployerCoaster Studio</a>, my desktop app for managing apps and deployments. The <a href="https://github.com/andrewarrow/DeployerCoaster/commit/f5a07760ed12a806537915d74ff0181f54d07f5d">October 15 image-generation change</a> added a brief and a “Generate and upload search” button to an empty search placement. The selected app, version, and language are already known, so I don't have to paste that context into a separate conversation.</p>
+        <p>Studio starts <code>codex app-server</code> as a local process and talks to it over stdin and stdout using newline-delimited JSON-RPC messages. This is the <a href="https://learn.chatgpt.com/docs/app-server">Codex App Server protocol</a>. Studio checks the account and can open the ChatGPT browser sign-in flow; image jobs reuse that login. It then uses <code>thread/start</code> and <code>turn/start</code> to send the work, while streaming activity and assistant messages back into its UI.</p>
+        <p>The <a href="https://github.com/andrewarrow/DeployerCoaster/blob/cdac78310d4292f640f9764a354f1eaf6bdb492d/studio/src/ios_images.rs">image request</a> invokes the imagegen skill and asks for original artwork. It includes the brief, app name, bundle ID, and the selected locale's existing description, along with an output path and exact dimensions. Studio uses these two PNG sizes:</p>
+        <div class="image-sizes">
+          <table>
+            <thead><tr><th scope="col">Placement</th><th scope="col">PNG dimensions</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Search results</th><td>1920 × 1280 px</td></tr>
+              <tr><th scope="row">Product page header</th><td>3840 × 1646 px</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Those are the sizes this workflow chooses from <a href="https://developer.apple.com/help/app-store-connect/reference/app-information/creative-assets-specifications/">Apple's supported image specifications</a>. Apple also accepts larger 3:2 search images and JPEGs, and requires images without transparency. A header needs its own composition; stretching the search image into that much wider space would be a lousy shortcut.</p>
+        <p>Aorta Know shows why the brief matters as much as the plumbing. Its search artwork has a watch, a cup of coffee, and warm morning light, with “Get to know your patterns.” It's a quieter introduction than either the photo printer or the gold C. The same upload workflow can carry all three without forcing them into the same visual template.</p>
+        <figure class="article-figure search-single">
+          <a class="search-capture" href="/images/blog/what-a-difference-search-images-make/aorta-know.webp" aria-label="Open the full App Store search screenshot for Aorta Know">
+            <img src="/images/blog/what-a-difference-search-images-make/aorta-know-2048.webp" width="2048" height="1098" alt="Aorta Know's search result shows a person wearing a watch at a sunlit breakfast table, beside a coffee cup, with the words Get to know your patterns." decoding="async" loading="lazy" />
+          </a>
+        </figure>
+
+        <h2 id="parsequerade">Getting the PNG onto the right listing</h2>
+        <p>Making a file is only part of the job. The request also tells Codex to use <a href="https://github.com/mainbrella/parsequerade/blob/3ce6236271385534e5b471f7a0bc4d75955691c2/sdks/rust/examples/upload_listing_image.rs">Parsequerade's Rust upload example</a> to put that PNG in the app's Asset Library and attach it to the selected version localization. Search artwork uses Apple's <code>APP_STORE_SEARCH_RESULTS_ASSET</code> placement type; headers use <code>PRODUCT_PAGE_HEADER_ASSET</code>.</p>
+        <p>This has moved on since <a href="/blog/apples-app-store-connect-api-facelift/">the facade article</a> and <a href="/blog/app-store-connect-to-parsequerade/">the Studio migration post</a>, which described the hosted service and its missing writes. Studio now uses Parsequerade's local Rust SDK. The SDK keeps the flat resource interface and handles Apple's signing and resource lookups locally, calling App Store Connect directly. The image upload doesn't go through the hosted Worker.</p>
+        <p>The <a href="https://github.com/mainbrella/parsequerade/blob/3ce6236271385534e5b471f7a0bc4d75955691c2/sdks/rust/src/upload.rs">uploader</a> has several jobs beyond sending the bytes:</p>
+        <ol class="upload-steps">
+          <li>Validate the PNG, resolve the exact app/version/locale, and check for an existing placement. Read Apple's live asset catalog to find a compatible placement group.</li>
+          <li>Reserve an image in the app's Asset Library, transfer the byte ranges Apple requests, then mark the upload complete.</li>
+          <li>Create the placement linking that image to the selected localization and placement type.</li>
+          <li>Read the placement back and write a receipt containing the app, version, locale, image ID, and placement ID.</li>
+        </ol>
+        <p>Studio checks the PNG's format and dimensions and matches that receipt to the original request. It then reloads the media and checks that the image and placement appear there before displaying “Image uploaded.” A cheerful final message from the agent doesn't establish that the listing changed.</p>
+        <p>The uploader also saves a checkpoint before each Apple write. If a reply disappears, the next attempt keeps the same PNG and checkpoint and checks what Apple accepted. It won't blindly reserve another image or create another placement. An uncertain reservation without an image ID needs manual reconciliation; a retry can't wish that missing ID into existence. Existing artwork is preserved, and this generation flow doesn't submit an app release. Uploading and attaching an asset are separate from Apple's review and its appearance in the store.</p>
+
+        <p>What I like about the result is how much an app can say before the product page opens. PrintsCharming shows photos becoming prints. Aorta Know suggests a daily routine. Cash Every Week makes its gold C hard to miss. Studio and Parsequerade handle getting those choices onto the correct listing. I can spend more time deciding what someone should understand before they tap.</p>
+      </article>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.ts"></script>
+  </body>
+</html>

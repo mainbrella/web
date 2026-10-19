@@ -1,9 +1,10 @@
+import './linux.ts';
 import { dashboardView } from './dashboard-view.ts';
 import type { ContainerData } from './types.ts';
 import { readPrepaidBalance } from './prepaid-billing.ts';
 import { createOverviewFeed } from './overview-feed.ts';
-import { createImagesDashboard } from './images-dashboard.ts';
-import { createContainersDashboard } from './containers-dashboard.ts';
+import { createImagesDashboard } from './linux-view.ts';
+import { createContainersDashboard } from './linux-view.ts';
 import { initializeAccountPage } from './account-page.ts';
 import { legacyBuildURL } from './build-route.ts';
 

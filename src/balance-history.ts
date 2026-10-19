@@ -128,7 +128,10 @@ function renderSummary(data: BalanceHistory) {
     ? `${activeCount} allocated ${activeCount === 1 ? 'resource is' : 'resources are'} consuming ${formatBalance(data.currentHourlyCents)}/hour.`
     : 'No containers are currently consuming balance.');
   if (data.totals.inferenceUsedCents) {
-    document.querySelector<HTMLElement>('#history-activity')!.append(` Build AI has consumed ${formatRuntimeCost(data.totals.inferenceUsedCents)}.`);
+    document.querySelector<HTMLElement>('#history-activity')!.append(` AI and voice have consumed ${formatRuntimeCost(data.totals.inferenceUsedCents)}.`);
+  }
+  for (const usage of data.productUsage ?? []) {
+    if (usage.usedCents) document.querySelector<HTMLElement>('#history-activity')!.append(` ${usage.product === 'email' ? 'Email' : usage.product} has consumed ${formatRuntimeCost(usage.usedCents)}.`);
   }
   if (data.totals.storageUsedCents) document.querySelector<HTMLElement>('#history-activity')!.append(` Storage and Git have consumed ${formatRuntimeCost(data.totals.storageUsedCents)}.`);
 

@@ -146,8 +146,11 @@ test('static server actually serves bytes, redirects, HEAD and MIME while reject
   await writeFile(join(site, 'app.js'), 'console.log(1)');
   await writeFile(join(work, 'secret'), 'private'); await symlink(join(work, 'secret'), join(site, 'link'));
   const server = join(work, 'server.cjs');
-  await writeFile(server, serverSource.replace(".listen(Number(process.argv[3]), '0.0.0.0');", ".listen(0, '127.0.0.1', function(){console.log(this.address().port)});"));
-  const child = spawn(process.execPath, [server, site], { stdio: ['ignore', 'pipe', 'pipe'] });
+  // Print the port as text so forced terminal colors cannot decorate the number.
+  await writeFile(server, serverSource.replace(".listen(Number(process.argv[3]), '0.0.0.0');", ".listen(0, '127.0.0.1', function(){console.log(String(this.address().port))});"));
+  const child = spawn(process.execPath, [server, site], {
+    stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, FORCE_COLOR: '1' },
+  });
   t.after(async () => { child.kill(); if (child.exitCode === null) await once(child, 'exit'); });
   const [output] = await once(child.stdout, 'data');
   const base = `http://127.0.0.1:${Number(output.toString().trim())}`;

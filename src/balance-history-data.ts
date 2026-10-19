@@ -27,7 +27,8 @@ export interface BalanceFunding {
 export interface BalanceHistory {
   asOf: number;
   balance: PrepaidBalance;
-  totals: { fundedCents: number; revokedCents: number; usedCents: number; unattributedUsedCents: number; inferenceUsedCents?: number; storageUsedCents?: number };
+  totals: { fundedCents: number; revokedCents: number; usedCents: number; unattributedUsedCents: number; inferenceUsedCents?: number; storageUsedCents?: number; usageUsedCents?: number };
+  productUsage?: { product: string; usedCents: number }[];
   storage?: StorageBilling;
   currentHourlyCents: number;
   activeResources: BalanceResource[];
@@ -51,13 +52,16 @@ export function readBalanceHistory(value: unknown): BalanceHistory {
   const data = value as BalanceHistory;
   readPrepaidBalance(data.balance);
   if (data.storage !== undefined) readStorageBilling(data.storage);
+  if (data.productUsage !== undefined && (!Array.isArray(data.productUsage) || data.productUsage.some(row => !row || typeof row.product !== 'string' || !/^[a-z][a-z0-9_-]{0,31}$/.test(row.product) || !nonnegative(row.usedCents))
+    || new Set(data.productUsage.map(row => row.product)).size !== data.productUsage.length
+    || Math.abs(data.productUsage.reduce((sum, row) => sum + row.usedCents, 0) - (data.totals?.usageUsedCents ?? 0)) > 1e-7)) return invalid();
   if (!timestamp(data.asOf) || !data.totals || !Object.values(data.totals).every(nonnegative)
     || !cents(data.totals.fundedCents) || !cents(data.totals.revokedCents)
     || !nonnegative(data.totals.usedCents) || !nonnegative(data.totals.unattributedUsedCents)
     || data.totals.inferenceUsedCents !== undefined && (!nonnegative(data.totals.inferenceUsedCents) || data.totals.inferenceUsedCents + data.totals.unattributedUsedCents > data.totals.usedCents + 1e-7)
     || data.totals.revokedCents > data.totals.fundedCents
     || data.totals.unattributedUsedCents > data.totals.usedCents + 1e-7
-    || (data.totals.inferenceUsedCents ?? 0) + (data.totals.storageUsedCents ?? 0) + data.totals.unattributedUsedCents > data.totals.usedCents + 1e-7
+    || (data.totals.inferenceUsedCents ?? 0) + (data.totals.storageUsedCents ?? 0) + (data.totals.usageUsedCents ?? 0) + data.totals.unattributedUsedCents > data.totals.usedCents + 1e-7
     || !nonnegative(data.currentHourlyCents) || typeof data.historyTruncated !== 'boolean'
     || !cents(data.retainedResourceLimit) || data.retainedResourceLimit < 1
     || !cursor(data.nextResourceCursor) || !cursor(data.nextFundingCursor)) return invalid();

@@ -23,7 +23,7 @@ test('build submissions send cookies, stable retry keys and the exact base revis
   t.mock.method(globalThis, 'fetch', async (url: string, options: RequestInit) => {
     requests.push({ url, options }); return Response.json({ app });
   });
-  const client = createBuildClient(() => assert.fail('authenticated request'));
+  const client = createBuildClient('http://localhost:8787', () => assert.fail('authenticated request'));
   await client.create('An expense tracker', 'create-key');
   await client.turn(app, 'Add CSV export', 'change-key');
   await client.turn(app, 'Add CSV export', 'change-key');
@@ -40,7 +40,7 @@ test('build submissions send cookies, stable retry keys and the exact base revis
 });
 
 test('funding and revision errors retain their public codes and human-readable recovery', async t => {
-  const client = createBuildClient(() => {});
+  const client = createBuildClient('http://localhost:8787', () => {});
   for (const [status, error] of [[402, 'subscription_required'], [409, 'revision_conflict']] as const) {
     t.mock.method(globalThis, 'fetch', async () => Response.json({ error }, { status }));
     await assert.rejects(client.turn(app, 'Add charts', 'key'), cause =>
@@ -82,7 +82,7 @@ test('failed builds include the actual command output with its line breaks', () 
 });
 
 test('action and export errors preserve backend messages, details and unfamiliar codes', async t => {
-  const client = createBuildClient(() => {});
+  const client = createBuildClient('http://localhost:8787', () => {});
   const details = 'src/App.tsx: Missing export\nCheck the import on line 12.';
   t.mock.method(globalThis, 'fetch', async () => Response.json({ error: 'provider_rate_limited', message: 'The model returned HTTP 429.', details }, { status: 429 }));
   for (const request of [() => client.create('An app', 'retry-key'), () => client.export(app.id)]) {
@@ -96,7 +96,7 @@ test('action and export errors preserve backend messages, details and unfamiliar
 });
 
 test('missing or malformed error responses retain a readable fallback', async t => {
-  const client = createBuildClient(() => {});
+  const client = createBuildClient('http://localhost:8787', () => {});
   for (const response of [new Response('Bad gateway', { status: 502 }), Response.json({ error: {}, message: 123, details: [] }, { status: 503 })]) {
     t.mock.method(globalThis, 'fetch', async () => response.clone());
     for (const request of [() => client.list(), () => client.export(app.id)]) {
@@ -109,7 +109,7 @@ test('missing or malformed error responses retain a readable fallback', async t 
 test('session expiry is reported for source reads and ZIP downloads', async t => {
   let signedOut = 0;
   t.mock.method(globalThis, 'fetch', async () => Response.json({ error: 'not_authenticated' }, { status: 401 }));
-  const client = createBuildClient(() => { signedOut++; });
+  const client = createBuildClient('http://localhost:8787', () => { signedOut++; });
   await assert.rejects(client.source(app.id), BuildAPIError);
   await assert.rejects(client.export(app.id), BuildAPIError);
   assert.equal(signedOut, 2);
@@ -121,7 +121,7 @@ test('repository browsing lists metadata and fetches one authenticated file with
     calls.push({ url, options });
     return url.includes('/files') ? Response.json({ revision: 3, version: null, files: [{ path: 'src/App.tsx', size: 5, type: 'text' }] }) : new Response('hello');
   });
-  const client = createBuildClient(() => assert.fail('authenticated request'));
+  const client = createBuildClient('http://localhost:8787', () => assert.fail('authenticated request'));
   assert.equal((await client.files(app.id, versionId)).files[0].path, 'src/App.tsx');
   assert.equal(await client.fileText(app.id, 'src/App.tsx', versionId), 'hello');
   assert.equal(calls.length, 2);
@@ -130,18 +130,18 @@ test('repository browsing lists metadata and fetches one authenticated file with
   for (const { options } of calls) { assert.equal(options.credentials, 'include'); assert.equal(options.redirect, 'error'); }
   let expired = 0;
   t.mock.method(globalThis, 'fetch', async () => Response.json({ error: 'not_authenticated' }, { status: 401 }));
-  await assert.rejects(createBuildClient(() => expired++).fileText(app.id, 'src/App.tsx'), BuildAPIError);
+  await assert.rejects(createBuildClient('http://localhost:8787', () => expired++).fileText(app.id, 'src/App.tsx'), BuildAPIError);
   assert.equal(expired, 1);
 });
 
 test('network failure and cancellation remain distinguishable without discarding the submission', async t => {
   t.mock.method(globalThis, 'fetch', async () => { throw new TypeError('Failed to fetch'); });
-  await assert.rejects(createBuildClient(() => {}).create('An app', 'retry-key'), cause =>
+  await assert.rejects(createBuildClient('http://localhost:8787', () => {}).create('An app', 'retry-key'), cause =>
     cause instanceof BuildAPIError && cause.code === 'network');
   const controller = new AbortController(); controller.abort();
   const cancelled = new DOMException('Request aborted', 'AbortError');
   t.mock.method(globalThis, 'fetch', async () => { throw cancelled; });
-  const client = createBuildClient(() => {}, controller.signal);
+  const client = createBuildClient('http://localhost:8787', () => {}, controller.signal);
   await assert.rejects(client.list(), error => error === cancelled);
   await assert.rejects(client.export(app.id), error => error === cancelled);
 });
@@ -149,7 +149,7 @@ test('network failure and cancellation remain distinguishable without discarding
 test('source export preserves binary ZIP bytes and reports API failures', async t => {
   const bytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0, 255]);
   t.mock.method(globalThis, 'fetch', async () => new Response(bytes, { headers: { 'Content-Type': 'application/zip' } }));
-  const client = createBuildClient(() => {});
+  const client = createBuildClient('http://localhost:8787', () => {});
   assert.deepEqual(new Uint8Array(await (await client.export(app.id)).arrayBuffer()), bytes);
   t.mock.method(globalThis, 'fetch', async () => Response.json({ error: 'app_not_found' }, { status: 404 }));
   await assert.rejects(client.export(app.id), cause => cause instanceof BuildAPIError && cause.code === 'app_not_found');
@@ -162,7 +162,7 @@ test('diagnostics reads the authenticated turn journal and preserves API errors 
   t.mock.method(globalThis, 'fetch', async (url: string, options: RequestInit) => {
     requests.push({ url, options }); return Response.json(diagnostics);
   });
-  const client = createBuildClient(() => assert.fail('no session expiry'), controller.signal);
+  const client = createBuildClient('http://localhost:8787', () => assert.fail('no session expiry'), controller.signal);
   assert.deepEqual(await client.diagnostics(appId, turnId), diagnostics);
   assert.equal(requests[0].url, `http://localhost:8787/build/apps/${appId}/turns/${turnId}/diagnostics`);
   assert.equal(requests[0].options.credentials, 'include');
@@ -170,7 +170,7 @@ test('diagnostics reads the authenticated turn journal and preserves API errors 
 
   let signedOut = 0;
   t.mock.method(globalThis, 'fetch', async () => Response.json({ error: 'not_authenticated' }, { status: 401 }));
-  await assert.rejects(createBuildClient(() => { signedOut++; }).diagnostics(appId, turnId), cause => cause instanceof BuildAPIError && cause.code === 'not_authenticated');
+  await assert.rejects(createBuildClient('http://localhost:8787', () => { signedOut++; }).diagnostics(appId, turnId), cause => cause instanceof BuildAPIError && cause.code === 'not_authenticated');
   assert.equal(signedOut, 1);
   t.mock.method(globalThis, 'fetch', async () => Response.json({ error: 'turn_not_found' }, { status: 404 }));
   await assert.rejects(client.diagnostics(appId, turnId), cause => cause instanceof BuildAPIError && cause.code === 'turn_not_found');
@@ -196,7 +196,7 @@ test('live progress uses the authenticated app stream and closes on cancellation
   t.after(() => { if (descriptor) Object.defineProperty(globalThis, 'EventSource', descriptor); else Reflect.deleteProperty(globalThis, 'EventSource'); });
   const controller = new AbortController(), received: BuildApp[] = [];
   let disconnected = 0;
-  const client = createBuildClient(() => assert.fail('no extra submission'), controller.signal);
+  const client = createBuildClient('http://localhost:8787', () => assert.fail('no extra submission'), controller.signal);
   const stop = client.watch(app.id, value => received.push(value), () => { disconnected++; });
   const events = Events.instances[0];
   assert.equal(events.url, `http://localhost:8787/build/apps/${app.id}/events`);
@@ -208,11 +208,11 @@ test('live progress uses the authenticated app stream and closes on cancellation
   events.app({ app: { ...app, turns: [] } });
   assert.equal(received.length, 1); assert.equal(disconnected, 0);
   stop();
-  const active = createBuildClient(() => {}).watch(app.id, value => received.push(value), () => { disconnected++; });
+  const active = createBuildClient('http://localhost:8787', () => {}).watch(app.id, value => received.push(value), () => { disconnected++; });
   Events.instances[1].app({ app: { ...app, id: 'wrong-app', turns: [] } });
   assert.equal(received.length, 1); assert.equal(disconnected, 1); assert.equal(Events.instances[1].closed, true);
   active();
-  createBuildClient(() => {}).watch(app.id, () => {}, () => { disconnected++; });
+  createBuildClient('http://localhost:8787', () => {}).watch(app.id, () => {}, () => { disconnected++; });
   Events.instances[2].onerror?.();
   assert.equal(disconnected, 2); assert.equal(Events.instances[2].closed, true);
 });
@@ -223,7 +223,7 @@ test('model and effort are carried on paid build requests but not preview reques
   t.mock.method(globalThis, 'fetch', async (_url: string, options: RequestInit) => {
     bodies.push(JSON.parse(options.body as string)); return Response.json({ app });
   });
-  const client = createBuildClient(() => {}), settings = { model: '@cf/zai-org/glm-5.3', effort: 'max' };
+  const client = createBuildClient('http://localhost:8787', () => {}), settings = { model: '@cf/zai-org/glm-5.3', effort: 'max' };
   await client.create('A tracker', 'new', settings);
   await client.turn(app, 'Add charts', 'change', settings);
   await client.preview(app, 'preview');

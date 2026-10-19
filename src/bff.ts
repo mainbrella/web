@@ -1,0 +1,1 @@
+import './bff/landing.ts';

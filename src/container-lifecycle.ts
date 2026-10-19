@@ -1,5 +1,5 @@
-import { API_ORIGIN } from './auth.ts';
-import type { ClientOptions, Container, ContainerData, ContainerIdentity, PersistenceCapabilities } from './types.ts';
+import { API_ORIGIN } from './platform.ts';
+import type { ClientOptions, Container, ContainerData, ContainerIdentity, PersistenceCapabilities } from './container-types.ts';
 
 export type ContainerAction = 'stop' | 'resume' | 'fork';
 

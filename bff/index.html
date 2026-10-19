@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#050d18" />
+    <title>BFF · Everything behind your app · Mainbrella</title>
+    <meta name="description" content="Meet Mainbrella BFF: a Cloudflare-native backend for your frontend. SQLite, authentication, storage, realtime, and JavaScript functions through one SDK. Explore the product preview." />
+    <link rel="canonical" href="https://mainbrella.com/bff/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Mainbrella" />
+    <meta property="og:url" content="https://mainbrella.com/bff/" />
+    <meta property="og:title" content="BFF · Everything behind your app" />
+    <meta property="og:description" content="SQLite. JavaScript. One backend for your frontend. Explore the Mainbrella BFF product preview." />
+    <meta property="og:image" content="https://mainbrella.com/images/home-umbrella.webp" />
+    <meta property="og:image:alt" content="Mainbrella’s blue umbrella over cloud infrastructure" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+  </head>
+  <body class="bff-page">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main">
+      <section class="bff-hero" aria-labelledby="bff-title">
+        <div class="bff-container bff-hero-layout">
+          <div class="bff-hero-copy">
+            <p class="bff-product-name"><span class="bff-wordmark">bff<span aria-hidden="true">.</span></span><span>Backend for frontend</span></p>
+            <h1 id="bff-title">Everything behind<br />your app.<br /><span>Nothing to deploy.</span></h1>
+            <p class="bff-hero-description">Your database, auth, storage, and backend logic. Together in one developer-friendly platform, built on Cloudflare.</p>
+            <div class="bff-actions">
+              <a class="bff-button" href="/bff/demo">Try Demo App <span aria-hidden="true">↗</span></a>
+              <a class="bff-text-link" href="#early-access">Get early access <span aria-hidden="true">↗</span></a>
+            </div>
+            <p class="bff-preview-note"><span aria-hidden="true"></span>In development · Get a first look</p>
+          </div>
+          <figure class="bff-architecture">
+            <svg viewBox="0 0 580 520" width="580" height="520" role="img" aria-labelledby="bff-diagram-title bff-diagram-description">
+              <title id="bff-diagram-title">One backend, connected</title>
+              <desc id="bff-diagram-description">Web, iOS, and Android apps connect to BFF. A Worker handles authentication, permissions, and functions, with D1 for SQLite data, R2 for files, and Durable Objects for live state. Proposed platform architecture.</desc>
+              <defs>
+                <pattern id="bff-grid" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#29405a" /></pattern>
+                <linearGradient id="bff-plane" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0f2d49" /><stop offset="1" stop-color="#081420" /></linearGradient>
+              </defs>
+              <rect width="580" height="520" fill="url(#bff-grid)" opacity=".55" />
+              <g fill="none" stroke="#2e5374" stroke-width="1.5">
+                <path d="M290 102V167M290 341V382H100V404M290 382V404M290 382H480V404" />
+                <path class="bff-signal" d="M290 102V167M290 341V382H100V404M290 382V404M290 382H480V404" stroke="#5cbcff" stroke-dasharray="5 110" />
+              </g>
+              <g fill="#081420" stroke="#2b4157"><rect x="184" y="35" width="212" height="67" rx="12" /></g>
+              <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif" text-anchor="middle">
+                <text x="290" y="63" fill="#e9f3ff" font-size="16" font-weight="500">Your app</text>
+                <text x="290" y="85" fill="#9bafc3" font-size="12">Web · iOS · Android</text>
+              </g>
+              <path d="M113 203L290 142L467 203V316L290 377L113 316Z" fill="#07101b" stroke="#213a51" />
+              <path d="M113 190L290 129L467 190V303L290 364L113 303Z" fill="#0b1a2b" stroke="#325877" />
+              <path d="M113 190L290 251L467 190M290 251V364" fill="none" stroke="#325877" />
+              <path d="M113 177L290 116L467 177V285L290 346L113 285Z" fill="url(#bff-plane)" stroke="#4986b2" />
+              <path d="M113 177L290 238L467 177" fill="none" stroke="#4986b2" opacity=".5" />
+              <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif" text-anchor="middle">
+                <text x="290" y="234" fill="#f1f8ff" font-size="94" font-weight="700" letter-spacing="-3">bff<tspan fill="#55b9ff">.</tspan></text>
+                <text x="290" y="271" fill="#bad7ed" font-size="13">Auth · Permissions · Functions</text>
+                <text x="290" y="300" fill="#74b2de" font-size="10" letter-spacing="2">CLOUDFLARE WORKERS</text>
+              </g>
+              <g fill="#0a1726" stroke="#2c4964"><rect x="19" y="404" width="162" height="84" rx="10" /><rect x="209" y="404" width="162" height="84" rx="10" /><rect x="399" y="404" width="162" height="84" rx="10" /></g>
+              <g fill="none" stroke="#69baff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="43" cy="429" rx="8" ry="3" /><path d="M35 429V443C35 447 51 447 51 443V429M35 436C35 440 51 440 51 436" />
+                <path d="M227 429H235L238 433H247V446H227ZM227 434H247" />
+                <path d="M422 429L416 438L422 447M434 429L440 438L434 447M429 427L425 449" />
+              </g>
+              <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif" fill="#e6f1fd" font-size="14" font-weight="500"><text x="64" y="441">Database</text><text x="260" y="441">Storage</text><text x="454" y="441">Live state</text></g>
+              <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif" fill="#98aec2" font-size="12"><text x="35" y="470">D1 / SQLite</text><text x="227" y="470">R2 object storage</text><text x="416" y="470">Durable Objects</text></g>
+              <g fill="#7ecaff"><circle cx="290" cy="111" r="3" /><circle cx="100" cy="404" r="3" /><circle cx="290" cy="404" r="3" /><circle cx="480" cy="404" r="3" /></g>
+            </svg>
+            <figcaption>One SDK. One project. All the pieces connected.</figcaption>
+          </figure>
+        </div>
+        <div class="bff-container bff-foundation"><p>Cloudflare underneath. <span>Your app on top.</span></p><ul aria-label="Platform foundations"><li>SQLite</li><li>JavaScript</li><li>Serverless</li><li>Built for the edge</li></ul></div>
+      </section>
+
+      <section class="bff-section" id="developer-experience" aria-labelledby="bff-sdk-title">
+        <div class="bff-container bff-sdk-layout">
+          <div class="bff-section-copy" data-bff-reveal>
+            <p class="bff-section-label">A familiar way to build</p>
+            <h2 id="bff-sdk-title">Less plumbing.<br /><span>More product.</span></h2>
+            <p>One client for the things every app needs. Query your data, sign in a user, or call a function without stitching services together.</p>
+            <a class="bff-text-link" href="#capabilities">Explore the platform <span aria-hidden="true">↓</span></a>
+          </div>
+          <div class="bff-code-example" data-bff-reveal>
+            <div class="bff-code-toolbar"><span><span class="bff-file-icon" aria-hidden="true">{ }</span> your-app.ts</span><span>SDK preview</span></div>
+            <div class="bff-code-tabs" data-bff-tabs hidden aria-label="SDK examples">
+              <button type="button" id="bff-tab-database" data-bff-example="database" aria-controls="bff-example-database">Database</button>
+              <button type="button" id="bff-tab-auth" data-bff-example="auth" aria-controls="bff-example-auth">Auth</button>
+              <button type="button" id="bff-tab-storage" data-bff-example="storage" aria-controls="bff-example-storage">Storage</button>
+              <button type="button" id="bff-tab-functions" data-bff-example="functions" aria-controls="bff-example-functions">Functions</button>
+            </div>
+            <div class="bff-code-panel" id="bff-example-database" data-bff-panel="database">
+              <pre><code><span class="bff-code-comment">// Your whole backend starts here.</span>
+<span class="bff-code-keyword">const</span> app = <span class="bff-code-function">createClient</span>(PROJECT_URL, PUBLIC_KEY);
+
+<span class="bff-code-comment">// Your data. Your users’ permissions.</span>
+<span class="bff-code-keyword">const</span> posts = <span class="bff-code-keyword">await</span> app.<span class="bff-code-function">from</span>(<span class="bff-code-string">"posts"</span>)
+  .<span class="bff-code-function">select</span>(<span class="bff-code-string">"id, title, published"</span>)
+  .<span class="bff-code-function">eq</span>(<span class="bff-code-string">"published"</span>, <span class="bff-code-keyword">true</span>);</code></pre>
+              <p class="bff-code-caption">SQL you know. Row permissions applied by the backend.</p>
+            </div>
+            <div class="bff-code-panel" id="bff-example-auth" data-bff-panel="auth" hidden>
+              <pre><code><span class="bff-code-keyword">const</span> app = <span class="bff-code-function">createClient</span>(PROJECT_URL, PUBLIC_KEY);
+
+<span class="bff-code-comment">// A familiar sign-in flow.</span>
+<span class="bff-code-keyword">await</span> app.auth.<span class="bff-code-function">signInWithOAuth</span>({
+  provider: <span class="bff-code-string">"apple"</span>
+});
+
+<span class="bff-code-keyword">const</span> user = <span class="bff-code-keyword">await</span> app.auth.<span class="bff-code-function">getUser</span>();</code></pre>
+              <p class="bff-code-caption">Identity travels with every authenticated request.</p>
+            </div>
+            <div class="bff-code-panel" id="bff-example-storage" data-bff-panel="storage" hidden>
+              <pre><code><span class="bff-code-keyword">const</span> app = <span class="bff-code-function">createClient</span>(PROJECT_URL, PUBLIC_KEY);
+
+<span class="bff-code-comment">// Give your app a place for its files.</span>
+<span class="bff-code-keyword">await</span> app.<span class="bff-code-function">storage</span>(<span class="bff-code-string">"photos"</span>)
+  .<span class="bff-code-function">upload</span>(<span class="bff-code-string">"hello.jpg"</span>, file);
+
+<span class="bff-code-keyword">const</span> url = <span class="bff-code-keyword">await</span> app.<span class="bff-code-function">storage</span>(<span class="bff-code-string">"photos"</span>)
+  .<span class="bff-code-function">createSignedUrl</span>(<span class="bff-code-string">"hello.jpg"</span>);</code></pre>
+              <p class="bff-code-caption">R2-backed files, with access controlled by your project.</p>
+            </div>
+            <div class="bff-code-panel" id="bff-example-functions" data-bff-panel="functions" hidden>
+              <pre><code><span class="bff-code-keyword">const</span> app = <span class="bff-code-function">createClient</span>(PROJECT_URL, PUBLIC_KEY);
+
+<span class="bff-code-comment">// Your backend logic. Plain JavaScript.</span>
+<span class="bff-code-keyword">const</span> post = <span class="bff-code-keyword">await</span> app.<span class="bff-code-function">rpc</span>(<span class="bff-code-string">"publishPost"</span>, {
+  postId: <span class="bff-code-string">"post_123"</span>
+});
+
+console.<span class="bff-code-function">log</span>(post.title);</code></pre>
+              <p class="bff-code-caption">Project-scoped functions for the logic that belongs on the server.</p>
+            </div>
+            <div class="bff-code-footnote"><p>Illustrative API · SDK in development</p><button type="button" class="bff-copy" data-bff-copy hidden>Copy example</button><span class="bff-sr-only" data-bff-copy-status role="status"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="bff-section bff-capabilities" id="capabilities" aria-labelledby="bff-features-title">
+        <div class="bff-container">
+          <div class="bff-section-heading" data-bff-reveal><div><p class="bff-section-label">The platform we’re building</p><h2 id="bff-features-title">The backend essentials.<br /><span>Already thought through.</span></h2></div><p>Start with a solid foundation. Grow into live experiences, background work, and smarter applications.</p></div>
+          <div class="bff-feature-list">
+            <article data-bff-reveal><span class="bff-feature-number" aria-hidden="true">01 /</span><div><h3>A real relational database</h3><p>SQLite tables, relationships, indexes, and a generated data API. One isolated D1 database per project.</p></div><span class="bff-feature-tag">D1 / SQLite</span></article>
+            <article data-bff-reveal><span class="bff-feature-number" aria-hidden="true">02 /</span><div><h3>Identity meets permissions</h3><p>Authentication and declarative row policies, designed to check access before a query reaches your data.</p></div><span class="bff-feature-tag">Auth + policies</span></article>
+            <article data-bff-reveal><span class="bff-feature-number" aria-hidden="true">03 /</span><div><h3>Files, with a home of their own</h3><p>Public and private storage, signed URLs, and upload controls. Keep app data and media in the same workflow.</p></div><span class="bff-feature-tag">R2 storage</span></article>
+            <article data-bff-reveal><span class="bff-feature-number" aria-hidden="true">04 /</span><div><h3>Your logic, in JavaScript</h3><p>Server-side functions with scoped access to your project. Write the business logic in a language you already use.</p></div><span class="bff-feature-tag">Workers</span></article>
+          </div>
+          <div class="bff-roadmap"><p>Next on the horizon</p><ul><li>Realtime &amp; presence</li><li>Live Objects</li><li>Jobs &amp; workflows</li><li>Search &amp; AI</li><li>Backend templates</li></ul></div>
+        </div>
+      </section>
+
+      <section class="bff-section bff-principles" id="architecture" aria-labelledby="bff-principles-title">
+        <div class="bff-container bff-principles-layout">
+          <div class="bff-section-copy" data-bff-reveal><p class="bff-section-label">A smaller infrastructure story</p><h2 id="bff-principles-title">Build your app.<br /><span>Skip the ops.</span></h2><p>SQLite for your data. JavaScript for your logic. Cloudflare for the infrastructure underneath it all.</p></div>
+          <dl class="bff-principle-list" data-bff-reveal>
+            <div><dt>No servers to babysit</dt><dd>A serverless foundation, without pods, clusters, or dedicated application servers.</dd></div>
+            <div><dt>Permissions at the boundary</dt><dd>Verified identity and parameterized queries. Row access enforced in the Worker before database operations.</dd></div>
+            <div><dt>Your project stays yours</dt><dd>Designed around SQLite-compatible exports, versioned function source, and standard API definitions.</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="bff-early-access" id="early-access" aria-labelledby="bff-access-title">
+        <div class="bff-container bff-access-layout" data-bff-reveal>
+          <div><p class="bff-section-label">Meet your next BFF</p><h2 id="bff-access-title">You bring the frontend.<br /><span>We’ll bring the backend.</span></h2><p>BFF is in development. Tell us what you’re building and help shape what comes first.</p><a class="bff-button" href="mailto:support@mainbrella.com?subject=Mainbrella%20BFF%20early%20access">Ask about early access <span aria-hidden="true">↗</span></a><p class="bff-access-note">A direct line to the team. No commitment.</p></div>
+          <span class="bff-closing-wordmark" aria-hidden="true">bff<span>.</span></span>
+        </div>
+      </section>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/bff.ts"></script>
+    <script type="module" src="/src/account-menu.ts"></script>
+  </body>
+</html>

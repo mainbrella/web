@@ -1,3 +1,4 @@
+import './linux.ts';
 import { API_ORIGIN, createAuthClient } from './auth.ts';
 import { createPreviewClient } from './container-previews.ts';
 import { launchIdentity, normalizeRepo, repoRunUrl, type RepoRunDiagnostics, type RepoRunExecutionDiagnostics, type RepoRunOptions, type RepositoryLaunch } from './repo-run-contract.ts';

@@ -52,6 +52,17 @@ test('runtime formatting makes small charges visible and expresses elapsed alloc
   assert.equal(formatRuntime(3660000), '1 hr 1 min');
 });
 
+test('product usage must reconcile to its own total without hiding inference or storage charges', () => {
+  const data = history();
+  data.totals.usageUsedCents = 0.5;
+  data.productUsage = [{ product: 'email', usedCents: 0.5 }];
+  assert.equal(readBalanceHistory(data).productUsage![0].product, 'email');
+  data.productUsage[0].usedCents = 0.6;
+  assert.throws(() => readBalanceHistory(data));
+  data.productUsage = [{ product: 'email', usedCents: 0.25 }, { product: 'email', usedCents: 0.25 }];
+  assert.throws(() => readBalanceHistory(data));
+});
+
 class Element {
   hidden = false; disabled = false; textContent = ''; className = ''; href = ''; type = '';
   parentElement?: Element;

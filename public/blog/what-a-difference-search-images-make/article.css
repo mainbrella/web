@@ -1,0 +1,92 @@
+.search-images-article .search-capture {
+  display: block;
+  position: relative;
+  aspect-ratio: 57 / 29;
+  overflow: hidden;
+}
+
+/* Frame the first two results; the link opens the complete, unaltered capture. */
+.search-images-article .search-capture img {
+  position: absolute;
+  width: 200.233918%;
+  max-width: none;
+  height: auto;
+  left: -39.766082%;
+  top: -28.965517%;
+}
+
+.search-images-article .search-single {
+  max-width: 480px;
+}
+
+.search-images-article .search-single .search-capture {
+  aspect-ratio: 1;
+}
+
+.search-images-article .search-single img {
+  width: 380.444444%;
+  left: -72.222222%;
+  top: -28%;
+}
+
+.search-images-article .search-capture:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 4px;
+}
+
+.search-images-article .image-sizes {
+  margin: 24px 0;
+}
+
+.search-images-article table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 18px;
+}
+
+.search-images-article th,
+.search-images-article td {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.search-images-article tbody th {
+  padding-right: 16px;
+  font-weight: 400;
+}
+
+.search-images-article td {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.search-images-article .upload-steps {
+  padding-left: 24px;
+  margin: 16px 0 24px;
+}
+
+.search-images-article .upload-steps li + li {
+  margin-top: 12px;
+}
+
+.search-images-article p code {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  /* Keep the first result readable on a phone instead of shrinking the grid. */
+  .search-images-article .search-capture {
+    aspect-ratio: 1;
+  }
+
+  .search-images-article .search-capture img {
+    width: 380.444444%;
+    left: -72.222222%;
+    top: -28%;
+  }
+
+  .search-images-article table {
+    font-size: 16px;
+  }
+}

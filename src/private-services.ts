@@ -1,7 +1,7 @@
 import { containerLifecycle, type Lifecycle } from './dashboard-view.ts';
-import { API_ORIGIN } from './auth.ts';
+import { API_ORIGIN } from './platform.ts';
 import { createSearchPicker } from './search-picker.ts';
-import type { ClientOptions, Container, ContainerIdentity } from './types.ts';
+import type { ClientOptions, Container, ContainerIdentity } from './container-types.ts';
 
 export interface PrivateMember extends ContainerIdentity { name: string; port?: number }
 export interface PrivateNetwork { lifecycle?: Lifecycle; name: string; members: PrivateMember[] }

@@ -1,5 +1,5 @@
-import { API_ORIGIN } from './auth.ts';
-import type { ClientOptions } from './types.ts';
+import { API_ORIGIN } from './platform.ts';
+import type { ClientOptions } from './container-types.ts';
 
 export interface SandboxSecret { id: string; name: string; hostname: string; header: string; prefix: string; createdAt: string; updatedAt: string }
 export interface SecurityCapabilities { internetControl?: boolean; egressPolicies?: boolean; secrets?: boolean }

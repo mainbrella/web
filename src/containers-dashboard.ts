@@ -1,12 +1,12 @@
 import { containerLifecycle, hourlyCost, monthlyCost, type Lifecycle } from './dashboard-view.ts';
-import { trackMachineStart } from './acquisition-analytics.ts';
-import type { Container, ContainerData, ContainerIdentity, ContainerLimits, MachineSize, Image, ObservabilityCapabilities, PersistenceCapabilities } from './types.ts';
-import { API_ORIGIN } from './auth.ts';
+import { trackMachineStart } from './platform.ts';
+import type { Container, ContainerData, ContainerIdentity, ContainerLimits, MachineSize, Image, ObservabilityCapabilities, PersistenceCapabilities } from './container-types.ts';
+import { API_ORIGIN } from './platform.ts';
 import { createContainerPreviews } from './container-previews.ts';
 import { createContainerObservations } from './container-observations.ts';
 import { createWorkspacesDashboard } from './workspaces-dashboard.ts';
 import { createPrivateServices } from './private-services.ts';
-import { formatBalance } from './prepaid-billing.ts';
+import { formatBalance } from './platform.ts';
 import { canResumeContainer, createLifecycleClient, lifecycleError, type ContainerAction } from './container-lifecycle.ts';
 import { createSandboxSecurity } from './sandbox-security.ts';
 import { createContainerStartup } from './container-startup.ts';

@@ -1,0 +1,71 @@
+.vibe-landing-page .vibe-hero { min-height: 0; }
+.vibe-landing-page .vibe-hero::before { inset: 0; background: radial-gradient(ellipse at 78% 45%, #0b477329, transparent 48%); opacity: 1; mask-image: none; }
+.vibe-landing-page .vibe-hero::after { height: 28%; opacity: .5; }
+.vibe-hero-inner { display: grid; grid-template-columns: minmax(0, .84fr) minmax(0, 1.16fr); align-items: center; gap: clamp(28px, 5vw, 72px); min-height: 550px; padding-block: 48px 52px; }
+.vibe-hero-copy { max-width: 570px; animation: home-enter 500ms ease-out both; }
+.vibe-hero-copy h1 { margin-top: 17px; color: var(--home-text); font-size: clamp(42px, 4.1vw, 58px); font-weight: 720; line-height: 1.07; letter-spacing: -.035em; }
+.vibe-hero-copy h1 span { color: var(--home-cyan); }
+.vibe-hero-copy .home-hero-description { max-width: 53ch; margin-top: 18px !important; }
+.vibe-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 25px; }
+.vibe-hero-note { margin-top: 14px !important; color: var(--home-muted); font-size: 12px; }
+.vibe-workflow-figure { min-width: 0; margin: 0; padding: 12px; border: 1px solid #1b3a56; border-radius: 10px; background: #071321; box-shadow: 0 18px 60px #0005; animation: vibe-image-enter 650ms 100ms ease-out both; }
+.vibe-workflow-figure img { display: block; width: 100%; height: auto; border-radius: 5px; }
+.vibe-workflow-figure figcaption { padding: 11px 4px 1px; color: #a7b8cc; font-size: 12px; line-height: 1.5; }
+.vibe-workflow { background: #040d18; }
+.vibe-landing-page .home-section-heading { margin-bottom: 25px; }
+.vibe-landing-page .home-section-heading h2 { max-width: 28ch; margin-top: 0; }
+.vibe-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(20px, 4vw, 56px); padding: 22px 0 0; border-top: 1px solid #1a344d; list-style: none; }
+.vibe-steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; align-content: start; }
+.vibe-steps li > span { padding-top: 2px; color: var(--home-cyan); font-size: 12px; font-variant-numeric: tabular-nums; }
+.vibe-steps h3, .vibe-hosting-options h3 { color: #eaf2fb; font-size: 16px; font-weight: 600; line-height: 1.4; }
+.vibe-steps p, .vibe-hosting-options p { margin-top: 8px !important; color: var(--home-muted); font-size: 13px; line-height: 1.65; }
+.vibe-hosting { background: #061321; }
+.vibe-hosting-inner { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); align-items: start; gap: clamp(32px, 7vw, 96px); }
+.vibe-hosting-inner > div:first-child h2 { max-width: 15ch; margin-top: 11px; color: #f1f6ff; font-size: clamp(27px, 3vw, 36px); line-height: 1.18; letter-spacing: -.03em; }
+.vibe-hosting-inner > div:first-child h2 span { color: var(--home-cyan); }
+.vibe-hosting-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px; }
+.vibe-hosting-options > div { padding-top: 2px; }
+.vibe-hosting-options p { max-width: 38ch; min-height: 64px; }
+.vibe-text-link, .vibe-story-link { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: #8ad9ff; font-size: 13px; font-weight: 550; text-decoration: none; }
+.vibe-text-link span, .vibe-story-link span { font-size: 17px; font-weight: 400; }
+.vibe-text-link:hover, .vibe-story-link:hover { color: #d0f4ff; }
+.vibe-final-inner { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 36px; padding-block: 38px; }
+.vibe-final-inner h2 { max-width: 30ch; color: #f0f6ff; font-size: clamp(24px, 2.8vw, 32px); line-height: 1.2; letter-spacing: -.025em; }
+.vibe-final-inner h2 span { color: var(--home-cyan); }
+.vibe-final-inner > div > p { margin-top: 8px !important; color: #b2c3d5; font-size: 13px; line-height: 1.55; }
+.vibe-final-inner .home-final-links { margin-top: 14px; }
+.vibe-story-link { padding: 8px 0 8px 20px; border-left: 1px solid #28435a; }
+@keyframes vibe-image-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 900px) {
+  .vibe-hero-inner { grid-template-columns: minmax(0, 1fr); gap: 30px; min-height: 0; padding-block: 40px; }
+  .vibe-hero-copy { max-width: 680px; }
+  .vibe-workflow-figure { max-width: 850px; }
+  .vibe-hosting-inner { grid-template-columns: minmax(0, 1fr); gap: 26px; }
+  .vibe-hosting-inner > div:first-child h2 { max-width: 24ch; }
+}
+@media (max-width: 600px) {
+  .vibe-hero-inner { gap: 22px; padding-block: 29px 30px; }
+  .vibe-hero-copy h1 { margin-top: 13px; font-size: clamp(35px, 9.2vw, 43px); line-height: 1.08; letter-spacing: -.035em; }
+  .vibe-hero-copy .home-hero-description { margin-top: 13px !important; font-size: 14px; line-height: 1.55; }
+  .vibe-actions { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 19px; }
+  .vibe-actions a { justify-content: center; min-height: 46px; }
+  .vibe-hero-note { margin-top: 11px !important; font-size: 11px; }
+  .vibe-workflow-figure { padding: 7px; border-radius: 8px; }
+  .vibe-workflow-figure figcaption { padding: 8px 3px 1px; font-size: 11px; }
+  .vibe-landing-page .home-section-heading { margin-bottom: 17px; }
+  .vibe-landing-page .home-section-heading h2 { font-size: 25px; }
+  .vibe-steps { grid-template-columns: minmax(0, 1fr); gap: 22px; padding-top: 18px; }
+  .vibe-steps li { grid-template-columns: 26px minmax(0, 1fr); gap: 10px; }
+  .vibe-steps h3, .vibe-hosting-options h3 { font-size: 15px; }
+  .vibe-steps p, .vibe-hosting-options p { margin-top: 5px !important; font-size: 13px; }
+  .vibe-hosting-inner { gap: 18px; }
+  .vibe-hosting-inner > div:first-child h2 { margin-top: 7px; font-size: 27px; }
+  .vibe-hosting-options { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .vibe-hosting-options p { min-height: 0; max-width: 48ch; }
+  .vibe-final-inner { grid-template-columns: minmax(0, 1fr); gap: 14px; padding-block: 30px; }
+  .vibe-final-inner h2 { font-size: 25px; }
+  .vibe-story-link { min-height: 42px; padding: 0; border: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vibe-landing-page .vibe-hero-copy, .vibe-workflow-figure { animation: none; }
+}

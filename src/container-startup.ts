@@ -1,5 +1,5 @@
-import { API_ORIGIN } from './auth.ts';
-import type { ClientOptions, Container, ContainerIdentity, RestoreLaunch } from './types.ts';
+import { API_ORIGIN } from './platform.ts';
+import type { ClientOptions, Container, ContainerIdentity, RestoreLaunch } from './container-types.ts';
 
 export function startupRecipe(value: unknown): RestoreLaunch {
   const launch = value as RestoreLaunch | null;

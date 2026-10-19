@@ -16,11 +16,16 @@
     "types": [
       "vite/client",
       "node"
-    ]
+    ],
+    "jsx": "react-jsx"
   },
   "include": [
     "src/**/*.ts",
     "vite*.config.ts",
-    "scripts/*-plugin.ts"
+    "scripts/*-plugin.ts",
+    "src/**/*.tsx",
+    "examples/message-board/src/**/*.ts",
+    "examples/message-board/src/**/*.tsx",
+    "examples/message-board/vite.config.ts"
   ]
 }

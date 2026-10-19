@@ -1,0 +1,66 @@
+.sqlite-rls-article p code,
+.sqlite-rls-article td code {
+  overflow-wrap: anywhere;
+}
+
+.sqlite-rls-article .docs-code {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.sqlite-rls-article .docs-code code {
+  white-space: inherit;
+}
+
+.sqlite-rls-article .demo-capture {
+  max-width: 800px;
+}
+
+.sqlite-rls-article .article-figure a {
+  display: block;
+}
+
+.sqlite-rls-article .article-figure a:focus-visible,
+.sqlite-rls-article .docs-code:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 4px;
+}
+
+.sqlite-rls-article .policy-table {
+  margin: 24px 0;
+}
+
+.sqlite-rls-article table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.sqlite-rls-article th,
+.sqlite-rls-article td {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.sqlite-rls-article th:first-child {
+  width: 100px;
+  padding-right: 16px;
+}
+
+.sqlite-rls-article tbody th {
+  font-weight: 400;
+}
+
+@media (max-width: 600px) {
+  .sqlite-rls-article table {
+    font-size: 16px;
+  }
+
+  .sqlite-rls-article th:first-child {
+    width: 76px;
+  }
+}

@@ -22,125 +22,127 @@
         break;
       }
     </script>
-    <meta name="description" content="Build with AI or launch a Git repo, run Linux apps, and host on Cloudflare. Mainbrella brings Containers, Durable Objects, R2, and D1 into one open-source platform." />
-    <meta name="theme-color" content="#0d1014" />
+    <meta name="description" content="One open-source platform for apps, AI agents, and services on Cloudflare. Use Mainbrella's hosted apps today, or run your own platform with shared accounts and billing." />
+    <meta name="theme-color" content="#071319" />
     <link rel="canonical" href="https://mainbrella.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Mainbrella" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="https://mainbrella.com/" />
-    <meta property="og:title" content="Mainbrella — Build, run, and host on Cloudflare" />
-    <meta property="og:description" content="Build with AI or launch a Git repo, run Linux apps, and host on Cloudflare. Mainbrella brings Containers, Durable Objects, R2, and D1 into one open-source platform." />
+    <meta property="og:title" content="Mainbrella — Almost anything. Under one brella." />
+    <meta property="og:description" content="Apps, AI agents, and services on Cloudflare. Use our hosted service, or choose your apps and run your own open-source platform." />
     <meta property="og:image" content="https://mainbrella.com/images/logo.png" />
     <meta property="og:image:alt" content="Mainbrella logo" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Mainbrella — Build, run, and host on Cloudflare" />
-    <meta name="twitter:description" content="Build with AI or launch a Git repo, run Linux apps, and host on Cloudflare. Mainbrella brings Containers, Durable Objects, R2, and D1 into one open-source platform." />
+    <meta name="twitter:title" content="Mainbrella — Almost anything. Under one brella." />
+    <meta name="twitter:description" content="Apps, AI agents, and services on Cloudflare. Use our hosted service, or choose your apps and run your own open-source platform." />
     <meta name="twitter:image" content="https://mainbrella.com/images/logo.png" />
     <meta name="twitter:image:alt" content="Mainbrella logo" />
     <link rel="icon" href="/images/favicon.png" type="image/png" />
     <link rel="stylesheet" href="/mainbrella.css" />
-    <link rel="stylesheet" href="/acquisition.css" />
-    <link rel="stylesheet" href="/homepage.css" />
-    <title>Mainbrella — Build, run, and host on Cloudflare</title>
+    <link rel="stylesheet" href="/platform-home.css" />
+    <title>Mainbrella — Almost anything. Under one brella.</title>
   </head>
-  <body class="sandbox-home acquisition-page home-build-page">
+  <body class="platform-home">
     <a class="skip-link" href="#main">Skip to content</a>
     <!-- site-header -->
+    <main id="main" class="mb-main">
+      <section class="mb-hero" aria-labelledby="site-title">
+        <div class="mb-container mb-hero-copy">
+          <p class="mb-kicker">Open source. Built on Cloudflare.</p>
+          <h1 id="site-title">Run almost anything.<br /><span>Under one brella.</span></h1>
+          <p class="mb-intro">Apps, AI agents, and services. One platform with the accounts and billing built in. Use our hosted apps, or run your own on Cloudflare.</p>
+          <div class="mb-actions">
+            <a class="mb-button" href="#apps">Explore the apps <span aria-hidden="true">↓</span></a>
+            <a class="mb-text-link" href="#self-host">Run your own Mainbrella <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
 
-    <main id="main" class="home-main">
-      <section class="home-hero" aria-labelledby="site-title">
-        <div class="home-container home-hero-grid">
-          <div class="home-hero-copy">
-            <h1 id="site-title">Build, run, and host.<br /><span>Native to Cloudflare.</span></h1>
-            <p class="home-hero-description">An open-source app platform powered by Cloudflare Containers, Durable Objects, R2, and D1. Build with AI or launch a Git repo, save your work, and take your app from preview to production.</p>
-            <label class="home-prompt-label" for="home-build-prompt">What do you want to build?</label>
-            <form id="home-build-form" class="home-build-form" action="/login/" method="get">
-              <div class="home-build-field">
-                <input id="home-build-prompt" type="text" maxlength="6000" autocomplete="off" required placeholder="Build a todo app with a database…" aria-describedby="home-build-offer home-build-error" />
-                <button type="submit" aria-label="Start building your app"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></button>
-              </div>
-              <p id="home-build-error" class="home-build-error" role="alert" hidden></p>
-            </form>
-            <p class="home-build-meta"><span>No credit card required</span><span id="home-build-offer">$5 compute credit with <strong>BRELLA-GIT-TRY5</strong></span></p>
-            <div class="home-hero-links"><a class="home-secondary-link" href="/opensource/">View the architecture <span aria-hidden="true">→</span></a>
-              <button class="agent-copy-cta" type="button" data-copy-agent-setup aria-describedby="hero-agent-copy-status" title="Copy setup instructions to your clipboard" hidden><span>Copy agent setup</span></button>
+        <div class="mb-container">
+          <div class="mb-umbrella" id="apps" role="group" aria-labelledby="umbrella-title" aria-describedby="umbrella-description">
+            <svg class="mb-canopy" viewBox="0 0 1120 210" preserveAspectRatio="none" fill="none" aria-hidden="true">
+              <path class="mb-canopy-fill" d="M12 198C79 78 299 12 560 12s481 66 548 186c-65-30-124-30-183 0-65-30-124-30-183 0-65-30-123-30-182 0-59-30-117-30-182 0-59-30-118-30-183 0-59-30-118-30-183 0Z" />
+              <path class="mb-rib" d="M560 12C398 39 271 99 195 198M560 12c-74 44-137 109-182 186M560 12c74 44 137 109 182 186M560 12c162 27 289 87 365 186" />
+              <path class="mb-canopy-outline" pathLength="1" d="M12 198C79 78 299 12 560 12s481 66 548 186c-65-30-124-30-183 0-65-30-124-30-183 0-65-30-123-30-182 0-59-30-117-30-182 0-59-30-118-30-183 0-59-30-118-30-183 0Z" />
+            </svg>
+            <div class="mb-platform-label">
+              <h2 id="umbrella-title">mainbrella</h2>
+              <p>Accounts <span aria-hidden="true">·</span> Authentication <span aria-hidden="true">·</span> Metering</p>
+              <div class="mb-billing"><span>Usage billing</span><span class="mb-billing-or">or</span><span>Subscription billing</span></div>
             </div>
-            <p class="agent-copy-status" id="hero-agent-copy-status" role="status" aria-live="polite"></p>
-            <noscript><p class="home-build-offer">Enable JavaScript to carry your app idea through sign-in and into Builder.</p></noscript>
+            <svg class="mb-umbrella-handle" viewBox="0 0 100 240" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M75 0v191a34 34 0 0 1-68 0v-13" /></svg>
+            <p id="umbrella-description" class="visually-hidden">The Mainbrella core provides shared accounts, authentication, metering, and billing for the apps beneath it. Choose an available app to visit its landing page, or use the open-source platform to build your own.</p>
+            <ul class="mb-apps">
+              <li><a class="mb-app" href="/cloudflare-sandbox/">
+                <div class="mb-app-top"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3" /><path d="m7 9 3 3-3 3m6 0h4" /></svg><span class="mb-live">Available now</span></div>
+                <h3>Linux computers <span aria-hidden="true">↗</span></h3><p>A real machine for your agents.</p>
+              </a></li>
+              <li><a class="mb-app" href="/vibe/">
+                <div class="mb-app-top"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m8 5-6 7 6 7m8-14 6 7-6 7M14 3l-4 18" /></svg><span class="mb-live">Available now</span></div>
+                <h3>Vibe coding <span aria-hidden="true">↗</span></h3><p>Describe it. Build it. Preview it.</p>
+              </a></li>
+              <li><a class="mb-app" href="/voice/">
+                <div class="mb-app-top"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10v4m4-7v10m4-14v18m4-14v10m4-7v4" /></svg><span class="mb-live">Available now</span></div>
+                <h3>Voice agents <span aria-hidden="true">↗</span></h3><p>An AI receptionist on the line.</p>
+              </a></li>
+              <li><a class="mb-app" href="/bff/">
+                <div class="mb-app-top"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" /></svg><span>Product preview</span></div>
+                <h3>BFF <span aria-hidden="true">↗</span></h3><p>Database, auth, storage, and backend logic.</p>
+              </a></li>
+            </ul>
           </div>
+          <p class="mb-cloudflare"><svg viewBox="0 0 28 20" fill="none" aria-hidden="true"><path d="M7 16h15a5 5 0 0 0 .1-10A7.5 7.5 0 0 0 8 5.5 5.3 5.3 0 0 0 7 16Z" /></svg><span>Powered by Cloudflare</span><span class="mb-cloudflare-services">Workers · Containers · D1 · R2 · Durable Objects · Workers AI</span></p>
         </div>
       </section>
 
-      <section class="home-section home-compare" id="compare" aria-labelledby="compare-title">
-        <div class="home-container">
-          <div class="home-section-heading"><div><p class="home-eyebrow"><span aria-hidden="true"></span> How Mainbrella compares</p><h2 id="compare-title">Your app, from idea to <span>production.</span></h2></div></div>
-          <p class="home-scroll-hint">Scroll to compare <span aria-hidden="true">→</span></p>
-          <div class="home-table-wrap" role="region" aria-label="Platform comparison" tabindex="0">
-            <table class="home-compare-table"><thead><tr><th scope="col">What you get</th><th scope="col"><img src="/images/logo.png" alt="" /> Mainbrella</th><th scope="col">E2B</th><th scope="col">Daytona</th></tr></thead><tbody>
-              <tr><th scope="row">Build from a prompt or Git repo</th><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>AI builder + Git URL launcher</small></td><td>Bring your own builder<small>SDK / template repo setup</small></td><td>Bring your own builder<small>Git API / Playground</small></td></tr>
-              <tr><th scope="row">Preview, host, and use your domain</th><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported on enabled deployments</span><small>Live previews + funded production</small></td><td>Previews; add hosting<small>1h Hobby / 24h Pro sessions</small></td><td>Previews + custom proxy<small>Configurable auto-stop</small></td></tr>
-              <tr><th scope="row">Files, source, and version history</th><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>Binary streaming + Git history/export</small></td><td>File APIs + sandbox Git</td><td>File APIs + sandbox Git</td></tr>
-              <tr><th scope="row">Save, resume, and fork workspaces</th><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported; automatic app relaunch requires a saved launch recipe</span><small>Files, app relaunch + keyed recovery</small></td><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>Files + memory; pause/resume/fork</small></td><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported by sandbox class</span><small>Container snapshots / VM forks</small></td></tr>
-              <tr><th scope="row">Background jobs &amp; interactive terminals</th><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>Stream, reconnect, cancel; resizable PTY</small></td><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>Commands, reconnect + PTY</small></td><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>Sessions, retained output + PTY</small></td></tr>
-              <tr><th scope="row">Stateful Python execution</th><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported in images with Python</span><small>Persistent variables + MIME results</small></td><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>Python + other interpreter languages</small></td><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>Python code contexts</small></td></tr>
-              <tr><th scope="row">Lifecycle events &amp; telemetry</th><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>Live activity, lifecycle history + OTLP</small></td><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>Events, metrics + OTel export</small></td><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>OpenTelemetry + webhooks</small></td></tr>
-              <tr><th scope="row">Outbound rules &amp; secret injection</th><td>Coming soon<small>Domain/IP rules + proxy vault</small></td><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>Egress rules + secret injection</small></td><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>Network allowlists + secret proxy</small></td></tr>
-              <tr><th scope="row">Set a monthly spending cap</th><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>$5 default; prepaid balance</small></td><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>Configurable spending limits</small></td><td>Wallet + top-up controls</td></tr>
-              <tr><th scope="row">Native Cloudflare platform</th><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>Containers, Durable Objects, R2, D1</small></td><td>Other infrastructure</td><td>Other infrastructure</td></tr>
-              <tr><th scope="row">Open-source platform</th><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>GPL v3</small></td><td><span class="home-check" aria-hidden="true">✓</span><span class="home-sr-only">Supported</span><small>Apache 2.0</small></td><td>Closed source</td></tr>
-            </tbody></table>
-          </div>
-          <details class="home-comparison-sources">
-            <summary>Comparison notes &amp; sources <span>Reviewed October 12, 2026</span></summary>
-            <p>Compare the built-in workflows: Git APIs and sandbox snapshots can also support an app platform you build yourself. Mainbrella supplies the AI builder, <a href="/run/">repo launch flow</a>, binary file transfers, source browsing, version history, and Git export. <a href="/blog/cloudflare-d1-r2-git-github-ftw/">How we preserve source and Git history</a>. Cloudflare services power Mainbrella’s platform; this does not mean an app automatically receives its own D1 database.</p>
-            <p><a href="/docs/containers/#stop-resume-fork">Filesystem stop/resume and fork</a> preserve files and installed dependencies; a saved foreground launch recipe restarts the app and checks HTTP readiness. Fresh processes start from saved files; RAM is not preserved. <a href="/blog/we-ran-the-same-broken-app-on-three-cloud-sandboxes/#process-state">Production startup checks</a> restored three prepared app copies automatically. <a href="/blog/we-ran-the-same-broken-app-on-three-cloud-sandboxes/#capture-recovery">Lost-reply checks</a> recovered a usable save on all three providers without a second capture: Mainbrella replayed a request key; E2B and Daytona looked up a persisted name. The loss occurred after a successful response, not before admission. These small runs establish behavior, not comparative reliability, speed, or cost.</p>
-            <p><a href="/docs/execute/">Managed execution</a> supports background jobs, streamed output, reconnection, cancellation, terminal input, and resizing. <a href="/blog/we-ran-the-same-broken-app-on-three-cloud-sandboxes/#recovery">Matched checks</a> recovered the same job identity and remaining output on all three providers. Python contexts require an image with Python and retain state only within a running context; restarting or restoring a workspace does not recover that state. Mainbrella’s telemetry row covers lifecycle history, live activity feeds, and OTLP export; hosted metrics and webhooks are not currently enabled. E2B’s OTel export requires onboarding setup.</p>
-            <p>Mainbrella’s outbound domain/IP policies and proxy-injected secret vault are coming soon and are not currently available in the hosted service. The comparison does not treat them as shipped capabilities.</p>
-            <p>Production hosting and custom domains require an enabled deployment and funding. Mainbrella’s <a href="/pricing/">prepaid balance and monthly cap</a> cover compute, build AI, and storage; the default cap is $5. E2B’s published 1h/24h limits apply to continuous Hobby/Pro sessions, not total sandbox lifetime; Enterprise terms differ. Plans and availability can change.</p>
-            <p>E2B sources: <a href="https://docs.e2b.dev/billing">budgets &amp; session limits</a>, <a href="https://docs.e2b.dev/sandbox/snapshots">snapshots</a>, <a href="https://docs.e2b.dev/commands/background">background commands</a>, <a href="https://docs.e2b.dev/sandbox/pty">PTYs</a>, <a href="https://docs.e2b.dev/code-interpreting/contexts">code contexts</a>, <a href="https://docs.e2b.dev/code-interpreting/supported-languages">interpreter languages</a>, <a href="https://docs.e2b.dev/sandbox/lifecycle-events-api">lifecycle events</a>, <a href="https://docs.e2b.dev/sandbox/otel-telemetry-export">telemetry export</a>, <a href="https://docs.e2b.dev/network/internet-access">network rules</a>, <a href="https://docs.e2b.dev/secrets">secrets</a>, <a href="https://e2b.dev/open-source">open source</a>.</p>
-            <p>Daytona sources: <a href="https://www.daytona.io/docs/en/git-operations/">Git APIs</a>, <a href="https://www.daytona.io/docs/en/playground/">Playground</a>, <a href="https://www.daytona.io/docs/en/sandboxes/">lifecycle</a>, <a href="https://www.daytona.io/docs/en/snapshots/">snapshots</a>, <a href="https://www.daytona.io/docs/en/process-code-execution/">commands &amp; code contexts</a>, <a href="https://www.daytona.io/docs/en/pty/">PTYs</a>, <a href="https://www.daytona.io/docs/en/observability/otel-collection/">OpenTelemetry</a>, <a href="https://www.daytona.io/docs/en/webhooks/">webhooks</a>, <a href="https://www.daytona.io/docs/en/network-limits/">network rules</a>, <a href="https://www.daytona.io/docs/en/secrets/">secrets</a>, <a href="https://www.daytona.io/docs/en/billing/">billing</a>, <a href="https://www.daytona.io/docs/en/custom-preview-proxy/">custom preview proxy</a>, <a href="https://www.daytona.io/dotfiles/updates/daytona-is-going-closed-source">open-source update</a>.</p>
-          </details>
+      <section class="mb-section mb-foundation" id="platform" aria-labelledby="platform-title">
+        <div class="mb-container mb-foundation-grid">
+          <div><p class="mb-kicker">The shared platform</p><h2 id="platform-title">Pick the apps.<br />The plumbing is here.</h2><p class="mb-section-intro">Each app does its own job. Mainbrella gives them a common foundation, so every new service doesn’t mean starting a business from scratch.</p><a class="mb-text-link" href="/opensource/#architecture">Explore the architecture <span aria-hidden="true">→</span></a></div>
+          <dl class="mb-foundation-list">
+            <div><dt><span aria-hidden="true">01</span>Accounts &amp; access</dt><dd>Sign-in, customer accounts, ownership checks, and API keys for supported services.</dd></div>
+            <div><dt><span aria-hidden="true">02</span>Metering &amp; billing</dt><dd>Track what customers use. Share a prepaid balance across apps, or adapt subscription plans and prices for your own service.</dd></div>
+            <div><dt><span aria-hidden="true">03</span>Cloudflare underneath</dt><dd>Compute, storage, databases, and AI on the same stack. Deploy the platform in your account and choose which apps to offer.</dd></div>
+          </dl>
         </div>
       </section>
 
-      <section class="home-section home-features-section" id="product" aria-labelledby="features-title">
-        <div class="home-container"><div class="home-section-heading"><div><p class="home-eyebrow"><span aria-hidden="true"></span> Everything you need</p><h2 id="features-title">Powerful building blocks. <span>No compromises.</span></h2></div><p class="home-heading-aside">Complex features.<br />Simple for developers.</p></div>
-          <ul class="home-feature-grid">
-            <li><a href="/docs/containers/"><span class="home-feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 2 9 5v10l-9 5-9-5V7l9-5Z"/><path d="m3 7 9 5 9-5m-9 5v10"/></svg></span><h3>Real Linux containers</h3><p>Run Linux environments on Cloudflare Containers. Install tools, run any stack, and use real system software.</p></a></li>
-            <li><a href="/docs/containers/"><span class="home-feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5 9-5Zm-9 10 9 5 9-5M3 17l9 5 9-5"/></svg></span><h3>Durable account orchestration</h3><p>Durable Objects coordinate account state, project access, and container lifecycle.</p></a></li>
-            <li><a href="/docs/containers/#workspaces"><span class="home-feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/><path d="M3 8V5h7l2 2"/></svg></span><h3>Persistent workspaces</h3><p>Save files and restore them into a fresh machine when you resume work.</p></a></li>
-            <li><a href="/docs/containers/#private-services"><span class="home-feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></svg></span><h3>Networking &amp; secrets</h3><p>Use outbound networking and inject credentials where enabled. Private HTTP services are available as a prototype.</p></a></li>
-            <li><a href="/docs/execute/"><span class="home-feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 7 5 5-5 5m8 0h6"/></svg></span><h3>Managed executions</h3><p>Run commands, stream output, reconnect, and cancel through the API and SDKs.</p></a></li>
-            <li><a href="/docs/containers/"><span class="home-feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m13 2-9 12h7l-1 8 10-13h-7z"/></svg></span><h3>Warm pools</h3><p>Prewarm workers with the SDK. Managed pools are available on supported deployments.</p></a></li>
-            <li><a href="/build/"><span class="home-feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="6" cy="4" r="2"/><circle cx="6" cy="20" r="2"/><circle cx="18" cy="4" r="2"/><path d="M6 6v12m12-12v2a6 6 0 0 1-6 6H6"/></svg></span><h3>Git URL launcher &amp; AI builder</h3><p>Launch a public repository or describe an app and start with a running environment.</p></a></li>
-            <li><a href="/docs/containers/"><span class="home-feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 15a4 4 0 0 1 4-4h1a5 5 0 0 1 9-1 4 4 0 0 1 0 8H7a4 4 0 0 1-4-3Z"/><path d="m10 15 2 2 3-4"/></svg></span><h3>Production hosting</h3><p>Run always-on containers and connect custom domains on supported deployments.</p></a></li>
+      <section class="mb-section mb-roadmap" id="roadmap" aria-labelledby="roadmap-title">
+        <div class="mb-container">
+          <div class="mb-section-heading"><div><p class="mb-kicker">On the roadmap</p><h2 id="roadmap-title">More under the brella.</h2></div><p>Planned apps. Built to share the same foundation.</p></div>
+          <ul class="mb-roadmap-list">
+            <li><h3>Web scraping</h3><p>Turn websites into data your agents can use.</p></li>
+            <li><h3>Background jobs</h3><p>Schedule work, retry steps, and follow progress.</p></li>
+            <li><h3>Vector search</h3><p>Search documents and business knowledge by meaning.</p></li>
+            <li><h3>Databases &amp; app services</h3><p>Give apps a backend for accounts, records, and files.</p></li>
+            <li><h3>Collaborative editing</h3><p>Let people work together inside your apps.</p></li>
+            <li><h3>Transactional email</h3><p>Send confirmations, receipts, and updates.</p></li>
           </ul>
+          <a class="mb-text-link" href="/blog/many-businesses-in-a-box-under-this-brella/">Read the plan: many businesses in a box <span aria-hidden="true">→</span></a>
         </div>
       </section>
 
-      <section class="home-final-cta" aria-labelledby="final-cta-title"><div class="home-container home-final-cta-inner"><div><p class="home-eyebrow"><span aria-hidden="true"></span> Open source. Powered by Cloudflare.</p><h2 id="final-cta-title">Build bigger under the <span>Mainbrella.</span></h2><p>Use Mainbrella as a hosted service, or run the platform in your own Cloudflare account.</p><div class="home-final-links"><a class="home-primary-link" href="#home-build-prompt">Get started free <span aria-hidden="true">→</span></a><a class="home-secondary-link" href="https://github.com/mainbrella/backend">View on GitHub</a><a class="home-secondary-link" href="/docs/">Read the docs</a></div></div><div class="home-wordmark"><img src="/images/logo.png" alt="" /><span>mainbrella</span><small>Real containers. Real developers. A brighter internet.</small></div></div></section>
+      <section class="mb-section mb-ways" id="self-host" aria-labelledby="ways-title">
+        <div class="mb-container">
+          <div class="mb-section-heading"><div><p class="mb-kicker">Your choice</p><h2 id="ways-title">Use our apps. Or run the whole thing.</h2></div></div>
+          <div class="mb-ways-grid">
+            <article class="mb-way mb-way-hosted">
+              <p class="mb-way-label">Mainbrella hosted</p><h3>We run it. You use it.</h3><p>Start using Linux computers, Vibe coding, and Voice today. One account and a shared balance. We handle the infrastructure.</p>
+              <p class="mb-price">$5 <span>to get started</span></p><p class="mb-price-note">Prepaid credit. No monthly subscription.</p>
+              <a class="mb-button" href="/login/?returnTo=%2Fdashboard%2F">Use Mainbrella <span aria-hidden="true">→</span></a>
+              <p class="mb-way-note">No Cloudflare account needed. <a href="/pricing/">See hosted pricing</a>.</p>
+            </article>
+            <article class="mb-way">
+              <p class="mb-way-label">Mainbrella open source</p><h3>Your apps. Your business.</h3><p>Run the platform in your own Cloudflare account. Pick your apps, set your prices, and use them yourself or serve your own customers.</p>
+              <p class="mb-price">$5<span>/month</span></p><p class="mb-price-note">Cloudflare Workers Paid starting plan.</p>
+              <a class="mb-button mb-button-secondary" href="/opensource/#self-host">Run your own Mainbrella <span aria-hidden="true">↗</span></a>
+              <p class="mb-way-note">GPLv3. No Mainbrella software fee. Setup, usage, and services such as telephony or payments are additional. <a href="https://developers.cloudflare.com/workers/platform/pricing/">Cloudflare pricing</a>.</p>
+            </article>
+          </div>
+        </div>
+      </section>
     </main>
-
     <!-- site-footer -->
-    <dialog class="cookie-consent" id="cookie-consent" aria-label="Cookie preferences" aria-describedby="cookie-consent-description">
-      <p id="cookie-consent-description">This website uses cookies to measure and improve your experience. Read our <a href="/terms/" target="_blank" rel="noopener">Terms of Service<span class="visually-hidden"> (opens in a new tab)</span></a>.</p>
-      <div class="cookie-consent-actions">
-        <button class="button cookie-consent-reject" type="button" data-consent="rejected" autofocus>Reject All</button>
-        <button class="button" type="button" data-consent="accepted">Accept All</button>
-      </div>
-    </dialog>
-    <script type="module" src="/src/home-build.ts"></script>
-    <script type="module" src="/src/cookie-consent.ts"></script>
+    <!-- cookie-consent -->
     <script type="module" src="/src/account-menu.ts"></script>
-    <div class="home-launch-badge">
-      <a href="https://noonlaunch.com/product/mainbrella" rel="dofollow"><img src="https://noonlaunch.com/badges/mainbrella.svg?theme=dark" alt="Featured on Noonlaunch" width="220" height="60" /></a>
-    </div>
-    <div class="home-launch-badge">
-      <a href="https://postyourstartup.co/startup/mainbrella?ref=badge" target="_blank">
-        <img src="https://postyourstartup.co/api/badge/mainbrella?theme=dark" alt="Featured on PostYourStartup" width="212" height="55" />
-      </a>
-    </div>
-
   </body>
 </html>

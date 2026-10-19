@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0d1014" />
+    <meta name="description" content="Your BFF project workspace: data, users, storage, and backend tools." />
+    <meta name="robots" content="noindex" />
+    <link rel="canonical" href="https://mainbrella.com/bff/app/" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <link rel="stylesheet" href="/app.css" />
+    <title>BFF · Mainbrella</title>
+  </head>
+  <body class="info-body sandbox-home app-body login-body bff-app-body">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- app-header -->
+    <main id="main" class="dashboard-main bff-main" aria-busy="true">
+      <div class="bff-app-heading"><h1>BFF</h1><span class="bff-tag">v0.0.1</span></div>
+      <p id="bff-loading" class="dashboard-status" role="status">Checking your session…</p>
+      <p id="bff-error" class="dashboard-error" role="alert" hidden></p>
+      <button id="bff-retry" class="dashboard-retry" type="button" hidden>Retry</button>
+      <div id="bff-signin" hidden><p class="dashboard-status">Sign in to explore your BFF workspace.</p><a class="button button-small" href="/login/?returnTo=%2Fbff%2Fapp%2F">Sign in</a></div>
+      <div id="bff-content" hidden>
+        <div class="bff-project-bar">
+          <div class="bff-project-identity"><span id="bff-project-mark" class="bff-project-mark" aria-hidden="true">B</span><div><button id="bff-project-picker" class="bff-project-picker" type="button" data-action="projects" aria-haspopup="dialog"><span id="bff-project-name">No project</span> <span aria-hidden="true">⌄</span></button><p id="bff-project-description">Create your first project</p></div></div>
+          <div class="bff-project-controls"><span class="bff-muted">Production</span><button type="button" class="dashboard-retry" data-action="refresh">Refresh</button><button id="bff-create-project" type="button" class="dashboard-retry" data-action="create-project">New project</button></div>
+        </div>
+        <div class="bff-workspace">
+          <nav id="bff-navigation" class="bff-sidebar" aria-label="BFF workspace"></nav>
+          <div class="bff-work-area"><div id="bff-view"></div></div>
+        </div>
+        <p id="bff-feedback" class="bff-feedback" role="status" aria-live="polite"></p>
+      </div>
+      <noscript><p>Enable JavaScript to explore your BFF workspace.</p></noscript>
+    </main>
+    <dialog id="bff-dialog" class="bff-dialog" aria-labelledby="bff-dialog-title">
+      <div class="bff-dialog-heading"><h2 id="bff-dialog-title"></h2><button type="button" class="dashboard-retry" data-action="close-dialog" aria-label="Close dialog">Close</button></div>
+      <div id="bff-dialog-body"></div>
+    </dialog>
+    <script type="module" src="/src/bff-app.ts"></script>
+    <script type="module" src="/src/account-menu.ts"></script>
+  </body>
+</html>

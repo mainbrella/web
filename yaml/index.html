@@ -62,8 +62,8 @@ port: 8080</code></pre>
 
           <div class="yaml-example">
             <h3 id="node-title">Install, build, preview · Node</h3>
-            <p>Build <a href="https://github.com/mainbrella/web/tree/7ea2144684b53795fd03bafb4a5523c867fd5de7">this website</a> using its committed npm lockfile, then serve the result with Vite. Setup finishes before the server starts.</p>
-            <pre class="docs-code" tabindex="0" aria-labelledby="node-title"><code id="node-example" data-launch-example>repo: mainbrella/web
+            <p>Build <a href="https://github.com/mainbrella/canopy/tree/7ea2144684b53795fd03bafb4a5523c867fd5de7">this website</a> using its committed npm lockfile, then serve the result with Vite. Setup finishes before the server starts.</p>
+            <pre class="docs-code" tabindex="0" aria-labelledby="node-title"><code id="node-example" data-launch-example>repo: mainbrella/canopy
 ref: 7ea2144684b53795fd03bafb4a5523c867fd5de7
 catalogId: node
 size: small
@@ -135,7 +135,7 @@ size: lite</code></pre>
         <section id="validation" aria-labelledby="validation-title">
           <h2 id="validation-title">For developers and tool builders</h2>
           <p>YAML and JSON represent the same data. Use one document with unique keys, scalar strings, and an integer port. YAML aliases and custom tags are unsupported. Comments are welcome; they do not become launch data.</p>
-          <p>The <a href="/schemas/launch-manifest-0.1.json">draft 0.1 JSON Schema</a> validates canonical data: normalize a GitHub URL to <code>owner/repository</code> and trim scripts first. JSON Schema checks the mapping; the YAML parser must also reject duplicate keys, multiple documents, aliases, and unsupported tags. Mainbrella’s <a href="https://github.com/mainbrella/web/blob/7ea2144684b53795fd03bafb4a5523c867fd5de7/src/repo-run-config.ts">parser and validator</a> implement these import rules.</p>
+          <p>The <a href="/schemas/launch-manifest-0.1.json">draft 0.1 JSON Schema</a> validates canonical data: normalize a GitHub URL to <code>owner/repository</code> and trim scripts first. JSON Schema checks the mapping; the YAML parser must also reject duplicate keys, multiple documents, aliases, and unsupported tags. Mainbrella’s <a href="https://github.com/mainbrella/canopy/blob/7ea2144684b53795fd03bafb4a5523c867fd5de7/src/repo-run-config.ts">parser and validator</a> implement these import rules.</p>
           <p>To enable schema hints in a compatible editor, put this comment at the top of your YAML file:</p>
           <pre class="docs-code" tabindex="0" aria-label="YAML editor schema comment"><code># yaml-language-server: $schema=https://mainbrella.com/schemas/launch-manifest-0.1.json</code></pre>
           <p>Save a recipe as <code>mainbrella.yaml</code> if you like, then paste its contents into Mainbrella. Draft 0.1 is a launch request, so it includes <code>repo</code> even when saved inside that repository. Mainbrella does not automatically discover this file.</p>

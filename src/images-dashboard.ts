@@ -1,5 +1,5 @@
-import type { Image, ImageData } from './types.ts';
-import { API_ORIGIN } from './auth.ts';
+import type { Image, ImageData } from './container-types.ts';
+import { API_ORIGIN } from './platform.ts';
 
 const activeStatuses = ['queued', 'building', 'publishing'];
 const statusLabels: Record<string, string> = { queued: 'Queued', building: 'Building', publishing: 'Preparing to launch', ready: 'Ready', failed: 'Build failed' };

@@ -6,3 +6,8 @@ dist-builder/
 .env*
 !.env.example
 .DS_Store
+
+artifacts/
+
+.env.local
+.env.*.local

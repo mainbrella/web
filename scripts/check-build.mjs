@@ -25,6 +25,20 @@ export async function checkBuild(target, directory = target === 'builder' ? 'dis
     if (Object.keys(manifest).some(key => key.includes('@shikijs/'))) {
       assert.ok(entries.includes('projects/code/index.html'), 'Syntax grammars require the project code page');
     }
+    // Vite copies public/ before emitting HTML and chunks. A concurrent build
+    // can leave dist with only those public files when Wrangler scans it.
+    const pages = new Set(['index.html', 'login/index.html', ...Object.keys(manifest).filter(key => key.endsWith('.html'))]);
+    for (const page of pages) {
+      assert.ok(!page.includes('..') && !page.startsWith('/'), `Invalid page path: ${page}`);
+      const html = await readFile(resolve(directory, page), 'utf8');
+      assert.match(html, /<html\b/i, `Missing HTML document: ${page}`);
+      for (const [tag] of html.matchAll(/<(?:script|img|link)\b[^>]*>/gi)) {
+        if (tag.startsWith('<link') && !/rel="(?:stylesheet|modulepreload|icon)"/.test(tag)) continue;
+        const url = tag.match(/(?:src|href)="([^"]+)"/)?.[1];
+        if (!url || !url.startsWith('/') || url.startsWith('//')) continue;
+        await access(resolve(directory, url.slice(1).split(/[?#]/)[0]));
+      }
+    }
   }
   for (const chunk of Object.values(manifest)) {
     for (const file of [chunk.file, ...(chunk.css ?? []), ...(chunk.assets ?? [])]) {

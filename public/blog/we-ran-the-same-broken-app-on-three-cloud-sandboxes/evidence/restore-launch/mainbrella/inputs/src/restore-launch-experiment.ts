@@ -16,7 +16,7 @@ import type { Execution } from './providers/interface.ts';
 
 // Separate qualification of automatic startup; it does not change the matched
 // provider protocol or pretend a freshly launched worker inherits memory.
-const repository = fileURLToPath(new URL('../', import.meta.url));
+const repository = fileURLToPath(new URL('..', import.meta.url));
 const { values } = parseArgs({ options: { output: { type: 'string' } } });
 assert.ok(values.output, 'Use --output <new-directory>');
 assert.equal(process.versions.node, '22.22.2');

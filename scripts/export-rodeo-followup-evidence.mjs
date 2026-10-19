@@ -9,7 +9,9 @@ import { parseEnv } from 'node:util';
 // Read sealed local records only. This script never contacts a provider or
 // copies private receipts, browser traces, preview URLs, or credentials.
 const web = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const repository = resolve(process.argv[2] || join(web, '../repo-rodeo'));
+const repositoryPath = process.argv[2] || process.env.REPO_RODEO_PATH;
+if (!repositoryPath) throw new Error('Set REPO_RODEO_PATH or pass the repo-rodeo checkout as the first argument.');
+const repository = resolve(repositoryPath);
 const output = join(web, 'public/blog/we-ran-the-same-broken-app-on-three-cloud-sandboxes/evidence');
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const json = async path => JSON.parse(await readFile(path, 'utf8'));

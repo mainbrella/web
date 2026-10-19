@@ -4,17 +4,19 @@ import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { agentDocsPlugin } from "./scripts/agent-docs-plugin.ts";
 import { blogPaginationPlugin } from "./scripts/blog-pagination-plugin.ts";
 import { siteChromePlugin } from "./scripts/site-chrome-plugin.ts";
+import { boardPagesPlugin } from './examples/message-board/src/server-vite.ts';
 
 const publicPages = ['docs', 'docs/containers', 'docs/execute', 'docs/files', 'docs/images',
   'docs/ssh', 'docs/authentication', 'docs/limits', 'docs/errors', 'docs/api-reference',
   'docs/agent-setup', 'security', 'security/disclosure', 'contact', 'status', 'changelog',
-  'benchmarks', 'integrations', 'trust', 'subprocessors', 'platform', 'unsubscribe', 'repo-rodeo-bug',
-  'blog', 'blog/the-cloudflare-appstore-appflare-malware-audit', 'blog/many-businesses-in-a-box-under-this-brella', 'blog/automate-your-call-center', 'blog/app-store-connect-to-parsequerade', 'blog/ios-app-review-new-assets', 'blog/apples-app-store-connect-api-facelift', 'blog/ai-agent-linux-box', 'blog/we-ran-the-same-broken-app-on-three-cloud-sandboxes', 'blog/deep-dive-into-under-the-brella', 'blog/cloudflare-d1-r2-git-github-ftw', 'blog/lovable-style-builder-cloudflare-inference', 'blog/tabdance-good-enough-to-use', 'blog/tabdance-terminal-feel', 'blog/opencode-one-workspace', 'blog/open-swe-memory-and-machines', 'blog/open-your-mainbrella-with-two-hands', 'blog/when-it-rains-agents-bring-a-mainbrella', 'blog/new-batteries-for-the-batteries-included-agent-harness', 'blog/the-benefits-of-rain', 'blog/inside-our-brella', 'blog/virtual-companies-producing-reports', 'blog/account-owned-compute', 'blog/measuring-startup',
+  'benchmarks', 'integrations', 'trust', 'subprocessors', 'platform', 'vibe', 'bff', 'bff/demo', 'unsubscribe', 'repo-rodeo-bug',
+  'blog', 'blog/row-level-security-in-sqlite-on-cloudflare', 'blog/what-a-difference-search-images-make', 'blog/the-cloudflare-appstore-appflare-malware-audit', 'blog/many-businesses-in-a-box-under-this-brella', 'blog/automate-your-call-center', 'blog/app-store-connect-to-parsequerade', 'blog/ios-app-review-new-assets', 'blog/apples-app-store-connect-api-facelift', 'blog/ai-agent-linux-box', 'blog/we-ran-the-same-broken-app-on-three-cloud-sandboxes', 'blog/deep-dive-into-under-the-brella', 'blog/cloudflare-d1-r2-git-github-ftw', 'blog/lovable-style-builder-cloudflare-inference', 'blog/tabdance-good-enough-to-use', 'blog/tabdance-terminal-feel', 'blog/opencode-one-workspace', 'blog/open-swe-memory-and-machines', 'blog/open-your-mainbrella-with-two-hands', 'blog/when-it-rains-agents-bring-a-mainbrella', 'blog/new-batteries-for-the-batteries-included-agent-harness', 'blog/the-benefits-of-rain', 'blog/inside-our-brella', 'blog/virtual-companies-producing-reports', 'blog/account-owned-compute', 'blog/measuring-startup',
   'blog/safe-container-creation', 'blog/interactive-access', 'blog/custom-images',
   'compare', 'brand', 'press', 'careers', 'opensource', 'try', 'yaml',
   'e2b-alternative', 'daytona-alternative', 'cloudflare-sandbox'];
 
 const legacyPricingRoutes = ['builder', 'pro', 'scale'];
+let staging = false;
 
 // Preserve the public script URL while maintaining its source in TypeScript.
 async function homepageScript() {
@@ -22,11 +24,31 @@ async function homepageScript() {
   return (await transformWithEsbuild(source, 'homepage.ts', { loader: 'ts', target: 'es2022' })).code;
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   base: "/",
   publicDir: "public",
+  server: {
+    proxy: {
+      '/message-board-api': {
+        target: mode === 'local-api' ? 'http://localhost:8787' : 'https://api.mainbrella.com',
+        changeOrigin: true,
+        headers: { origin: mode === 'local-api' ? 'http://localhost:5173' : 'https://mainbrella.com' },
+        rewrite: path => path.replace(/^\/message-board-api/, ''),
+      },
+    },
+  },
   plugins: [
+    boardPagesPlugin({ templatePath: 'bff/demo/index.html', homeHref: '/bff/demo/' }),
     siteChromePlugin(),
+    {
+      name: 'staging-noindex',
+      configResolved(config) { staging = config.mode === 'staging'; },
+      generateBundle() {
+        if (!staging) return;
+        this.emitFile({ type: 'asset', fileName: 'robots.txt', source: 'User-agent: *\nDisallow: /\n' });
+        this.emitFile({ type: 'asset', fileName: '_headers', source: '/*\n  X-Robots-Tag: noindex, nofollow\n' });
+      },
+    },
     blogPaginationPlugin(),
     agentDocsPlugin(),
     {
@@ -89,7 +111,7 @@ export default defineConfig({
             return;
           }
           const match = request.url?.match(/^\/([^?]*[^/?])(\?.*)?$/);
-          const routes = ['pricing', 'balance', 'about', 'privacy', 'terms', 'login', 'profile', 'dashboard', 'build', 'voice', 'voice/app', 'projects', 'projects/code', 'api-keys', 'run', ...publicPages];
+          const routes = ['pricing', 'balance', 'about', 'privacy', 'terms', 'login', 'profile', 'dashboard', 'build', 'voice', 'voice/app', 'bff/app', 'projects', 'projects/code', 'api-keys', 'run', ...publicPages];
           if (!match || !routes.includes(match[1])) {
             next();
             return;
@@ -120,6 +142,7 @@ export default defineConfig({
         dashboard: fileURLToPath(new URL("./dashboard/index.html", import.meta.url)),
         voice: fileURLToPath(new URL("./voice/index.html", import.meta.url)),
         voiceApp: fileURLToPath(new URL("./voice/app/index.html", import.meta.url)),
+        bffApp: fileURLToPath(new URL("./bff/app/index.html", import.meta.url)),
         balance: fileURLToPath(new URL("./balance/index.html", import.meta.url)),
         projects: fileURLToPath(new URL("./projects/index.html", import.meta.url)),
         projectCode: fileURLToPath(new URL("./projects/code/index.html", import.meta.url)),
@@ -129,4 +152,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

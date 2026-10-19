@@ -1,8 +1,8 @@
-import type { ContainerIdentity, Container, ClientOptions, ObservabilityCapabilities } from './types.ts';
+import type { ContainerIdentity, Container, ClientOptions, ObservabilityCapabilities } from './container-types.ts';
 interface LifecycleEvent extends ContainerIdentity { sequence: number; occurredAt: string; type: string; reason?: string }
 interface LifecyclePage { events: LifecycleEvent[]; nextCursor: number; hasMore: boolean; historyTruncated: boolean }
 type ObservationResult<K> = K extends 'events' ? LifecyclePage : ReturnType<typeof workloadSummary>;
-import { API_ORIGIN } from './auth.ts';
+import { API_ORIGIN } from './platform.ts';
 import { createContainerWebhooks } from './container-webhooks.ts';
 const iso = (value: unknown) => typeof value === 'string' && Number.isFinite(Date.parse(value));
 const uuid = (value: unknown) => typeof value === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(value);

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="How Mainbrella BFF enforces row ownership in a Cloudflare Worker, keeps SQLite behind a protected API, and runs backend functions in JavaScript. Try editing Bob's message as Alice." />
+    <meta name="theme-color" content="#181a1b" />
+    <link rel="canonical" href="https://mainbrella.com/blog/row-level-security-in-sqlite-on-cloudflare/" />
+    <meta property="og:title" content="Row Level Security in SQLite on Cloudflare" />
+    <meta property="og:description" content="Supabase puts row policies inside PostgreSQL. Mainbrella BFF puts the guard in a Cloudflare Worker and lets you write backend logic in JavaScript. A working message board shows what that requires." />
+    <meta property="og:url" content="https://mainbrella.com/blog/row-level-security-in-sqlite-on-cloudflare/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:image" content="https://mainbrella.com/images/blog/row-level-security-in-sqlite-on-cloudflare/alice-editing-bob.png" />
+    <meta property="og:image:width" content="800" />
+    <meta property="og:image:height" content="730" />
+    <meta property="og:image:alt" content="Alice tries to save an edit to Bob's message. The live BFF demo displays permission_denied and preserves her draft." />
+    <meta property="article:published_time" content="2026-10-17T00:00:00-07:00" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/images/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/mainbrella.css" />
+    <link rel="stylesheet" href="/blog/inside-our-brella/article.css" />
+    <link rel="stylesheet" href="/blog/row-level-security-in-sqlite-on-cloudflare/article.css" />
+    <title>Row Level Security in SQLite on Cloudflare</title>
+  </head>
+  <body class="info-body brella-article-page">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- site-header -->
+    <main id="main" class="legal-content wrap inside-brella sqlite-rls-article">
+      <article>
+        <a class="article-back" href="/blog/">← Engineering blog</a>
+        <h1>Row Level Security in SQLite on Cloudflare</h1>
+        <p class="article-meta"><time datetime="2026-10-17">October 17, 2026</time> · Andrew Arrow</p>
+
+        <p>Alice should be able to edit her message. Bob should be able to edit his. Giving both of them an API to a shared table is easy; making sure neither can change the other's rows is the part you can't leave to the frontend.</p>
+        <p>Supabase makes this a database feature through PostgreSQL's row level security. We want that kind of developer experience on Cloudflare, with SQLite for the data and JavaScript for backend logic. In <a href="https://mainbrella.com/bff/">Mainbrella BFF</a>, we put a security guard in front of the database: a trusted Cloudflare Worker. SQLite doesn't know who's making an HTTP request. Our Worker does.</p>
+        <p>Moving the guard means taking responsibility for every route into the database. We run customer JavaScript separately from the Worker that holds database credentials, so those functions have to use the same protected API as the frontend.</p>
+
+        <h2 id="demo">Try editing somebody else's message</h2>
+        <p>Open the <a href="https://mainbrella.com/bff/demo/">message board demo</a>, choose Alice, and click <strong>Log in</strong>. Both Alice's and Bob's posts are readable. Every row has an <strong>Edit</strong> action, including the ones Alice doesn't own. Open Bob's message, change the text, and click <strong>Save message</strong>.</p>
+        <p>The request reaches the backend, which returns HTTP 403 with <code>permission_denied</code>. Bob's message stays as it was, and your unsaved text stays in the editor. This capture shows that attempt against the live demo:</p>
+        <figure class="article-figure demo-capture">
+          <a href="/images/blog/row-level-security-in-sqlite-on-cloudflare/alice-editing-bob.png" aria-label="Open the full-size screenshot of Alice's rejected edit to Bob's message">
+            <picture>
+              <source media="(max-width: 600px)" srcset="/images/blog/row-level-security-in-sqlite-on-cloudflare/alice-editing-bob-mobile.png" width="358" height="835" />
+              <img src="/images/blog/row-level-security-in-sqlite-on-cloudflare/alice-editing-bob.png" width="800" height="730" alt="The live message board is signed in as Alice. Bob's message is open in the editor with Alice's proposed change, and permission_denied appears above Save message." decoding="async" fetchpriority="high" />
+            </picture>
+          </a>
+        </figure>
+        <p>You can edit Alice's own message successfully. Log out, choose Bob, and their permissions reverse. Leaving the other user's Edit action available is deliberate: hiding a button would only demonstrate that we can hide a button. Here you can send the forbidden request and see the server refuse it.</p>
+        <p>The dropdown is a shortcut for this public example. It issues a real, expiring project user session for one of two fixed demo identities. General public signup and password login aren't part of this first version; other projects don't accept arbitrary user IDs from a browser as proof of identity.</p>
+
+        <h2 id="connect">Connect to the same table</h2>
+        <p>This is the connection code for that board. Paste it into your frontend to read the messages:</p>
+        <pre class="docs-code" tabindex="0" role="region" aria-label="Connect to the public BFF message board with JavaScript"><code>const config = {
+  "apiOrigin": "https://api.mainbrella.com",
+  "projectId": "90da3093-84b6-4cd7-a39a-a8afc39403b8",
+  "publicKey": "bff_pk_1f9bb9fd543d6a5476ad7ce210577c2479d290a5cdc06282de9eb884d57005c4",
+  "table": "messages"
+};
+
+const response = await fetch(
+  `${config.apiOrigin}/bff/data/${config.projectId}/tables/${config.table}?select=*`,
+  { headers: { apikey: config.publicKey }, credentials: 'omit' }
+);
+const result = await response.json();
+if (!response.ok) throw new Error(result.error || 'Could not load data.');
+const { data } = result;</code></pre>
+        <p>This key is intentionally public. It identifies the project and limits the operations available to the app; it doesn't identify Alice. The table explicitly allows public reads, so this request needs no login. Browser origins are also restricted by the key's configuration, so your own deployment needs a key configured for its origin. CORS isn't a substitute for permissions.</p>
+        <p>For a write, the demo also sends <code>Authorization: Bearer &lt;userToken&gt;</code>. The Worker checks that session, its expiry, and its project before accepting the user's identity. These sessions use random opaque tokens, with only their hashes stored server-side. Putting <code>user_id: "alice"</code> into a request body cannot sign you in as Alice.</p>
+
+        <h2 id="policy">The Worker adds the ownership condition</h2>
+        <p>The project owner configures a policy for <code>messages</code>. This is the current policy shape, expressed as JSON:</p>
+        <pre class="docs-code" tabindex="0" role="region" aria-label="Current message board row ownership policy"><code>{
+  "select": "public",
+  "insert": "own",
+  "update": "own",
+  "delete": "own",
+  "ownerColumn": "user_id"
+}</code></pre>
+        <p>The Worker checks the key's table grant and the saved policy on each operation. A missing policy denies app access. It validates table and column identifiers, checks that a configured ownership column exists, and builds SQL with bound values. The same engine can use a different ownership column in another project's table; we don't write a custom Worker for each schema.</p>
+        <p>Suppose Alice sends an update targeting Bob's row, <code>reply</code>. If she submits only the new body, the generated statement has this form:</p>
+        <pre class="docs-code" tabindex="0" role="region" aria-label="An update includes both the client filter and the trusted ownership condition"><code>UPDATE "messages" SET "body"=?
+WHERE "id" IS ? AND "user_id" IS ?
+RETURNING *
+
+<span class="code-comment">-- Parameters: ["Alice's proposed edit", "reply", "alice"]</span></code></pre>
+        <p>Bob's row fails the ownership condition, so zero rows change. Alice can pick a row ID, but the Worker supplies the identity parameter from her verified session. Even if her frontend sends no ownership filter, the Worker adds that last condition. The check and mutation happen in one statement, avoiding a separate read followed by a write that might race with another change.</p>
+        <p>The demo submits the original <code>user_id</code> along with the body. When Alice edits Bob's post, that value is <code>bob</code>, so the Worker rejects the ownership mismatch with 403 before sending an update to D1. Omitting the author field just reaches the zero-row case above. Neither request changes Bob's message.</p>
+        <div class="policy-table">
+          <table>
+            <thead><tr><th scope="col">Operation</th><th scope="col">What the Worker enforces</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Read</th><td>The board permits public reads. Tables without a policy stay closed to app callers.</td></tr>
+              <tr><th scope="row">Insert</th><td>Fill the owner from the session; reject a different supplied owner.</td></tr>
+              <tr><th scope="row">Update</th><td>Match an owned row and reject changes that transfer ownership.</td></tr>
+              <tr><th scope="row">Delete</th><td>Include the ownership condition in the delete statement.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Each project has its own D1 database. The trusted gateway selects it from server-side project records and sends parameterized queries through Cloudflare's account API. Account credentials stay in the gateway. D1 also supports <a href="https://developers.cloudflare.com/d1/worker-api/prepared-statements/">prepared statements through Worker bindings</a>, but we use the account API so new projects don't require redeploying static database bindings.</p>
+        <p>This is a small policy system today: public or denied reads, and own-row writes. Private todo lists would need own-row reads, too. Arbitrary SQL policy expressions, joins through the Data API, and a general field permission system aren't implemented. The API accepts a restricted set of table operations, rather than trying to make arbitrary client SQL safe by appending a string.</p>
+
+        <h2 id="javascript">Backend logic in JavaScript</h2>
+        <p>Supabase already has the row security feature we're borrowing from. A PostgreSQL update policy can express the same ownership rule with <code>USING</code> for the existing row and <code>WITH CHECK</code> for the resulting row. With RLS enabled, grants in place, and a SELECT policy allowing reads, the update policy looks like this:</p>
+        <pre class="docs-code" tabindex="0" role="region" aria-label="An equivalent PostgreSQL ownership policy for updates"><code>CREATE POLICY "Authors can edit their messages"
+ON messages FOR UPDATE TO authenticated
+USING ((SELECT auth.uid()) = user_id)
+WITH CHECK ((SELECT auth.uid()) = user_id);</code></pre>
+        <p>Those are <a href="https://supabase.com/docs/guides/database/postgres/row-level-security">SQL policy expressions</a>. More involved <a href="https://supabase.com/docs/guides/database/functions">database functions</a> can use PL/pgSQL, PostgreSQL's procedural language, with its own variables, branching, and control flow.</p>
+        <p>What I want from BFF is to keep the app's procedural backend logic in JavaScript. The message-board starter includes an <code>edit_message</code> function. After its sign-in and input checks, it does this:</p>
+        <pre class="docs-code" tabindex="0" role="region" aria-label="Excerpt from the starter JavaScript edit_message function"><code>return (await ctx.db.update(
+  'messages',
+  { id: input.id },
+  { body: input.body.trim() }
+)).results;</code></pre>
+        <p>There is no hand-written ownership filter in that function. The protected <code>ctx.db</code> API applies it using the caller's verified identity. A developer can add validation and branching in the language they already use for the frontend without remembering to copy a permission check into every database call. That's a big win for the kind of small app backend we're building.</p>
+        <p>Supabase also offers <a href="https://supabase.com/docs/guides/functions">TypeScript Edge Functions</a>, so it has a path for developers who prefer JavaScript, too. With BFF, we're choosing to put the managed permission engine and the API used by custom JavaScript on Cloudflare, with SQLite underneath.</p>
+        <p>Customer functions run in fresh Dynamic Workers, separate from our gateway. They receive a narrow database capability with <code>select</code>, <code>insert</code>, <code>update</code>, and <code>remove</code> methods. For an app caller, those methods go back through the same policy checks as direct table requests:</p>
+        <figure class="article-figure">
+          <picture>
+            <source media="(max-width: 600px)" srcset="/images/blog/row-level-security-in-sqlite-on-cloudflare/protected-paths-mobile.svg" width="350" height="602" />
+            <img src="/images/blog/row-level-security-in-sqlite-on-cloudflare/protected-paths.svg" width="800" height="376" alt="Browser table requests and isolated customer JavaScript calls converge at the trusted Worker, which checks grants, session, and policy before sending parameterized SQL to the project's D1 database. A direct route from customer JavaScript to D1 is blocked because it receives no database binding or credentials." loading="lazy" decoding="async" />
+          </picture>
+        </figure>
+        <p>We don't hand those functions an unrestricted D1 binding, account token, or raw SQL method. The runtime has an empty environment and <code>globalOutbound: null</code>, which <a href="https://developers.cloudflare.com/dynamic-workers/usage/egress-control/">blocks direct HTTP and TCP egress</a>. Database access starts at none and must be granted explicitly. A sandbox that hides another customer's memory but hands out an all-powerful database connection would miss the point.</p>
+        <p>The <a href="https://github.com/mainbrella/canopy/blob/56dc4d9/apps/bff/worker/capability.ts">database capability</a> lives in trusted code and carries the project and caller identity. Customer code gets methods it can call across the isolate boundary, not the credentials behind them. Owner-invoked functions and the owner's SQL editor retain administrative access; a public key or user session cannot select that role.</p>
+
+        <h2 id="tradeoff">SQLite won't catch a bypass for us</h2>
+        <p>PostgreSQL enforces RLS inside the database for roles subject to those policies. That protection can survive an application accidentally leaving a condition out of a query. There are <a href="https://www.postgresql.org/docs/current/ddl-rowsecurity.html">privileged exceptions</a>, including superusers and roles with <code>BYPASSRLS</code>, but the database owns the enforcement.</p>
+        <p>Our D1 database will execute whatever SQL the trusted gateway is authorized to send. Every app access path therefore has to pass through our checks, including calls from customer functions. A forgotten route with unrestricted database access would be a security bug. Parameterizing a query prevents values from becoming SQL syntax; it doesn't establish who owns the rows.</p>
+        <p>The recent <a href="https://github.com/mainbrella/canopy/commit/5214b84ba3588090fc0047dbd85c578aedb4686f">policy work</a> and <a href="https://github.com/mainbrella/canopy/commit/33e0ddfde0f07da897548179904094b89d0462ff">demo login change</a> make this concrete enough to try. The <a href="https://github.com/mainbrella/canopy/blob/56dc4d9/apps/bff/worker/policies.ts">shared authorization code</a> handles both routes. Expanding its query language means testing more ways to cross that line, especially joins, ownership changes, revoked sessions, and concurrent writes. Matching PostgreSQL's policy system is substantially more work than supporting this board.</p>
+        <p>I like the result we can show now: a frontend can read a shared table, a user can change their own rows, and a JavaScript function uses those same permissions. BFF's job is to make that ordinary on Cloudflare. <a href="https://mainbrella.com/bff/demo/">Log in as Alice and try Bob's Edit button</a>. Being able to send that request, and having the backend refuse it, is the behavior the rest of the product has to preserve.</p>
+      </article>
+    </main>
+    <!-- site-footer -->
+    <script type="module" src="/src/account-menu.ts"></script>
+  </body>
+</html>

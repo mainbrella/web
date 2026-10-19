@@ -1,6 +1,6 @@
-import { API_ORIGIN } from './auth.ts';
+import { API_ORIGIN } from './platform.ts';
 import { generationKey, privateNetworks, type PrivateNetwork } from './private-services.ts';
-import type { Container } from './types.ts';
+import type { Container } from './container-types.ts';
 
 export type EndpointTarget =
   | { kind: 'container'; id: string; createdAt: string; port: number }
