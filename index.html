@@ -6,21 +6,13 @@
     <style>html[data-home-session] body { display: none; }</style>
     <script>
       // Run before the body is parsed so returning users never see the homepage.
-      for (const storageName of ['localStorage', 'sessionStorage']) {
-        let choice;
-        try { choice = window[storageName].getItem('mainbrella-cookie-consent'); } catch { continue; }
-        if (choice !== 'accepted' && choice !== 'rejected') continue;
-        if (choice === 'accepted') {
-          document.documentElement.setAttribute('data-home-session', 'pending');
-          // Reveal the page if the session service or application scripts stall.
-          setTimeout(() => {
-            if (document.documentElement.getAttribute('data-home-session') === 'pending') {
-              document.documentElement.removeAttribute('data-home-session');
-            }
-          }, 8000);
+      document.documentElement.setAttribute('data-home-session', 'pending');
+      // Reveal the page if the session service or application scripts stall.
+      setTimeout(() => {
+        if (document.documentElement.getAttribute('data-home-session') === 'pending') {
+          document.documentElement.removeAttribute('data-home-session');
         }
-        break;
-      }
+      }, 8000);
     </script>
     <meta name="description" content="One open-source platform for apps, AI agents, and services on Cloudflare. Use Mainbrella's hosted apps today, or run your own platform with shared accounts and billing." />
     <meta name="theme-color" content="#071319" />
@@ -142,7 +134,6 @@
       </section>
     </main>
     <!-- site-footer -->
-    <!-- cookie-consent -->
     <script type="module" src="/src/account-menu.ts"></script>
   </body>
 </html>

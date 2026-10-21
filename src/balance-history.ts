@@ -510,6 +510,5 @@ window.addEventListener('auth-change', event => {
   void loadFull();
 });
 
-window.addEventListener('cookie-consent-change', () => { void loadFull(); });
 
 void loadFull();

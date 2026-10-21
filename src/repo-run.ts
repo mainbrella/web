@@ -6,7 +6,6 @@ import { repoSetupPrompt, validRepo } from './repo-run-prompt.ts';
 import { parseRepoRunConfig, stringifyRepoRunConfig, validateRepoRunConfig } from './repo-run-config.ts';
 import { streamRunOutput, type RunOutputStatus } from './repo-run-output.ts';
 import type { ContainerData } from './types.ts';
-import { captureRepository } from './acquisition-spine.ts';
 import { repoFundingUrl } from './repo-funding.ts';
 
 const element = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -436,7 +435,6 @@ async function copyPrompt(existing = false) {
   const copiedVersion = promptVersion;
   const copiedRepo = repo.value;
   const copiedText = text.value;
-  if (!privateRequested && validRepo(repo.value)) void captureRepository(repo.value, 'run_v1');
   button.disabled = true;
   note.textContent = '';
   try {
@@ -827,11 +825,6 @@ window.addEventListener('github-repository-ready', event => {
     importConfiguration();
   } else { updatePrompt(); preparePrompt(); }
 });
-window.addEventListener('cookie-consent-change', event => {
-  if (!launchMode && !tryFlow) return;
-  if ((event as CustomEvent).detail?.choice === 'accepted') { stopped = false; void init(); }
-  else { stopped = true; signIn(); element('run-progress').hidden = true; }
-});
 updatePrompt();
 preparePrompt();
 if (configId && !imported) {
@@ -839,4 +832,3 @@ if (configId && !imported) {
   element('run-import-status').className = 'dashboard-error';
 }
 if (launchMode || tryFlow) void init();
-if (!privateRequested && params.has('repo') && validRepo(repo.value)) void captureRepository(repo.value, 'run_v1');

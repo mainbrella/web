@@ -63,7 +63,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VITE_API_URL: ${{ vars.VITE_API_URL }}
           VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
-          VITE_GA_MEASUREMENT_ID: ${{ vars.VITE_GA_MEASUREMENT_ID }}
         run: node scripts/release.mjs "$RELEASE_TARGET" --execute
       - uses: actions/upload-artifact@v4
         if: always()

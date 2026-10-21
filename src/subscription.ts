@@ -1,8 +1,6 @@
 import type { User, PrepaidBalance, PrepaidBillingConfig } from './types.ts';
 import { readStorageBilling } from './storage-billing-data.ts';
 import { API_ORIGIN, createAuthClient } from './auth.ts';
-import { needsSignInCookies, signInCookieMessage } from './cookie-preferences.ts';
-import { trackConfirmedPayment, trackFunnel } from './acquisition-analytics.ts';
 import { dollarsToCents, formatBalance, readPrepaidBalance } from './prepaid-billing.ts';
 import { mountStripeEmbeddedCheckout } from './payments/stripeEmbeddedCheckout.ts';
 import { readCreditFunding, TRY_CREDIT_CENTS, TRY_PROMOTION_CODE, type CreditFunding } from './repo-funding.ts';
@@ -94,9 +92,8 @@ function readConfig(value: unknown): PrepaidBillingConfig | null {
     && Number.isSafeInteger(data.maxTopupCents) && data.maxTopupCents >= data.minTopupCents ? data : null;
 }
 async function api(path: string, body?: unknown) {
-  if (path !== '/billing/config' && needsSignInCookies()) throw new Error(signInCookieMessage);
   const response = await fetch(API_ORIGIN + path, {
-    credentials: needsSignInCookies() ? 'omit' : 'include',
+    credentials: 'include',
     method: body === undefined ? 'GET' : 'POST',
     headers: { accept: 'application/json', ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -248,7 +245,6 @@ async function completePayment(accountVersion: number, retryInForm = false) {
     url.searchParams.delete('topup_return');
     url.searchParams.delete('session_id');
     history.replaceState(null, '', url.pathname + url.search + url.hash);
-    trackConfirmedPayment(sessionId, 'prepaid');
     feedback(status, 'Payment confirmed. Your prepaid balance is ready.');
     if (destination && balance!.availableBalanceCents > 0) location.assign(destination);
   } catch (error) {
@@ -308,7 +304,7 @@ async function load(knownUser?: User | null) {
       feedback(status, 'Could not load your balance. Refresh to try again.', true);
     }
   } else if (session.status === 'fulfilled') {
-    feedback(status, needsSignInCookies() ? signInCookieMessage : 'Sign in to add prepaid balance.');
+    feedback(status, 'Sign in to add prepaid balance.');
   }
   if (accountVersion !== version) return;
   loading = false;
@@ -363,7 +359,6 @@ async function openCheckout() {
       || typeof data.client_secret !== 'string' || !data.client_secret.startsWith(`${data.sessionId}_secret_`)
       || typeof data.publishable_key !== 'string' || !/^pk_(test|live)_\S+$/.test(data.publishable_key)) throw new Error('invalid_checkout');
     rememberPending({ ...pendingTopup!, sessionId: data.sessionId });
-    trackFunnel('checkout_started', { plan: 'prepaid' });
     checkoutView.hidden = false;
     checkoutEmail.value = user.email || '';
     checkoutEmail.disabled = false;
@@ -508,7 +503,6 @@ refresh.addEventListener('click', async () => {
   } finally { if (accountVersion === version) { loading = false; render(); } }
 });
 window.addEventListener('auth-change', event => { void load(event.detail?.user); });
-window.addEventListener('cookie-consent-change', () => { void load(); });
 window.addEventListener('billing-balance-change', event => {
   if (!user || event.detail?.userId !== user.id) return;
   if (event.detail.balance) {

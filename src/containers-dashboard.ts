@@ -1,5 +1,4 @@
 import { containerLifecycle, hourlyCost, monthlyCost, type Lifecycle } from './dashboard-view.ts';
-import { trackMachineStart } from './platform.ts';
 import type { Container, ContainerData, ContainerIdentity, ContainerLimits, MachineSize, Image, ObservabilityCapabilities, PersistenceCapabilities } from './container-types.ts';
 import { API_ORIGIN } from './platform.ts';
 import { createContainerPreviews } from './container-previews.ts';
@@ -646,7 +645,6 @@ export function createContainersDashboard({ onUnauthenticated, getAccountId, lif
       const result = await request(method, id, createdAt);
       if (disposed) return;
       data = result;
-      if (method === 'POST') trackMachineStart(selectedSize());
       render();
       if (method === 'POST') { containerName.value = ''; launch.close(); }
       if (method === 'DELETE') refresh.focus();

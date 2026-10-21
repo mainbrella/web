@@ -1,5 +1,5 @@
 import { configureLinuxWeb } from './platform.ts';
-configureLinuxWeb({ apiOrigin: 'http://localhost:8787', trackMachineStart() {}, formatBalance: String });
+configureLinuxWeb({ apiOrigin: 'http://localhost:8787', formatBalance: String });
 import type { TestContext } from 'node:test';
 import test from 'node:test';
 import assert from 'node:assert/strict';

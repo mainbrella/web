@@ -1,10 +1,10 @@
 # Mainbrella first twenty active users
 
-Current funnel: `/try/` starts with a public repository and has no email gate; running a project requires an account and at least $5 in prepaid balance. The backend records nine authoritative acquisition and lifecycle events in D1. Do not add a browser ad conversion for `lead.captured`; repository capture and authenticated linking are browser inputs, while paid events come from the server. The GA subscription and funnel metrics below are legacy diagnostics, not the source of truth for payment or lifecycle reporting. See the [backend acquisition event spine](../../../backend/docs/acquisition.md). The older monthly-plan copy below predates the prepaid switch.
+Current funnel: `/try/` starts with a public repository and has no email gate; running a project requires an account and at least $5 in prepaid balance. The backend records nine authoritative acquisition and lifecycle events in D1. Browser repository capture, authenticated acquisition linking, campaign storage, and GA events were removed on October 21, 2026. Existing backend lifecycle and payment records remain available; browser lead-capture events are no longer submitted. See the [backend acquisition event spine](../../../backend/docs/acquisition.md). The older monthly-plan copy below predates the prepaid switch.
 
 Run one acquisition experiment around a clear offer: a Linux computer for an AI agent, started by API, with commands, files, SSH, browser terminals, and web previews, from $5/month. Aim for twenty developers who run a real workload and return to run it again. Count paid subscriptions separately from coupon trials.
 
-The landing pages and browser funnel events are implemented. GA4 needs a web-stream measurement ID before it collects these events. Outreach, creator bookings, ad spending, and the managed remote-agent product remain work to do.
+The landing pages are implemented. Browser funnel tracking is disabled and the GA4 measurement environment variable is no longer used. Outreach, creator bookings, ad spending, and the managed remote-agent product remain work to do.
 
 ## Landing pages and search campaigns
 
@@ -28,36 +28,17 @@ https://mainbrella.com/e2b-alternative/?utm_source=google&utm_medium=cpc&utm_cam
 
 The current comparison copy links to [E2B pricing](https://e2b.dev/pricing), [Daytona pricing](https://www.daytona.io/pricing), and [Cloudflare Containers documentation](https://developers.cloudflare.com/containers/). Recheck provider claims when changing ads or page copy. Avoid claims of universal savings, compatibility with competitor SDKs, unlimited compute, or an always-on coding agent.
 
-## Enable funnel reporting
+## Reporting
 
-1. Create a GA4 property and a web data stream for `https://mainbrella.com`. Copy its public `G-…` measurement ID into `VITE_GA_MEASUREMENT_ID` in `.env.local` or the build environment. See the root `.env.example`.
-2. Disable Enhanced Measurement for this stream so automatic page, outbound-link, and form events do not bypass the explicit event scheme or include raw URLs. The implementation sends page locations without query strings or fragments and strips referrer queries. It disables GA4 collection when consent is rejected, using [Google’s documented opt-out flag](https://developers.google.com/tag-platform/security/guides/privacy).
-3. Rebuild and deploy the website. Deploy the small backend email-auth response change as well; the new `created` flag distinguishes account creation from a returning email login. The existing Google response already supplies this flag. Without the backend update, email login works but email signups are not counted.
-4. Register event-scoped custom dimensions for `entry_page`, `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, and `creator`. `utm_term`, `plan`, `size`, and `placement` are available if needed. Campaign values must use letters, digits, underscores, and hyphens, up to 80 characters; use slugs rather than names or emails.
-5. Validate accepted and rejected consent in a test browser. With acceptance, check events in GA4 Realtime. With rejection, funnel events and acquisition storage remain disabled. For DebugView, use Google's Analytics Debugger browser extension. [Google event setup](https://developers.google.com/analytics/devguides/collection/ga4/events) describes verification and reporting.
-6. Create an open Funnel Exploration: `page_view` → `landing_engaged` → `quickstart_read` → `sign_up` → `payment_confirmed` → `machine_started`. Segment by `entry_page`, campaign, or creator. Also inspect each transition independently: users can legitimately skip Quickstart. Review `machine_return_next_day` separately as a retention measure. Mark `payment_confirmed` and `machine_started` as key events; optimize ads around starts once volumes permit.
+The website uses no browser advertising pixels, session replay, GA4, or stored
+campaign attribution. Do not re-enable the retired tracking scripts or consent
+banner. Cloudflare Web Analytics may be enabled through hosting for aggregate,
+cookieless website metrics. Verify payment with Stripe and activation with backend
+operational records. The browser no longer submits repository lead captures or
+links marketing tokens to accounts.
 
-| Event | Trigger |
-| --- | --- |
-| `page_view` | A page loads after consent, or consent is accepted on that page |
-| `landing_engaged` | Ten cumulative visible seconds on the homepage or one of the intent pages, after consent |
-| `quickstart_view` | `/docs/` loads after consent |
-| `quickstart_read` | Ten cumulative visible seconds on `/docs/`, an engagement proxy rather than proof of reading |
-| `cta_click` | A link to Builder checkout is clicked; `placement` records navigation, hero, footer, or content |
-| `sign_up` | Successful Google or email authentication returns `created: true` |
-| `login` | Successful authentication; returning users do not count as signups |
-| `checkout_started` | The server returns a valid Stripe checkout configuration |
-| `payment_confirmed` | Checkout completion returns an active subscription; a repeated checkout confirmation is deduplicated in this tab |
-| `dashboard_view` | A dashboard load authenticates successfully, once per page load |
-| `machine_started` | A dashboard create request succeeds |
-| `machine_returned` | A machine is started on a later UTC day than this account's first observed web start on this browser |
-| `machine_return_next_day` | That later start occurs on the immediately following UTC day |
-
-First-touch landing and campaign attribution applies for thirty days; expired records are replaced on a later consented visit. Browser records remain until replaced or cleared. Account IDs are pseudonymous GA4 User IDs; emails, passwords, commands, file contents, and Stripe checkout IDs are not event parameters. Checkout IDs are held locally only for duplicate suppression. Storage blocking, consent rejection, deleted storage, ad blockers, and device changes reduce coverage. Payment confirmation measures active subscription access, not exact charged revenue; reconcile actual revenue and discounts in Stripe.
-
-Browser `machine_started` counts dashboard starts. It cannot see an agent's direct API starts. Do not interpret a missing browser event as failed activation: verify API activity with the developer and backend account usage. Before optimizing a primarily API campaign, add authoritative successful-start and return-use measurement in the backend coordinator, with deduplication by account and container generation and attribution tied to signup. Avoid treating reserved starts as successful starts. Until that exists, the scorecard includes separate verified API and repeat-use columns.
-
-Ad impressions and clicks come from the ad platform. Keep their totals separate from consented website visitors; these denominators have different coverage. Compare daily unique users for funnel steps rather than raw event counts. Record daily results in [scorecard.csv](scorecard.csv).
+Ad impressions and clicks come from the ad platform and have different coverage
+from website metrics. Record results and verified repeat use in [scorecard.csv](scorecard.csv).
 
 ## Recruit developers with a current workload
 
@@ -111,7 +92,7 @@ The link sets `creator`, `utm_content`, and campaign `first20`; it does not crea
 
 | Day | Work | Evidence to retain |
 | --- | --- | --- |
-| 1 | Configure GA4, publish the pages and backend signup flag, verify consent and events, pause broad campaigns manually | Verified event flow and page destinations |
+| 1 | Publish the pages, verify cookieless hosting metrics and backend lifecycle records, pause broad campaigns manually | Verified page destinations and operational records |
 | 2 | Start one small E2B search experiment; recruit developers with a current task | Search terms, spend, first twenty conversations |
 | 3 | Help the first developers run their own jobs; invite suitable creator candidates | Actual workload results and onboarding failures |
 | 4 | Continue relevant conversations; agree five creator task briefs within the chosen budget | Qualified candidates, links, agreed scopes |

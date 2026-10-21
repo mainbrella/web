@@ -77,7 +77,7 @@ and reserved balance, monthly compute usage/cap, and optional automatic recharge
 with explicit consent and a separate monthly recharge limit. The account menu
 shows the current balance. Legacy plan URLs redirect to billing.
 
-Visitors who reject cookies can browse public pages. Login and account features show a cookie message with a “Change cookie choice” button that reopens the original two-choice dialog. Sign-in providers and advertising pixels wait for “Accept All”; rejection is remembered without a cookie.
+The website has no cookie consent banner or browser advertising, session-replay, or funnel tracking. Sign-in, payment, and essential security cookies remain available. Google Identity loads on login/profile pages; Stripe loads only when checkout opens. Shared page code removes legacy analytics records and known first-party Google/Clarity cookies without clearing sessions, payment retries, or drafts. Cloudflare Web Analytics can be enabled separately through Cloudflare’s hosting configuration without tracking cookies.
 
 Google login is available at `/login` (redirecting to `/login/`), using the same
 credentialed `/auth/me`, `/auth/google`, and `/auth/logout` flow as AHP Tour.
@@ -344,20 +344,17 @@ open roles. Add job listings only when real roles and hiring details are supplie
 ## Acquisition pages and funnel
 
 `/e2b-alternative/`, `/daytona-alternative/`, and `/cloudflare-sandbox/` target
-specific agent-compute search intents. Shared chrome loads consent-aware funnel
-tracking on public and application pages. Copy `.env.example` to `.env.local` and
-set `VITE_GA_MEASUREMENT_ID` to enable GA4 at build time; it remains disabled when
-that setting is empty. Disable GA4 Enhanced Measurement for this web stream and
-verify events before using them to evaluate a campaign.
+specific agent-compute search intents. Browser analytics and campaign attribution
+have been removed; `VITE_GA_MEASUREMENT_ID` is no longer used. Repository forms
+submit directly without acquisition capture or account linking. Use operational
+backend records and Stripe to verify activation and payment, and cookieless
+Cloudflare Web Analytics for aggregate website metrics when enabled in hosting.
 
-[The acquisition runbook](docs/acquisition/README.md) includes event definitions,
-coverage limits, ad copy, developer outreach, a creator brief, tracking CSVs, and a
-seven-day experiment. Generate creator links with
-`npm run acquisition:link -- creator_slug e2b youtube`.
-The small backend email-auth change supplies `created` for accurate new-account
-counts; deploy it with the web changes. Browser tracking covers dashboard machine
-starts; direct API activation still requires server-side measurement or manual
-verification. The [remote-agent plan](docs/acquisition/remote-agents.md) defines
+[The acquisition runbook](docs/acquisition/README.md) includes ad copy, developer
+outreach, a creator brief, tracking CSVs, and a seven-day experiment. Generate
+creator links with `npm run acquisition:link -- creator_slug e2b youtube`; the
+website does not persist their campaign parameters. The
+[remote-agent plan](docs/acquisition/remote-agents.md) defines
 the additional work required before promising laptop-independent coding agents.
 
 ## Internal networking copy

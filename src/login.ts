@@ -1,6 +1,4 @@
 import type { User } from './types.ts';
-import './cookie-consent.ts';
-import { needsSignInCookies, signInCookieMessage } from './cookie-preferences.ts';
 import { createAuthClient, GOOGLE_CLIENT_ID } from './auth.ts';
 
 const auth = createAuthClient();
@@ -19,7 +17,6 @@ const emailForm = document.querySelector<HTMLFormElement>('.email-login-form')!;
 const emailInput = document.querySelector<HTMLInputElement>('#login-email')!;
 const passwordInput = document.querySelector<HTMLInputElement>('#login-password')!;
 const emailSubmit = document.querySelector<HTMLButtonElement>('.email-login-submit')!;
-const cookieNotice = document.querySelector<HTMLElement>('.login-cookie-notice')!;
 const signInPrompt = 'Continue with Google or email and password.';
 
 let user: User | null = null;
@@ -44,7 +41,6 @@ function safeReturnTo(value: string | null) {
 start();
 
 async function start() {
-  if (showCookieNotice()) return;
   page.setAttribute('aria-busy', 'true');
   status.textContent = 'Checking your session…';
   try {
@@ -54,7 +50,6 @@ async function start() {
   } catch (caught) {
       const cause = caught instanceof Error ? caught : new Error("Unexpected error");
     showError(cause);
-    if (showCookieNotice()) return;
     provider.hidden = false;
     status.textContent = 'Could not check your session.';
     loadGoogleButton();
@@ -64,7 +59,6 @@ async function start() {
 }
 
 async function showCurrentState() {
-  if (showCookieNotice()) return;
   clearError();
   window.dispatchEvent(new CustomEvent('auth-change', { detail: { user } }));
   signedIn.hidden = !user;
@@ -80,7 +74,6 @@ async function showCurrentState() {
 }
 
 async function loadGoogleButton() {
-  if (showCookieNotice()) return;
   googleHost.replaceChildren();
   googleRetry.hidden = true;
   googleLoading.hidden = false;
@@ -88,7 +81,6 @@ async function loadGoogleButton() {
   googleHost.setAttribute('aria-busy', 'true');
   try {
     await loadGoogleIdentityScript();
-    if (showCookieNotice()) return;
     if (!window.google?.accounts?.id) throw new Error('Google sign-in is unavailable. Please retry.');
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
@@ -126,7 +118,7 @@ emailForm?.addEventListener('submit', async (event) => {
 });
 
 async function signIn(authenticate: () => Promise<{ user: User }>) {
-  if (showCookieNotice() || signingIn || signingOut || user) return;
+  if (signingIn || signingOut || user) return;
   signingIn = true;
   clearError();
   status.textContent = 'Signing in…';
@@ -187,24 +179,6 @@ window.addEventListener('auth-change', (event) => {
   if (event.detail?.user !== null || !user) return;
   user = null;
   showCurrentState();
-});
-
-function showCookieNotice() {
-  const blocked = needsSignInCookies();
-  cookieNotice.hidden = !blocked;
-  if (blocked) {
-    provider.hidden = true;
-    signedIn.hidden = true;
-    status.textContent = signInCookieMessage;
-    clearError();
-    page.setAttribute('aria-busy', 'false');
-  }
-  return blocked;
-}
-
-window.addEventListener('cookie-consent-change', async () => {
-  await start();
-  if (!provider.hidden) emailInput?.focus();
 });
 
 function showError(cause: unknown) {

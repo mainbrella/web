@@ -17,13 +17,13 @@ async function transform(filename: string, path: string) {
   return result;
 }
 
-test('blog chrome keeps reading navigation compact and cookie preferences reachable', () => {
+test('blog chrome keeps reading navigation compact without cookie controls', () => {
   for (const path of ['/blog/index.html', '/blog/we-ran-the-same-broken-app-on-three-cloud-sandboxes/index.html']) {
     const { header, footer } = siteChrome(path);
     assert.match(header, /class="site-header blog-header wrap"/);
     assert.match(header, /href="\/blog\/"[^>]*>Engineering blog<\/a>/);
     assert.doesNotMatch(header, /Start building|Sign in|platform-navigation/);
-    assert.match(footer, /data-cookie-settings aria-haspopup="dialog" aria-controls="cookie-consent">Cookie settings<\/button>/);
+    assert.doesNotMatch(footer, /data-cookie-settings|Cookie settings/);
   }
   const { header } = siteChrome('/docs/index.html');
   assert.match(header, /class="site-header platform-header wrap"/);
@@ -39,11 +39,11 @@ test('BFF composes its product-owned homepage with shared chrome and preview nav
   assert.match(html, /href="#developer-experience">Developer experience<\/a>/);
   assert.match(html, /href="#early-access">Get early access<\/a>/);
   assert.match(html, /mailto:support@mainbrella.com\?subject=Mainbrella%20BFF%20early%20access/);
-  assert.match(html, /id="cookie-consent" data-consent-prompt="optional"/);
+  assert.doesNotMatch(html, /cookie-consent|data-cookie-settings/);
   assert.doesNotMatch(html, /<!-- (?:bff-homepage|site-header|site-footer) -->/);
   assert.match(html, /src="\/src\/bff.ts"/);
   assert.match(html, /src="\/src\/account-menu.ts"/);
-  assert.match(html, /src="\/src\/acquisition.ts"/);
+  assert.match(html, /src="\/src\/privacy.ts"/);
   for (const path of ['/bff/', '/bff/index.html']) {
     const { header, footer } = siteChrome(path);
     assert.match(header, /href="#early-access"/);
@@ -61,8 +61,7 @@ test('BFF demo composes the standalone React example without authenticated works
   assert.match(html, /src="\/src\/bff-demo.ts"/);
   assert.match(html, /rel="stylesheet" href="\/src\/bff-demo.css"/);
   assert.doesNotMatch(html, /src="\/src\/main.tsx"/);
-  assert.match(html, /data-cookie-settings/);
-  assert.match(html, /id="cookie-consent" data-consent-prompt="optional"/);
+  assert.doesNotMatch(html, /cookie-consent|data-cookie-settings/);
   assert.doesNotMatch(html, /<!-- (?:bff-demo|message-board-cookie-settings) -->|app-navigation|Sign in/);
 });
 

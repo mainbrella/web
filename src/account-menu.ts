@@ -149,6 +149,5 @@ if (nav) {
       void refreshBalance();
     }
   });
-  window.addEventListener('cookie-consent-change', refresh);
   refresh();
 }

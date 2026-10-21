@@ -20,7 +20,7 @@ class Element {
   async fire(type: string, event: any = { preventDefault() {} }) { await this.listeners.get(type)?.(event); }
 }
 
-async function fixture(t: TestContext, { choice = 'rejected', profile = false } = {}) {
+async function fixture(t: TestContext, { choice = '', profile = false, signedIn = false } = {}) {
   const nodes = new Map<string, Element>();
   const node = (selector: string) => {
     if (profile && ['.email-login-form', '#login-email', '#login-password', '.email-login-submit'].includes(selector)) return null;
@@ -58,7 +58,7 @@ async function fixture(t: TestContext, { choice = 'rejected', profile = false } 
       appendChild(script: Element) {
         scripts.push(script.src);
         if (script.src === 'https://accounts.google.com/gsi/client') {
-          window.google = { accounts: { id: { initialize() {}, renderButton() {} } } };
+          window.google = { accounts: { id: { initialize() {}, renderButton() {}, disableAutoSelect() {} } } };
           setImmediate(() => script.fire('load'));
         }
       },
@@ -67,82 +67,47 @@ async function fixture(t: TestContext, { choice = 'rejected', profile = false } 
   property('fetch', async (url: string, options: RequestInit) => {
     const path = new URL(url).pathname;
     calls.push({ path, options });
-    return Response.json({ user: path === '/auth/me' ? null : { id: 'account', email: 'test@example.com' } });
+    if (path === '/auth/logout') return Response.json({ ok: true });
+    return Response.json({ created: true, user: path === '/auth/me' && !signedIn ? null : { id: 'account', email: 'test@example.com' } });
   });
-  // Give the actual modal a fresh DOM binding for each browser-page fixture.
-  const { registerHooks } = await import('node:module');
-  const hooks = registerHooks({
-    resolve(specifier, context, next) {
-      const result = next(specifier, context);
-      if (specifier === './cookie-consent.ts') return { ...result, url: result.url + '?login-test=' + sequence };
-      return result;
-    },
-  });
-  t.after(() => hooks.deregister());
   await import(`./login.ts?test=${++sequence}`);
   await new Promise(resolve => setImmediate(resolve));
   const flush = async () => { await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve)); };
-  return { node: (selector: string) => node(selector)!, stored, calls, scripts, redirects, flush,
-    async choose(nextChoice: string) {
-      await node('#cookie-consent')!.fire('click', { target: { closest: () => ({ dataset: { consent: nextChoice } }) } });
-      await flush();
-    },
-  };
+  return { node: (selector: string) => node(selector)!, stored, calls, scripts, redirects, flush };
 }
 
-test('rejection shows a login message without Google, tracking, or authenticated requests', async t => {
-  const f = await fixture(t);
-  assert.equal(f.node('.login-cookie-notice')!.hidden, false);
-  assert.equal(f.node('.login-provider')!.hidden, true);
-  assert.match(f.node('.login-status')!.textContent, /Change your cookie choice/);
-  assert.deepEqual(f.calls, [] as typeof f.calls);
-  assert.deepEqual(f.scripts, [] as string[]);
-  await f.node('.email-login-form')!.fire('submit');
-  await f.node('.google-retry')!.fire('click');
-  assert.deepEqual(f.calls, [] as typeof f.calls);
-  assert.deepEqual(f.scripts, [] as string[]);
+for (const choice of ['', 'accepted', 'rejected']) {
+  test(`sign-in works with ${choice || 'no'} legacy consent without loading tracking`, async t => {
+    const f = await fixture(t, { choice });
+    assert.equal(f.node('.login-provider').hidden, false);
+    assert.match(f.node('.login-status').textContent, /Continue with Google or email/);
+    assert.deepEqual(f.calls.map(call => call.path), ['/auth/me']);
+    assert.deepEqual(f.scripts, ['https://accounts.google.com/gsi/client']);
+    f.node('#login-email').value = 'test@example.com';
+    f.node('#login-password').value = 'password';
+    await f.node('.email-login-form').fire('submit');
+    assert.equal(f.calls.filter(call => call.path === '/auth/email').length, 1);
+    assert.ok(f.calls.every(call => call.options.credentials === 'include'));
+    assert.deepEqual(f.redirects, ['/pricing/pro/']);
+    assert.deepEqual(f.scripts, ['https://accounts.google.com/gsi/client']);
+  });
+}
+
+test('an existing profile session works after a legacy rejection without loading Google or trackers', async t => {
+  const f = await fixture(t, { profile: true, signedIn: true, choice: 'rejected' });
+  assert.equal(f.node('.login-signed-in').hidden, false);
+  assert.equal(f.node('.profile-email').textContent, 'test@example.com');
+  assert.deepEqual(f.calls.map(call => call.path), ['/auth/me']);
+  assert.deepEqual(f.scripts, []);
+});
+
+test('Google authentication and sign-out use only the essential session endpoints', async t => {
+  const f = await fixture(t, { choice: 'rejected' });
   const { createAuthClient } = await import('./auth.ts');
-  await assert.rejects(createAuthClient().signInWithEmail('test@example.com', 'password'), /cookie choice/);
-  await assert.rejects(createAuthClient().signInWithGoogle('credential'), /cookie choice/);
-  assert.deepEqual(f.calls, [] as typeof f.calls);
-});
-
-test('Change cookie choice reopens the two-choice modal and Accept All restores login and pixels', async t => {
-  const f = await fixture(t);
-  await f.node('[data-cookie-settings]')!.fire('click');
-  assert.equal(f.node('#cookie-consent')!.open, true);
-  await f.choose('rejected');
-  assert.deepEqual(f.calls, [] as typeof f.calls);
-  assert.deepEqual(f.scripts, [] as string[]);
-  await f.node('[data-cookie-settings]')!.fire('click');
-  await f.choose('accepted');
-  assert.equal(f.stored.get('mainbrella-cookie-consent'), 'accepted');
-  assert.equal(f.node('.login-cookie-notice')!.hidden, true);
-  assert.equal(f.node('.login-provider')!.hidden, false);
-  assert.ok(f.scripts.some(url => url.startsWith('https://www.googletagmanager.com/')));
-  assert.ok(f.scripts.some(url => url.startsWith('https://bzrcdn.openai.com/')));
-  assert.ok(f.scripts.includes('https://cdn.taboola.com/libtrc/unip/2122717/tfa.js'));
-  assert.ok(f.scripts.includes('https://accounts.google.com/gsi/client'));
-  f.node('#login-email')!.value = 'test@example.com';
-  f.node('#login-password')!.value = 'password';
-  await f.node('.email-login-form')!.fire('submit');
-  assert.equal(f.calls.filter(call => call.path === '/auth/email').length, 1);
-  assert.deepEqual(f.redirects, ['/pricing/pro/']);
-});
-
-test('profile rejection offers the same recovery path without loading Google', async t => {
-  const f = await fixture(t, { profile: true });
-  assert.equal(f.node('.login-cookie-notice')!.hidden, false);
-  assert.deepEqual(f.calls, [] as typeof f.calls);
-  assert.deepEqual(f.scripts, [] as string[]);
-});
-
-test('a direct first visit to login waits for the original cookie dialog before loading scripts', async t => {
-  const f = await fixture(t, { choice: '' });
-  assert.equal(f.node('#cookie-consent')!.open, true);
-  assert.deepEqual(f.calls, [] as typeof f.calls);
-  assert.deepEqual(f.scripts, [] as string[]);
-  await f.choose('rejected');
-  assert.equal(f.node('.login-cookie-notice')!.hidden, false);
-  assert.deepEqual(f.scripts, [] as string[]);
+  const auth = createAuthClient();
+  await auth.signInWithGoogle('credential');
+  await auth.signOut();
+  assert.deepEqual(f.calls.map(call => call.path), ['/auth/me', '/auth/google', '/auth/logout']);
+  assert.ok(f.calls.every(call => call.options.credentials === 'include'));
+  assert.deepEqual(f.scripts, ['https://accounts.google.com/gsi/client']);
 });

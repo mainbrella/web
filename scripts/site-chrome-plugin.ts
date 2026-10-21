@@ -97,20 +97,10 @@ export function siteChrome(path: string) {
       <a href="https://github.com/mainbrella" aria-label="Mainbrella on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.05c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.75.08-.74.08-.74 1.2.08 1.83 1.23 1.83 1.23 1.07 1.82 2.8 1.3 3.49.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.38 1.23-3.22-.12-.3-.53-1.52.12-3.17 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.29-1.23 3.29-1.23.66 1.65.25 2.87.13 3.17.77.84 1.23 1.91 1.23 3.22 0 4.62-2.8 5.64-5.48 5.94.43.37.81 1.1.81 2.22v3.14c0 .32.22.69.83.57A12 12 0 0 0 12 .5Z" /></svg></a>
       <a href="https://www.youtube.com/@mainbrella" aria-label="Mainbrella on YouTube"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8ZM9.6 15.5v-7l6.3 3.5-6.3 3.5Z" /></svg></a>
     </nav></div>
-    <nav class="footer-columns" aria-label="Footer navigation">${groups.map(([title, links]) => `<div><h2>${title}</h2>${links.map(item => link(item, path)).join('')}${(blog || bffLanding) && title === 'Legal' ? '<button class="footer-cookie-settings" type="button" data-cookie-settings aria-haspopup="dialog" aria-controls="cookie-consent">Cookie settings</button>' : ''}</div>`).join('')}</nav>
+    <nav class="footer-columns" aria-label="Footer navigation">${groups.map(([title, links]) => `<div><h2>${title}</h2>${links.map(item => link(item, path)).join('')}</div>`).join('')}</nav>
   </footer>`;
   return { header, footer };
 }
-
-const cookieDialog = `    <dialog class="cookie-consent" id="cookie-consent" aria-label="Cookie preferences" aria-describedby="cookie-consent-description">
-      <button class="cookie-consent-close" type="button" data-cookie-close aria-label="Close cookie preferences" hidden>×</button>
-      <p id="cookie-consent-description">This website uses cookies to measure and improve your experience. Read our <a href="/terms/" target="_blank" rel="noopener">Terms of Service<span class="visually-hidden"> (opens in a new tab)</span></a>.</p>
-      <div class="cookie-consent-actions">
-        <button class="button cookie-consent-reject" type="button" data-consent="rejected" autofocus>Reject All</button>
-        <button class="button" type="button" data-consent="accepted">Accept All</button>
-      </div>
-    </dialog>
-`;
 
 function appChrome(path: string) {
   const pages: [string, string][] = [
@@ -145,10 +135,9 @@ export function siteChromePlugin({ bundleAssets = false }: { bundleAssets?: bool
           const page = await readFile(new URL(import.meta.resolve('../examples/message-board/index.html')), 'utf8');
           html = html.replace('<!-- bff-demo -->', page
             .replace('src="/src/main.tsx"', 'src="/src/bff-demo.ts"')
-            .replace('href="/src/styles.css"', 'href="/src/bff-demo.css"')
-            .replace('<!-- message-board-cookie-settings -->', '<button class="cookie-settings" type="button" data-cookie-settings aria-haspopup="dialog" aria-controls="cookie-consent">Cookie settings</button>'));
+            .replace('href="/src/styles.css"', 'href="/src/bff-demo.css"'));
         }
-        // Unsubscribe and the isolated Repo Rodeo fixture run without shared chrome or a cookie dialog.
+        // Unsubscribe and the isolated Repo Rodeo fixture run without shared chrome.
         if (/^\/(?:unsubscribe|repo-rodeo-bug)\/(?:index\.html)?$/.test(context.path)) return html;
         html = await inlineCriticalStyles(html);
         if (html.includes('<!-- agent-setup -->')) {
@@ -159,20 +148,11 @@ export function siteChromePlugin({ bundleAssets = false }: { bundleAssets?: bool
         }
         const { header, footer } = siteChrome(context.path);
         html = html.replace('<!-- site-header -->', header).replace('<!-- site-footer -->', footer)
-          .replace('<!-- app-header -->', appChrome(context.path))
-          .replace('<!-- cookie-consent -->', cookieDialog);
-        // Every entry page needs a dialog, including pages without a placeholder.
-        if (!html.includes('id="cookie-consent"')) {
-          html = html.replace('</body>', `${cookieDialog}  </body>`);
-        }
-        // Reading product previews and the blog does not require a cookie decision. Measurement still requires consent.
-        if (context.path.startsWith('/blog/') || ['/bff/', '/bff/index.html', '/bff/demo/', '/bff/demo/index.html'].includes(context.path)) {
-          html = html.replace('id="cookie-consent"', 'id="cookie-consent" data-consent-prompt="optional"');
-        }
+          .replace('<!-- app-header -->', appChrome(context.path));
         // A separate static deployment bundles its own copy of shared images.
         if (bundleAssets) html = html.replaceAll('"/images/logo.png"', '"/public/images/logo.png"');
         if (staging) html = html.replaceAll('https://api.mainbrella.com', 'https://api-stg.mainbrella.com');
-        return html.replace('</body>', '<script type="module" src="/src/acquisition.ts"></script>\n  </body>');
+        return html.replace('</body>', '<script type="module" src="/src/privacy.ts"></script>\n  </body>');
       },
     },
   };

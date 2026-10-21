@@ -1,7 +1,6 @@
 import { API_ORIGIN, createAuthClient } from './auth.ts';
 import type { User, PrepaidBalance } from './types.ts';
 import { formatBalance, readPrepaidBalance } from './prepaid-billing.ts';
-import { trackFunnel } from './acquisition-analytics.ts';
 
 // Both independently built apps use the same session and funding lifecycle.
 export function initializeAccountPage({ load, dispose }: { load: (user: User) => void; dispose: () => void }) {
@@ -17,7 +16,6 @@ export function initializeAccountPage({ load, dispose }: { load: (user: User) =>
   let version = 0;
   let fundingVersion = 0;
   let currentUser: User | null = null;
-  let tracked = false;
 
   function goToLogin() {
     window.location.replace(`/login/?returnTo=${encodeURIComponent(location.pathname + location.search + location.hash)}`);
@@ -59,7 +57,6 @@ export function initializeAccountPage({ load, dispose }: { load: (user: User) =>
       if (!session?.user) { goToLogin(); return; }
       authenticated = true;
       currentUser = session.user;
-      if (!tracked) { trackFunnel('dashboard_view'); tracked = true; }
       window.dispatchEvent(new CustomEvent('auth-change', { detail: { user: session.user } }));
       content.hidden = false;
       status.hidden = true;

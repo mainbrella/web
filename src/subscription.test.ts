@@ -5,13 +5,12 @@ import { registerHooks } from 'node:module';
 import type { PrepaidBalance, User } from './types.ts';
 
 const mocks = globalThis as typeof globalThis & {
-  billingTestSession: () => Promise<{ user: User } | null>; billingTracking: string[];
+  billingTestSession: () => Promise<{ user: User } | null>;
   billingLoadStripe: () => Promise<any>;
 };
 registerHooks({ resolve(specifier, context, next) {
   const modules: Record<string, string> = {
     './auth.ts': "export const API_ORIGIN='https://api.test'; export const createAuthClient=()=>({readSession:()=>globalThis.billingTestSession()});",
-    './acquisition-analytics.ts': "export const trackFunnel=()=>{}; export const trackConfirmedPayment=id=>globalThis.billingTracking.push(id);",
     '@stripe/stripe-js/pure': "export const loadStripe=()=>globalThis.billingLoadStripe();",
   };
   if (modules[specifier]) return { url: `data:text/javascript,${encodeURIComponent(modules[specifier])}`, shortCircuit: true };
@@ -163,7 +162,6 @@ async function fixture(t: TestContext, extra: Record<string, any> = {}) {
     dispatchEvent: (event: Event) => events.get(event.type)?.(event),
   });
   mocks.billingTestSession = async () => { if (extra.authGate) await extra.authGate; return extra.signedOut ? null : { user: { id: 'owner', email: 'owner@example.com' } }; };
-  mocks.billingTracking = [];
   replace('fetch', async (url: string, options: RequestInit) => {
     const path = new URL(url).pathname;
     const body = options.body ? JSON.parse(options.body as string) : null;
@@ -374,13 +372,22 @@ test('try checkout does not replace another pending purchase', async t => {
   assert.match(f.node('topup-status').textContent, /Another top-up/);
 });
 
-test('signed-out and rejected-cookie visitors cannot add balance or fetch an account wallet', async t => {
+test('signed-out visitors cannot add balance or fetch an account wallet', async t => {
   const f = await fixture(t, { signedOut: true, consent: 'rejected' });
   assert.equal(f.node('prepaid-billing').hidden, true);
   assert.equal(f.node('billing-login').hidden, false);
   assert.equal(f.calls.some(call => call.path === '/billing/balance'), false);
   await f.node('topup-form').submit();
   assert.equal(f.calls.some(call => call.path === '/billing/topups'), false);
+});
+
+test('a legacy cookie rejection does not block an authenticated wallet or checkout', async t => {
+  const f = await fixture(t, { consent: 'rejected' });
+  assert.equal(f.node('prepaid-billing').hidden, false);
+  assert.ok(f.calls.some(call => call.path === '/billing/balance'));
+  await f.node('topup-form').submit();
+  assert.ok(f.calls.some(call => call.path === '/billing/topups'));
+  assert.ok(f.calls.every(call => call.credentials === 'include'));
 });
 
 test('top-up validates its minimum and decimal precision before checkout', async t => {
@@ -504,7 +511,6 @@ test('the inline form credits balance only after server payment verification', a
   assert.equal(f.node('inline-checkout').hidden, true);
   assert.equal(f.isDestroyed(), true);
   assert.equal(f.storage.size, 0);
-  assert.deepEqual(mocks.billingTracking, ['cs_test']);
   assert.equal(f.node('topup-submit').disabled, false);
   assert.deepEqual(f.redirects, []);
 });
@@ -690,7 +696,6 @@ test('retrying a pending inline confirmation verifies again without charging aga
   assert.equal(f.node('checkout-submit').textContent, 'Retry confirmation');
   assert.equal(f.node('checkout-submit').disabled, false);
   assert.equal(f.node('topup-submit').disabled, true);
-  assert.deepEqual(mocks.billingTracking, []);
   f.setCompletionError(null);
   await f.node('checkout-form').submit(); await tick();
   assert.equal(f.confirmations.length, 1);
@@ -709,7 +714,6 @@ test('Stripe payment errors stay inline and do not credit balance', async t => {
   assert.equal(f.node('checkout-submit').textContent, 'Pay $20.00');
   assert.equal(f.node('billing-balance').textContent, '$12.34');
   assert.equal(f.calls.some(call => call.path === '/billing/topups/complete'), false);
-  assert.deepEqual(mocks.billingTracking, []);
 });
 
 test('duplicate payment submits and closing the form are blocked during charging', async t => {
@@ -765,7 +769,6 @@ test('switching accounts during verification clears old payment state and ignore
   assert.equal(f.node('billing-balance').textContent, '$12.34');
   assert.equal(f.node('inline-checkout').hidden, true);
   assert.equal(f.node('topup-submit').disabled, false);
-  assert.deepEqual(mocks.billingTracking, []);
 });
 
 test('return confirms server-paid funds without starting a new checkout', async t => {
@@ -774,7 +777,6 @@ test('return confirms server-paid funds without starting a new checkout', async 
   assert.match(f.node('billing-status').textContent, /Payment confirmed/);
   assert.deepEqual(f.calls.find(call => call.path === '/billing/topups/complete')!.body, { sessionId: 'cs_paid' });
   assert.equal(f.calls.some(call => call.path === '/billing/topups'), false);
-  assert.deepEqual(mocks.billingTracking, ['cs_paid']);
 });
 
 test('a pending payment never adds available funds or emits a confirmed payment', async t => {
@@ -782,7 +784,6 @@ test('a pending payment never adds available funds or emits a confirmed payment'
   assert.equal(f.node('billing-balance').textContent, '$12.34');
   assert.equal(f.node('billing-available').textContent, '$10.00');
   assert.match(f.node('billing-status').textContent, /No funds have been added/);
-  assert.deepEqual(mocks.billingTracking, []);
 });
 
 test('a billing read failure shows unavailable balance and refresh can recover it', async t => {

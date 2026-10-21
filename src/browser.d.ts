@@ -5,21 +5,14 @@ type GoogleIdentity = {
   renderButton(host: HTMLElement, options: { type: string; theme: string; size: string; text: string; shape: string; logo_alignment: string; width: number }): void;
   disableAutoSelect(): void;
 };
-type PixelQueue = ((...args: unknown[]) => void) & { q: IArguments[] };
 
 declare global {
   interface Window {
     google?: { accounts?: { id?: GoogleIdentity } };
-    dataLayer: IArguments[];
-    gtag: (...args: unknown[]) => void;
-    oaiq: PixelQueue;
-    clarity: PixelQueue;
-    _tfa: { notify: string; name: string; id: number }[];
   }
   interface WindowEventMap {
     'auth-change': CustomEvent<{ user: User | null }>;
     'checkout-processing': CustomEvent<{ processing: boolean }>;
     'billing-balance-change': CustomEvent<{ userId: string; balance?: PrepaidBalance }>;
-    'cookie-consent-change': CustomEvent<{ choice: 'accepted' | 'rejected' }>;
   }
 }

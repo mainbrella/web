@@ -557,8 +557,6 @@ button:disabled { opacity: .65; cursor: wait; }
 .footer-columns a { display: flex; align-items: center; min-height: 44px; color: var(--muted); font-size: 13px; }
 .footer-columns a:hover { color: var(--blue); }
 .footer-columns a[aria-current="page"] { color: var(--ink); }
-.footer-cookie-settings { display: block; min-height: 44px; padding: 0; border: 0; color: var(--muted); background: transparent; font: inherit; font-size: 13px; cursor: pointer; }
-.footer-cookie-settings:hover { color: var(--blue); }
 /* critical:end */
 .sandbox-hero .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .sandbox-home .hero h1 { font-size: clamp(36px, 3.8vw, 52px); }
@@ -749,47 +747,6 @@ button:disabled { opacity: .65; cursor: wait; }
   .pricing-explanation .docs-table { min-width: 0; }
   .pricing-explanation .docs-table th, .pricing-explanation .docs-table td { padding: 12px 8px; }
 }
-
-/* Blog readers open preferences themselves; other pages preserve their first-visit prompt. */
-html.cookie-consent-open { overflow: hidden; }
-.cookie-consent {
-  position: fixed;
-  inset: auto auto max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
-  width: min(560px, calc(100% - 48px));
-  max-width: none;
-  max-height: calc(100dvh - 48px);
-  overflow-y: auto;
-  margin: 0;
-  padding: 24px;
-  border: 1px solid #59616d;
-  border-radius: 6px;
-  color: var(--ink);
-  background: var(--surface);
-}
-.cookie-consent::backdrop { background: rgb(0 0 0 / 45%); }
-.cookie-consent p { font: 18px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
-.cookie-consent a { color: var(--muted); text-decoration: underline; text-underline-offset: 4px; }
-.cookie-consent a:hover { color: var(--ink); }
-.cookie-consent-close { float: right; width: 44px; height: 44px; margin: -12px -12px 0 8px; padding: 0; border: 0; background: transparent; color: var(--muted); font: 28px/1 sans-serif; cursor: pointer; }
-.cookie-consent-close:hover { color: var(--ink); }
-.cookie-consent-close[hidden] { display: none; }
-.cookie-consent-actions { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 24px; }
-.cookie-consent .button { border: 0; font: inherit; font-size: 18px; cursor: pointer; }
-.cookie-consent-reject { background: var(--paper); }
-.cookie-consent-reject:hover { background: #20262e; }
-.cookie-consent .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-@media (max-width: 600px) {
-  .cookie-consent {
-    inset: auto auto max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-    width: calc(100% - 32px);
-    max-height: calc(100dvh - 32px);
-    padding: 20px;
-  }
-  .cookie-consent-actions { gap: 12px; }
-  .cookie-consent .button { flex: 1; padding-right: 12px; padding-left: 12px; }
-}
-
-.login-cookie-notice .text-link { display: block; width: fit-content; min-height: 44px; margin-top: 8px; padding: 8px 0; }
 
 /* Prepaid billing stays close to its values and controls. */
 .prepaid-page { max-width: 848px; }

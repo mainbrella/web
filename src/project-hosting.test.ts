@@ -1,5 +1,5 @@
 import { configureLinuxWeb } from './platform.ts';
-configureLinuxWeb({ apiOrigin: 'http://localhost:8787', trackMachineStart() {}, formatBalance: String });
+configureLinuxWeb({ apiOrigin: 'http://localhost:8787', formatBalance: String });
 import test from 'node:test';
 import assert from 'node:assert/strict';
 Object.defineProperty(globalThis, 'location', { value: { hostname: 'localhost' }, configurable: true });
