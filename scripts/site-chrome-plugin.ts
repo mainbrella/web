@@ -86,6 +86,9 @@ export function siteChrome(path: string) {
     <nav class="footer-links" aria-label="Footer navigation"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav>
   </footer>` };
   }
+  if (/^\/blog\/[^/]+\/(?:index\.html)?$/.test(path)) {
+    return { header, footer: '' };
+  }
   const groups: [string, [string, string][]][] = [
     ['Product', [['BFF backend', '/bff/'], ['Voice agents', '/voice/'], ['Containers', '/docs/containers/'], ['Images', '/docs/images/'], ['Pricing', '/pricing/'], ['Benchmarks', '/benchmarks/'], ['Platform', '/platform/'], ['Compare platforms', '/compare/'], ['E2B alternative', '/e2b-alternative/'], ['Daytona alternative', '/daytona-alternative/'], ['Cloudflare sandbox', '/cloudflare-sandbox/']]],
     ['Developers', [['Docs', '/docs/'], ['API reference', '/docs/api-reference/'], ['OpenAPI', 'https://api.mainbrella.com/docs'], ['Agent setup', '/docs/agent-setup/'], ['Integrations', '/integrations/'], ['Open source', '/opensource/'], ['GitHub', 'https://github.com/mainbrella'], ['Changelog', '/changelog/']]],
