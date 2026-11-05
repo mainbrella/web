@@ -1,0 +1,41 @@
+.archive-home .legal-content,
+.archive-home .site-footer {
+  max-width: 880px;
+}
+
+.archive-home .legal-content {
+  padding-top: 40px;
+  padding-bottom: 32px;
+}
+
+.archive-blog-link {
+  margin-top: 16px;
+  font-size: 16px;
+}
+
+.archive-home .article-list {
+  margin-top: 8px;
+}
+
+.archive-home .article-list h3 {
+  letter-spacing: 0;
+}
+
+.archive-home .article-list h3 a {
+  display: inline-block;
+  padding-block: 8px;
+}
+
+.archive-home .article-list h3 a:hover {
+  color: var(--ink);
+}
+
+.archive-home .article-list p {
+  margin-top: 0;
+}
+
+@media (max-width: 700px) {
+  .archive-home .legal-content {
+    padding-top: 24px;
+  }
+}

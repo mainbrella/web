@@ -3,137 +3,68 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>html[data-home-session] body { display: none; }</style>
-    <script>
-      // Run before the body is parsed so returning users never see the homepage.
-      document.documentElement.setAttribute('data-home-session', 'pending');
-      // Reveal the page if the session service or application scripts stall.
-      setTimeout(() => {
-        if (document.documentElement.getAttribute('data-home-session') === 'pending') {
-          document.documentElement.removeAttribute('data-home-session');
-        }
-      }, 8000);
-    </script>
-    <meta name="description" content="One open-source platform for apps, AI agents, and services on Cloudflare. Use Mainbrella's hosted apps today, or run your own platform with shared accounts and billing." />
-    <meta name="theme-color" content="#071319" />
+    <meta name="description" content="Mainbrella's hosted service has closed and is no longer accepting customers or sign-ups. Read the engineering blog about the former Cloudflare-based platform." />
+    <meta name="theme-color" content="#0d1014" />
     <link rel="canonical" href="https://mainbrella.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Mainbrella" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="https://mainbrella.com/" />
-    <meta property="og:title" content="Mainbrella — Almost anything. Under one brella." />
-    <meta property="og:description" content="Apps, AI agents, and services on Cloudflare. Use our hosted service, or choose your apps and run your own open-source platform." />
+    <meta property="og:title" content="Mainbrella has closed · Engineering blog &amp; project archive" />
+    <meta property="og:description" content="The Mainbrella hosted service is no longer running or accepting customers. The blog remains as a record of the project and its engineering." />
     <meta property="og:image" content="https://mainbrella.com/images/logo.png" />
     <meta property="og:image:alt" content="Mainbrella logo" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Mainbrella — Almost anything. Under one brella." />
-    <meta name="twitter:description" content="Apps, AI agents, and services on Cloudflare. Use our hosted service, or choose your apps and run your own open-source platform." />
+    <meta name="twitter:title" content="Mainbrella has closed · Engineering blog &amp; project archive" />
+    <meta name="twitter:description" content="The Mainbrella hosted service is no longer running or accepting customers. The blog remains as a record of the project and its engineering." />
     <meta name="twitter:image" content="https://mainbrella.com/images/logo.png" />
     <meta name="twitter:image:alt" content="Mainbrella logo" />
     <link rel="icon" href="/images/favicon.png" type="image/png" />
     <link rel="stylesheet" href="/mainbrella.css" />
-    <link rel="stylesheet" href="/platform-home.css" />
-    <title>Mainbrella — Almost anything. Under one brella.</title>
+    <link rel="stylesheet" href="/archive-home.css" />
+    <title>Mainbrella has closed · Engineering blog &amp; project archive</title>
   </head>
-  <body class="platform-home">
+  <body class="info-body archive-home">
     <a class="skip-link" href="#main">Skip to content</a>
     <!-- site-header -->
-    <main id="main" class="mb-main">
-      <section class="mb-hero" aria-labelledby="site-title">
-        <div class="mb-container mb-hero-copy">
-          <p class="mb-kicker">Open source. Built on Cloudflare.</p>
-          <h1 id="site-title">Run almost anything.<br /><span>Under one brella.</span></h1>
-          <p class="mb-intro">Apps, AI agents, and services. One platform with the accounts and billing built in. Use our hosted apps, or run your own on Cloudflare.</p>
-          <div class="mb-actions">
-            <a class="mb-button" href="#apps">Explore the apps <span aria-hidden="true">↓</span></a>
-            <a class="mb-text-link" href="#self-host">Run your own Mainbrella <span aria-hidden="true">↗</span></a>
-          </div>
-        </div>
+    <main id="main" class="legal-content wrap">
+      <h1>Mainbrella has closed</h1>
+      <p>The former Mainbrella.com hosted service is no longer running. Mainbrella is no longer an actively maintained business, and we are not accepting new customers or sign-ups.</p>
+      <p>The blog remains available as a record of the project and the engineering behind it.</p>
+      <a class="text-link archive-blog-link" href="/blog/">Read the engineering blog <span aria-hidden="true">→</span></a>
 
-        <div class="mb-container">
-          <div class="mb-umbrella" id="apps" role="group" aria-labelledby="umbrella-title" aria-describedby="umbrella-description">
-            <svg class="mb-canopy" viewBox="0 0 1120 210" preserveAspectRatio="none" fill="none" aria-hidden="true">
-              <path class="mb-canopy-fill" d="M12 198C79 78 299 12 560 12s481 66 548 186c-65-30-124-30-183 0-65-30-124-30-183 0-65-30-123-30-182 0-59-30-117-30-182 0-59-30-118-30-183 0-59-30-118-30-183 0Z" />
-              <path class="mb-rib" d="M560 12C398 39 271 99 195 198M560 12c-74 44-137 109-182 186M560 12c74 44 137 109 182 186M560 12c162 27 289 87 365 186" />
-              <path class="mb-canopy-outline" pathLength="1" d="M12 198C79 78 299 12 560 12s481 66 548 186c-65-30-124-30-183 0-65-30-124-30-183 0-65-30-123-30-182 0-59-30-117-30-182 0-59-30-118-30-183 0-59-30-118-30-183 0Z" />
-            </svg>
-            <div class="mb-platform-label">
-              <h2 id="umbrella-title">mainbrella</h2>
-              <p>Accounts <span aria-hidden="true">·</span> Authentication <span aria-hidden="true">·</span> Metering</p>
-              <div class="mb-billing"><span>Usage billing</span><span class="mb-billing-or">or</span><span>Subscription billing</span></div>
-            </div>
-            <svg class="mb-umbrella-handle" viewBox="0 0 100 240" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M75 0v191a34 34 0 0 1-68 0v-13" /></svg>
-            <p id="umbrella-description" class="visually-hidden">The Mainbrella core provides shared accounts, authentication, metering, and billing for the apps beneath it. Choose an available app to visit its landing page, or use the open-source platform to build your own.</p>
-            <ul class="mb-apps">
-              <li><a class="mb-app" href="/cloudflare-sandbox/">
-                <div class="mb-app-top"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3" /><path d="m7 9 3 3-3 3m6 0h4" /></svg><span class="mb-live">Available now</span></div>
-                <h3>Linux computers <span aria-hidden="true">↗</span></h3><p>A real machine for your agents.</p>
-              </a></li>
-              <li><a class="mb-app" href="/vibe/">
-                <div class="mb-app-top"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m8 5-6 7 6 7m8-14 6 7-6 7M14 3l-4 18" /></svg><span class="mb-live">Available now</span></div>
-                <h3>Vibe coding <span aria-hidden="true">↗</span></h3><p>Describe it. Build it. Preview it.</p>
-              </a></li>
-              <li><a class="mb-app" href="/voice/">
-                <div class="mb-app-top"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10v4m4-7v10m4-14v18m4-14v10m4-7v4" /></svg><span class="mb-live">Available now</span></div>
-                <h3>Voice agents <span aria-hidden="true">↗</span></h3><p>An AI receptionist on the line.</p>
-              </a></li>
-              <li><a class="mb-app" href="/bff/">
-                <div class="mb-app-top"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" /></svg><span>Product preview</span></div>
-                <h3>BFF <span aria-hidden="true">↗</span></h3><p>Database, auth, storage, and backend logic.</p>
-              </a></li>
-            </ul>
-          </div>
-          <p class="mb-cloudflare"><svg viewBox="0 0 28 20" fill="none" aria-hidden="true"><path d="M7 16h15a5 5 0 0 0 .1-10A7.5 7.5 0 0 0 8 5.5 5.3 5.3 0 0 0 7 16Z" /></svg><span>Powered by Cloudflare</span><span class="mb-cloudflare-services">Workers · Containers · D1 · R2 · Durable Objects · Workers AI</span></p>
-        </div>
+      <section aria-labelledby="about-title">
+        <h2 id="about-title">What Mainbrella was</h2>
+        <p>Mainbrella was an open-source platform built on Cloudflare for running apps, AI agents, and services. It brought together Linux computers for agents, an AI app builder, and voice receptionists, with shared accounts, authentication, and usage billing.</p>
       </section>
 
-      <section class="mb-section mb-foundation" id="platform" aria-labelledby="platform-title">
-        <div class="mb-container mb-foundation-grid">
-          <div><p class="mb-kicker">The shared platform</p><h2 id="platform-title">Pick the apps.<br />The plumbing is here.</h2><p class="mb-section-intro">Each app does its own job. Mainbrella gives them a common foundation, so every new service doesn’t mean starting a business from scratch.</p><a class="mb-text-link" href="/opensource/#architecture">Explore the architecture <span aria-hidden="true">→</span></a></div>
-          <dl class="mb-foundation-list">
-            <div><dt><span aria-hidden="true">01</span>Accounts &amp; access</dt><dd>Sign-in, customer accounts, ownership checks, and API keys for supported services.</dd></div>
-            <div><dt><span aria-hidden="true">02</span>Metering &amp; billing</dt><dd>Track what customers use. Share a prepaid balance across apps, or adapt subscription plans and prices for your own service.</dd></div>
-            <div><dt><span aria-hidden="true">03</span>Cloudflare underneath</dt><dd>Compute, storage, databases, and AI on the same stack. Deploy the platform in your account and choose which apps to offer.</dd></div>
-          </dl>
-        </div>
-      </section>
-
-      <section class="mb-section mb-roadmap" id="roadmap" aria-labelledby="roadmap-title">
-        <div class="mb-container">
-          <div class="mb-section-heading"><div><p class="mb-kicker">On the roadmap</p><h2 id="roadmap-title">More under the brella.</h2></div><p>Planned apps. Built to share the same foundation.</p></div>
-          <ul class="mb-roadmap-list">
-            <li><h3>Web scraping</h3><p>Turn websites into data your agents can use.</p></li>
-            <li><h3>Background jobs</h3><p>Schedule work, retry steps, and follow progress.</p></li>
-            <li><h3>Vector search</h3><p>Search documents and business knowledge by meaning.</p></li>
-            <li><h3>Databases &amp; app services</h3><p>Give apps a backend for accounts, records, and files.</p></li>
-            <li><h3>Collaborative editing</h3><p>Let people work together inside your apps.</p></li>
-            <li><h3>Transactional email</h3><p>Send confirmations, receipts, and updates.</p></li>
-          </ul>
-          <a class="mb-text-link" href="/blog/many-businesses-in-a-box-under-this-brella/">Read the plan: many businesses in a box <span aria-hidden="true">→</span></a>
-        </div>
-      </section>
-
-      <section class="mb-section mb-ways" id="self-host" aria-labelledby="ways-title">
-        <div class="mb-container">
-          <div class="mb-section-heading"><div><p class="mb-kicker">Your choice</p><h2 id="ways-title">Use our apps. Or run the whole thing.</h2></div></div>
-          <div class="mb-ways-grid">
-            <article class="mb-way mb-way-hosted">
-              <p class="mb-way-label">Mainbrella hosted</p><h3>We run it. You use it.</h3><p>Start using Linux computers, Vibe coding, and Voice today. One account and a shared balance. We handle the infrastructure.</p>
-              <p class="mb-price">$5 <span>to get started</span></p><p class="mb-price-note">Prepaid credit. No monthly subscription.</p>
-              <a class="mb-button" href="/login/?returnTo=%2Fdashboard%2F">Use Mainbrella <span aria-hidden="true">→</span></a>
-              <p class="mb-way-note">No Cloudflare account needed. <a href="/pricing/">See hosted pricing</a>.</p>
-            </article>
-            <article class="mb-way">
-              <p class="mb-way-label">Mainbrella open source</p><h3>Your apps. Your business.</h3><p>Run the platform in your own Cloudflare account. Pick your apps, set your prices, and use them yourself or serve your own customers.</p>
-              <p class="mb-price">$5<span>/month</span></p><p class="mb-price-note">Cloudflare Workers Paid starting plan.</p>
-              <a class="mb-button mb-button-secondary" href="/opensource/#self-host">Run your own Mainbrella <span aria-hidden="true">↗</span></a>
-              <p class="mb-way-note">GPLv3. No Mainbrella software fee. Setup, usage, and services such as telephony or payments are additional. <a href="https://developers.cloudflare.com/workers/platform/pricing/">Cloudflare pricing</a>.</p>
-            </article>
-          </div>
-        </div>
+      <section aria-labelledby="articles-title">
+        <h2 id="articles-title">From the blog</h2>
+        <p>These articles describe the project at the time they were written. References to hosted products, pricing, roadmaps, or signing up are historical.</p>
+        <ul class="article-list">
+          <li><article>
+            <h3><a href="/blog/many-businesses-in-a-box-under-this-brella/">Many businesses in a box under this brella</a></h3>
+            <p>The idea behind Mainbrella: apps and services sharing one Cloudflare foundation, and what was built versus planned.</p>
+          </article></li>
+          <li><article>
+            <h3><a href="/blog/deep-dive-into-under-the-brella/">Deep Dive into under the brella</a></h3>
+            <p>How the app builder connected AI-written code to checked builds, Linux workspaces, portable Git history, and enforced budgets.</p>
+          </article></li>
+          <li><article>
+            <h3><a href="/blog/we-ran-the-same-broken-app-on-three-cloud-sandboxes/">We ran the same broken app on three cloud sandboxes</a></h3>
+            <p>An experiment comparing repairs and saved state across Mainbrella, E2B, and Daytona.</p>
+          </article></li>
+          <li><article>
+            <h3><a href="/blog/automate-your-call-center/">Automate Your Call Center - Open Source run on Cloudflare Infra</a></h3>
+            <p>The design and running costs of the open-source voice receptionist.</p>
+          </article></li>
+          <li><article>
+            <h3><a href="/blog/row-level-security-in-sqlite-on-cloudflare/">Row Level Security in SQLite on Cloudflare</a></h3>
+            <p>How Mainbrella BFF enforced row ownership in a Worker backed by SQLite.</p>
+          </article></li>
+        </ul>
       </section>
     </main>
     <!-- site-footer -->
-    <script type="module" src="/src/account-menu.ts"></script>
   </body>
 </html>

@@ -11,11 +11,6 @@ const navigation: [string, string][] = [
   ['About', '/about/'],
 ];
 
-const homeNavigation: [string, string][] = [
-  ['Apps', '#apps'], ['Platform', '#platform'], ['Self-host', '#self-host'],
-  ['Docs', '/docs/'], ['Blog', '/blog/'],
-];
-
 const voiceNavigation: [string, string][] = [
   ['Product', '#product'], ['Costs', '#costs'], ['Compare', '#compare'],
   ['GitHub', 'https://github.com/mainbrella/backend#ai-receptionist'],
@@ -74,25 +69,31 @@ export function siteChrome(path: string) {
   const voiceLanding = path === '/voice/' || path === '/voice/index.html';
   const bffLanding = path === '/bff/' || path === '/bff/index.html';
   const blog = path.startsWith('/blog/');
-  const header = blog ? `<header class="site-header blog-header wrap">
+  const header = homepage || blog ? `<header class="site-header blog-header wrap">
     <a class="brand" href="/" aria-label="Mainbrella home"><img src="/images/logo.png" alt="" width="32" height="32" /><span>mainbrella</span></a>
     <nav aria-label="Blog navigation">${link(['Engineering blog', '/blog/'], path)}</nav>
   </header>` : `<header class="site-header platform-header wrap">
     <a class="brand" href="/" aria-label="Mainbrella home"><img src="/images/logo.png" alt="" width="44" height="44" /><span>mainbrella</span></a>
     <nav id="platform-navigation" aria-label="Main navigation">
-      ${(bffLanding ? bffNavigation : voiceLanding ? voiceNavigation : homepage ? homeNavigation : navigation).map(item => link(item, path)).join('\n      ')}
+      ${(bffLanding ? bffNavigation : voiceLanding ? voiceNavigation : navigation).map(item => link(item, path)).join('\n      ')}
       <a class="login-link" href="${voiceLanding ? '/login/?returnTo=%2Fvoice%2Fapp%2F' : '/login/'}">Sign in</a>
-      <a class="button button-small" href="${bffLanding ? '#early-access' : voiceLanding ? '/voice/app/' : homepage ? '#apps' : '/pricing/usage/'}">${bffLanding ? 'Get early access' : voiceLanding ? 'Open Voice' : homepage ? 'Explore apps' : 'Start building'}</a>
+      <a class="button button-small" href="${bffLanding ? '#early-access' : voiceLanding ? '/voice/app/' : '/pricing/usage/'}">${bffLanding ? 'Get early access' : voiceLanding ? 'Open Voice' : 'Start building'}</a>
     </nav>
   </header>`;
+  if (homepage) {
+    return { header, footer: `<footer class="site-footer wrap">
+    <p>Mainbrella · Project archive</p>
+    <nav class="footer-links" aria-label="Footer navigation"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav>
+  </footer>` };
+  }
   const groups: [string, [string, string][]][] = [
-    ['Product', homepage ? [['Linux computers', '/cloudflare-sandbox/'], ['Vibe coding', '/vibe/'], ['BFF backend', '/bff/'], ['Voice agents', '/voice/'], ['Planned apps', '#roadmap'], ['Pricing', '/pricing/'], ['Platform', '/platform/']] : [['BFF backend', '/bff/'], ['Voice agents', '/voice/'], ['Containers', '/docs/containers/'], ['Images', '/docs/images/'], ['Pricing', '/pricing/'], ['Benchmarks', '/benchmarks/'], ['Platform', '/platform/'], ['Compare platforms', '/compare/'], ['E2B alternative', '/e2b-alternative/'], ['Daytona alternative', '/daytona-alternative/'], ['Cloudflare sandbox', '/cloudflare-sandbox/']]],
+    ['Product', [['BFF backend', '/bff/'], ['Voice agents', '/voice/'], ['Containers', '/docs/containers/'], ['Images', '/docs/images/'], ['Pricing', '/pricing/'], ['Benchmarks', '/benchmarks/'], ['Platform', '/platform/'], ['Compare platforms', '/compare/'], ['E2B alternative', '/e2b-alternative/'], ['Daytona alternative', '/daytona-alternative/'], ['Cloudflare sandbox', '/cloudflare-sandbox/']]],
     ['Developers', [['Docs', '/docs/'], ['API reference', '/docs/api-reference/'], ['OpenAPI', 'https://api.mainbrella.com/docs'], ['Agent setup', '/docs/agent-setup/'], ['Integrations', '/integrations/'], ['Open source', '/opensource/'], ['GitHub', 'https://github.com/mainbrella'], ['Changelog', '/changelog/']]],
     ['Company', [['About', '/about/'], ['Contact', '/contact/'], ['Engineering blog', '/blog/'], ['Press', '/press/'], ['Careers', '/careers/'], ['Security', '/security/'], ['Trust center', '/trust/'], ['Status', '/status/']]],
     ['Legal', [['Privacy', '/privacy/'], ['Terms', '/terms/'], ['Acceptable use', '/terms/#acceptable-use'], ['Subprocessors', '/subprocessors/'], ['DPA availability', '/trust/#dpa'], ['Vulnerability disclosure', '/security/disclosure/']]],
   ];
   const footer = `<footer class="site-footer platform-footer wrap">
-    <div class="footer-intro"><a class="footer-brand" href="/">mainbrella</a><p>${bffLanding ? 'Everything behind your app. Nothing to deploy.' : voiceLanding ? 'Open-source voice agents. Your infrastructure.' : homepage ? 'Apps, agents, and services. Under one brella.' : 'Cloud computers for AI agents.'}</p><p>Mainbrella Co. · Sole proprietorship<br />Andrew Arrow · Culver City, California</p><nav class="footer-socials" aria-label="Social media">
+    <div class="footer-intro"><a class="footer-brand" href="/">mainbrella</a><p>${bffLanding ? 'Everything behind your app. Nothing to deploy.' : voiceLanding ? 'Open-source voice agents. Your infrastructure.' : 'Cloud computers for AI agents.'}</p><p>Mainbrella Co. · Sole proprietorship<br />Andrew Arrow · Culver City, California</p><nav class="footer-socials" aria-label="Social media">
       <a href="https://www.tiktok.com/@mainbrella" aria-label="Mainbrella on TikTok"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.71 4.1 1.08 1.08 2.57 1.63 4.1 1.71v3.91c-1.53-.08-3.02-.63-4.1-1.71-.58-.58-1.03-1.28-1.34-2.05v9.03c0 1.72-.68 3.37-1.9 4.59a6.5 6.5 0 0 1-4.59 1.9c-1.72 0-3.37-.68-4.59-1.9a6.5 6.5 0 0 1-1.9-4.59c0-1.72.68-3.37 1.9-4.59a6.5 6.5 0 0 1 4.59-1.9c.32 0 .65.02.97.07v4.02a2.6 2.6 0 1 0 1.25 2.22V.02z" /></svg></a>
       <a href="https://github.com/mainbrella" aria-label="Mainbrella on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.05c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.75.08-.74.08-.74 1.2.08 1.83 1.23 1.83 1.23 1.07 1.82 2.8 1.3 3.49.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.38 1.23-3.22-.12-.3-.53-1.52.12-3.17 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.29-1.23 3.29-1.23.66 1.65.25 2.87.13 3.17.77.84 1.23 1.91 1.23 3.22 0 4.62-2.8 5.64-5.48 5.94.43.37.81 1.1.81 2.22v3.14c0 .32.22.69.83.57A12 12 0 0 0 12 .5Z" /></svg></a>
       <a href="https://www.youtube.com/@mainbrella" aria-label="Mainbrella on YouTube"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8ZM9.6 15.5v-7l6.3 3.5-6.3 3.5Z" /></svg></a>
